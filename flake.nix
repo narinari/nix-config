@@ -36,15 +36,13 @@
           }
         ];
       };
-    }
-    // flake-utils.lib.eachSystem [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" ] (localSystem: {
       pkgs = import nixpkgs {
-        inherit localSystem;
+        system = "aarch64-darwin";
         overlays = [
-          self.inputs.emacs-overlay
+          self.inputs.emacs-overlay.overlay
         ];
         config.allowUnfree = true;
         config.allowAliases = true;
       };
-    });
+    };
 }
