@@ -31,6 +31,9 @@
         modules = [
           home-manager.darwinModules.home-manager
           ./hosts/FL4N2RD4TD/default.nix
+          {
+            nixpkgs.overlays = [ (import self.inputs.emacs-overlay) ];
+          }
         ];
       };
     }
