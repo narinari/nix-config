@@ -2,7 +2,7 @@
   description = "My first nix flake";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-22.11-darwin";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     flake-utils.url = "github:numtide/flake-utils";
 
@@ -31,18 +31,15 @@
         modules = [
           home-manager.darwinModules.home-manager
           ./hosts/FL4N2RD4TD/default.nix
-          {
-            nixpkgs.overlays = [ (import self.inputs.emacs-overlay) ];
-          }
         ];
-      };
-      pkgs = import nixpkgs {
-        system = "aarch64-darwin";
-        overlays = [
-          self.inputs.emacs-overlay.overlay
-        ];
-        config.allowUnfree = true;
-        config.allowAliases = true;
+        pkgs = import nixpkgs {
+          system = "aarch64-darwin";
+          overlays = [
+            self.inputs.emacs-overlay.overlay
+          ];
+          config.allowUnfree = true;
+          config.allowAliases = true;
+        };
       };
     };
 }
