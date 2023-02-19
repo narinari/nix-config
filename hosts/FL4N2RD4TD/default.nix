@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, config, lib, ... }:
 {
   # Nix configuration ------------------------------------------------------------------------------
   nix = {
@@ -68,6 +68,30 @@
       autoUpdate = true;
     };
 
+    taps = [
+      "goldeneggg/lsec2"
+      "koekeishiya/formulae"
+    ];
+
+    brews = [
+      "automake"
+      "coreutils"
+      "asdf"
+      "mecab"
+      "yadm"
+      "goldeneggg/lsec2/lsec2"
+      {
+        name = "koekeishiya/formulae/skhd";
+        start_service = true;
+        restart_service = "changed";
+      }
+      {
+        name = "koekeishiya/formulae/yabai";
+        start_service = true;
+        restart_service = "changed";
+      }
+    ];
+
     casks = [
       "keycastr"
       "the-unarchiver"
@@ -88,6 +112,12 @@
   system.defaults.dock = {
     autohide = true;
     orientation = "right";
+  };
+
+  users.users.narinari = {
+    name = "narinari";
+    home = "/Users/narinari"; # need only on macos https://github.com/LnL7/nix-darwin/issues/423
+    shell = lib.mkIf config.programs.zsh.enable pkgs.zsh;
   };
 
   home-manager = {

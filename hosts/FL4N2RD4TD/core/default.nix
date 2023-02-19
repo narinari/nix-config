@@ -90,6 +90,7 @@ in
       # utils
       coreutils
       findutils
+      gnugrep # macos ships with outdated version
 
       # cool cli tools
       kalker # calc
