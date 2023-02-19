@@ -11,7 +11,7 @@ let
   });
 in
 {
-  # imports = [
+  imports = [
   #   ./atuin.nix
   #   ./btop.nix
   #   ./git.nix
@@ -19,8 +19,8 @@ in
   #   ./ssh.nix
   #   ./tmux.nix
   #   ./xdg.nix
-  #   ./zsh.nix
-  # ];
+    ./zsh.nix
+  ];
 
   home = {
     username = "narinari";
@@ -88,6 +88,9 @@ in
       rnix-lsp # nix lsp server
 
       # utils
+      coreutils
+      findutils
+
       # cool cli tools
       kalker # calc
       neofetch
@@ -143,6 +146,9 @@ in
       cargo-sweep
       # cargo-tarpaulin # aarch64 not support
       cargo-udeps
+
+      # haskell
+      stack
 
       # games
       # starsector
