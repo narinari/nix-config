@@ -274,20 +274,57 @@ in
     navi.enable = true;
     sqls.enable = true;
 
-
     bashmount.enable = true;
 
     ssh = {
       enable = true;
       controlMaster = "auto";
       controlPersist = "10m";
-      hashKnownHosts = true;
+      hashKnownHosts = false;
+      userKnownHostsFile = "/dev/null";
+      serverAliveInterval = 300;
+
+      includes = [ "${./ssh/work/config}" ];
 
       extraOptionOverrides = {
-        AddKeysToAgent = "confirm";
         VerifyHostKeyDNS = "ask";
+        VisualHostKey = "no";
+        StrictHostKeyChecking = "no";
+        # for macos
+        AddKeysToAgent = "yes";
+        UseKeychain = "yes";
+        HostkeyAlgorithms = "+ssh-rsa";
+        PubkeyAcceptedAlgorithms = "+ssh-rsa";
+      };
+
+      matchBlocks = {
+        "*" = {
+          sendEnv = ["COLORTERM"];
+        };
+
+        "github.com.private" = {
+          hostname = "github.com";
+          user = "git";
+          port = 22;
+          identityFile = "~/.ssh/narinari.t/id_ed25519";
+          identitiesOnly = true;
+
+          extraOptions = {
+            TCPKeepAlive = "yes";
+          };
+        };
+
+        "github.com" = {
+          user = "git";
+          identitiesOnly = true;
+
+          extraOptions = {
+            TCPKeepAlive = "yes";
+          };
+        };
       };
     };
+
     tealdeer.enable = true;
     zoxide.enable = true;
     nushell.enable = false;
