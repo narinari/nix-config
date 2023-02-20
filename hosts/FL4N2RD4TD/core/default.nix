@@ -13,7 +13,7 @@ in
 {
   imports = [
     #   ./atuin.nix
-    #   ./btop.nix
+    ./btop.nix
     #   ./git.nix
     #   ./emacs.nix
     #   ./ssh.nix
