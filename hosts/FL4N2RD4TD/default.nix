@@ -1,18 +1,12 @@
-{ pkgs, config, lib, ... }:
-{
+{ pkgs, config, lib, ... }: {
   # Nix configuration ------------------------------------------------------------------------------
   nix = {
     settings = {
-      substituters= [
-        "https://cache.nixos.org/"
-      ];
-      trusted-public-keys = [
-        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-      ];
+      substituters = [ "https://cache.nixos.org/" ];
+      trusted-public-keys =
+        [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
 
-      trusted-users = [
-        "@admin"
-      ];
+      trusted-users = [ "@admin" ];
     };
 
     configureBuildUsers = true;
@@ -32,7 +26,7 @@
 
   # Installs a version of nix, that dosen't need "experimental-features = nix-command flakes" in /etc/nix/nix.conf
   #services.nix-daemon.package = pkgs.nixFlakes;
-  
+
   # if you use zsh (the default on new macOS installations),
   # you'll need to enable this so nix-darwin creates a zshrc sourcing needed environment changes
   programs.zsh.enable = true;
@@ -41,9 +35,7 @@
   # Apps
   # `home-manager` currently has issues adding them to `~/Applications`
   # Issue: https://github.com/nix-community/home-manager/issues/1341
-  environment.systemPackages = with pkgs; [
-    terminal-notifier
-  ];
+  environment.systemPackages = with pkgs; [ terminal-notifier ];
 
   programs.nix-index.enable = true;
 
@@ -67,10 +59,7 @@
       autoUpdate = true;
     };
 
-    taps = [
-      "goldeneggg/lsec2"
-      "koekeishiya/formulae"
-    ];
+    taps = [ "goldeneggg/lsec2" "koekeishiya/formulae" ];
 
     brews = [
       "automake"
@@ -115,7 +104,8 @@
 
   users.users.narinari = {
     name = "narinari";
-    home = "/Users/narinari"; # need only on macos https://github.com/LnL7/nix-darwin/issues/423
+    home =
+      "/Users/narinari"; # need only on macos https://github.com/LnL7/nix-darwin/issues/423
     shell = lib.mkIf config.programs.zsh.enable pkgs.zsh;
   };
 
@@ -124,10 +114,5 @@
     useUserPackages = true;
     verbose = true;
   };
-  home-manager.users.narinari = {
-    imports = [
-      ./core
-      ./dev
-    ];
-  };
+  home-manager.users.narinari = { imports = [ ./core ./dev ]; };
 }

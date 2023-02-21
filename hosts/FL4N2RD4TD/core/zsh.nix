@@ -31,9 +31,9 @@
           ${pkgs.coreutils}/bin/numfmt --to=iec-i
       }
 
-      bindkey "$${terminfo[khome]}" beginning-of-line
-      bindkey "$${terminfo[kend]}" end-of-line
-      bindkey "$${terminfo[kdch1]}" delete-char
+      bindkey "$''${terminfo[khome]}" beginning-of-line
+      bindkey "$''${terminfo[kend]}" end-of-line
+      bindkey "$''${terminfo[kdch1]}" delete-char
       bindkey '\eOA' history-substring-search-up
       bindkey '\eOB' history-substring-search-down
       bindkey "^[[A" history-substring-search-up
@@ -52,13 +52,12 @@
 
       source ${pkgs.fzf-git-sh}/share/fzf-git-sh/fzf-git.sh
     '';
-    sessionVariables = {
-      RPROMPT = "";
-    };
+    sessionVariables = { RPROMPT = ""; };
     shellAliases = {
       cat = "${pkgs.bat}/bin/bat";
       man = "${pkgs.bat-extras.batman}/bin/batman";
-      less = ''${pkgs.bat}/bin/bat --paging=always --pager "${pkgs.less}/bin/less -RF"'';
+      less = ''
+        ${pkgs.bat}/bin/bat --paging=always --pager "${pkgs.less}/bin/less -RF"'';
       j = "${pkgs.just}/bin/just";
       ".j" = "${pkgs.just}/bin/just --justfile ~/.user.justfile";
       ntp-google = "sudo ${pkgs.ntp}/bin/ntpdate time.google.com";

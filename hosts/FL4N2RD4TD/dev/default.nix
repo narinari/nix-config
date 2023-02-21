@@ -1,5 +1,4 @@
-{ lib, pkgs, ... }:
-{
+{ lib, pkgs, ... }: {
   home = {
     extraOutputsToInstall = [ "doc" "devdoc" ];
     file.gdbinit = {

@@ -9,8 +9,8 @@ let
       sha256 = "sha256-Mux0n8uBnh9R+llA/XAVsfcDWIDxoaQkkSuhoSpIhl4=";
     };
   });
-in
-{
+in {
+
   imports = [
     #   ./atuin.nix
     ./btop.nix
@@ -84,6 +84,7 @@ in
       nixpkgs-review
       nix-update
       nixpkgs-fmt
+      nixfmt
       nixos-shell
       manix
       rnix-lsp # nix lsp server
@@ -238,18 +239,11 @@ in
       tmux.enableShellIntegration = true;
       tmux.shellIntegrationOptions = [ "-d 40%" ];
       defaultCommand = "fd --type f";
-      defaultOptions = [
-        "--height 40%"
-        "--border"
-      ];
+      defaultOptions = [ "--height 40%" "--border" ];
       changeDirWidgetCommand = "fd --type d"; # alt+c
-      changeDirWidgetOptions = [
-        "--preview 'tree -C {} | head -200'"
-      ];
+      changeDirWidgetOptions = [ "--preview 'tree -C {} | head -200'" ];
       fileWidgetCommand = "fd --type f";
-      fileWidgetOptions = [
-        "--preview 'head {}'"
-      ];
+      fileWidgetOptions = [ "--preview 'head {}'" ];
       colors = {
         bg = "#1e1e1e";
         "bg+" = "#1e1e1e";
@@ -285,9 +279,7 @@ in
       };
 
       matchBlocks = {
-        "*" = {
-          sendEnv = ["COLORTERM"];
-        };
+        "*" = { sendEnv = [ "COLORTERM" ]; };
 
         "github.com.private" = {
           hostname = "github.com";
@@ -296,18 +288,14 @@ in
           identityFile = "~/.ssh/narinari.t/id_ed25519";
           identitiesOnly = true;
 
-          extraOptions = {
-            TCPKeepAlive = "yes";
-          };
+          extraOptions = { TCPKeepAlive = "yes"; };
         };
 
         "github.com" = {
           user = "git";
           identitiesOnly = true;
 
-          extraOptions = {
-            TCPKeepAlive = "yes";
-          };
+          extraOptions = { TCPKeepAlive = "yes"; };
         };
       };
     };
@@ -320,25 +308,29 @@ in
     emacs = {
       enable = true;
       package = pkgs.emacsPgtk.overrideAttrs (old: {
-        patches = (old.patches or []) ++ [
+        patches = (old.patches or [ ]) ++ [
           # Fix OS window role (needed for window managers like yabai)
           (pkgs.fetchpatch {
-            url = "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-28/fix-window-role.patch";
+            url =
+              "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-28/fix-window-role.patch";
             sha256 = "+z/KfsBm1lvZTZNiMbxzXQGRTjkCFO4QPlEK35upjsE=";
           })
           # Use poll instead of select to get file descriptors
           (pkgs.fetchpatch {
-            url = "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-29/poll.patch";
+            url =
+              "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-29/poll.patch";
             sha256 = "jN9MlD8/ZrnLuP2/HUXXEVVd6A+aRZNYFdZF8ReJGfY=";
           })
           # Enable rounded window with no decoration
           (pkgs.fetchpatch {
-            url = "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-29/round-undecorated-frame.patch";
+            url =
+              "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-29/round-undecorated-frame.patch";
             sha256 = "qPenMhtRGtL9a0BvGnPF4G1+2AJ1Qylgn/lUM8J2CVI=";
           })
           # Make Emacs aware of OS-level light/dark mode
           (pkgs.fetchpatch {
-            url = "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-28/system-appearance.patch";
+            url =
+              "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-28/system-appearance.patch";
             sha256 = "oM6fXdXCWVcBnNrzXmF0ZMdp8j0pzkLE66WteeCutv8=";
           })
         ];

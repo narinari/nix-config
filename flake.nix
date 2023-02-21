@@ -34,25 +34,20 @@
       inputs.flake-utils.follows = "flake-utils";
     };
   };
-  
+
   # add the inputs declared above to the argument attribute set
   outputs = { self, nixpkgs, home-manager, darwin, flake-utils, ... }@inputs:
-    let
-      system = "aarch64-darwin";
-    in
-      flake-utils.lib.eachDefaultSystem (system: {
-        devShells.default = import ./nix/dev-shell.nix inputs system;
+    let system = "aarch64-darwin";
+    in flake-utils.lib.eachDefaultSystem (system: {
+      devShells.default = import ./nix/dev-shell.nix inputs system;
 
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [
-            self.inputs.emacs-overlay.overlay
-          ];
-          config.allowUnfree = true;
-          config.allowAliases = true;
-        };
-      }) //
-    {
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [ self.inputs.emacs-overlay.overlay ];
+        config.allowUnfree = true;
+        config.allowAliases = true;
+      };
+    }) // {
       darwinConfigurations."FL4N2RD4TD" = darwin.lib.darwinSystem {
         inherit system;
         modules = [
@@ -61,9 +56,7 @@
         ];
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [
-            self.inputs.emacs-overlay.overlay
-          ];
+          overlays = [ self.inputs.emacs-overlay.overlay ];
           config.allowUnfree = true;
           config.allowAliases = true;
         };
