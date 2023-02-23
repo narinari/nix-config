@@ -4,7 +4,23 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
+
+    deploy-rs = {
+      url = "github:serokell/deploy-rs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        utils.follows = "flake-utils";
+        flake-compat.follows = "flake-compat";
+      };
+    };
+
     flake-utils.url = "github:numtide/flake-utils";
+
+    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
     sops-nix = {
       url = "github:Mic92/sops-nix";
@@ -36,18 +52,25 @@
   };
 
   # add the inputs declared above to the argument attribute set
-  outputs = { self, nixpkgs, home-manager, darwin, flake-utils, ... }@inputs:
+  outputs =
+    { self, nixpkgs, home-manager, darwin, flake-utils, ragenix, ... }@inputs:
     let system = "aarch64-darwin";
-    in flake-utils.lib.eachDefaultSystem (system: {
-      devShells.default = import ./nix/dev-shell.nix inputs system;
+    in flake-utils.lib.eachDefaultSystem
+      (system: {
+        checks = import ./nix/checks.nix inputs system;
 
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [ self.inputs.emacs-overlay.overlay ];
-        config.allowUnfree = true;
-        config.allowAliases = true;
-      };
-    }) // {
+        devShells.default = import ./nix/dev-shell.nix inputs system;
+
+        pkgs = import nixpkgs
+          {
+            inherit system;
+            overlays = [ self.inputs.emacs-overlay.overlay ];
+            config.allowUnfree = true;
+            config.allowAliases = true;
+          } // {
+          inherit (ragenix.packages.${system}) ragenix;
+        };
+      }) // {
       darwinConfigurations."FL4N2RD4TD" = darwin.lib.darwinSystem {
         inherit system;
         modules = [

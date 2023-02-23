@@ -10,7 +10,7 @@ mkShell {
   nativeBuildInputs = [
     # Nix
     cachix
-    deploy-rs.deploy-rs
+    deploy-rs
     nix-build-uncached
     nixpkgs-fmt
     ragenix
@@ -21,6 +21,7 @@ mkShell {
     # stylua
     # (luajit.withPackages (p: with p; [ luacheck ]))
     # sumneko-lua-language-server
+
     # Shell
     shellcheck
     shfmt
@@ -36,6 +37,7 @@ mkShell {
     pre-commit
     rage
     sops
+    git
   ];
 
   shellHook = ''
