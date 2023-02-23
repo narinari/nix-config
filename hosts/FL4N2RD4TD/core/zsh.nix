@@ -69,6 +69,10 @@
         file = "p10k.zsh";
       }
       {
+        name = "work-config";
+        src = lib.cleanSource ./work-config;
+      }
+      {
         name = "zsh-you-should-use";
         src = pkgs.zsh-you-should-use;
       }

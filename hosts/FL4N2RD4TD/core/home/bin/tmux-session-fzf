@@ -1,0 +1,10 @@
+#!/usr/bin/env zsh
+
+[[ -e ~/.zsh/plugins/fzf.zsh ]] && . ~/.zsh/plugins/fzf.zsh
+
+if [ -n "$TMUX" ]; then
+  SELECTED="$(tmux list-sessions | fzf-tmux | cut -d : -f 1)"
+  if [ -n "$SELECTED" ]; then
+    tmux switch -t $SELECTED
+  fi
+fi

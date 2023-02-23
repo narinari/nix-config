@@ -1,0 +1,4 @@
+0=${(%):-%N}
+source ${0:A:h}/aws.zsh
+source ${0:A:h}/alpha.zsh
+source ${0:A:h}/ocean.zsh

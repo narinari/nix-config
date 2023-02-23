@@ -220,6 +220,14 @@ in {
       iterm2
       # xquartz
     ];
+
+    sessionPath = [ "$HOME/.local/bin" ];
+
+    file.".local/bin" = {
+      source = ./home/bin;
+      recursive = true;
+      executable = true;
+    };
   };
 
   programs = {
@@ -237,9 +245,10 @@ in {
     fzf = {
       enable = true;
       tmux.enableShellIntegration = true;
-      tmux.shellIntegrationOptions = [ "-d 40%" ];
-      defaultCommand = "fd --type f";
-      defaultOptions = [ "--height 40%" "--border" ];
+      tmux.shellIntegrationOptions = [ "-p 80%" ];
+      defaultCommand = ''rg --files --hidden --glob "!.git"'';
+      defaultOptions =
+        [ "--height 40%" "--border" "--reverse" "--inline-info" ];
       changeDirWidgetCommand = "fd --type d"; # alt+c
       changeDirWidgetOptions = [ "--preview 'tree -C {} | head -200'" ];
       fileWidgetCommand = "fd --type f";
