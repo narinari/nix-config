@@ -10,7 +10,7 @@ with self.pkgs.${system};
     hooks = {
       actionlint.enable = true;
       # luacheck.enable = true;
-      nixpkgs-fmt = {
+      nixfmt = {
         enable = true;
         excludes = [ "hardware-configuration.*.nix" ];
       };

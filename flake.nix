@@ -55,22 +55,20 @@
   outputs =
     { self, nixpkgs, home-manager, darwin, flake-utils, ragenix, ... }@inputs:
     let inherit (self) outputs;
-    in flake-utils.lib.eachDefaultSystem
-      (system: {
-        checks = import ./nix/checks.nix inputs system;
+    in flake-utils.lib.eachDefaultSystem (system: {
+      checks = import ./nix/checks.nix inputs system;
 
-        devShells.default = import ./nix/dev-shell.nix inputs system;
+      devShells.default = import ./nix/dev-shell.nix inputs system;
 
-        pkgs = import nixpkgs
-          {
-            inherit system;
-            overlays = [ self.inputs.emacs-overlay.overlay ];
-            config.allowUnfree = true;
-            config.allowAliases = true;
-          } // {
-          inherit (ragenix.packages.${system}) ragenix;
-        };
-      }) // {
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [ self.inputs.emacs-overlay.overlay ];
+        config.allowUnfree = true;
+        config.allowAliases = true;
+      } // {
+        inherit (ragenix.packages.${system}) ragenix;
+      };
+    }) // {
       darwinConfigurations."FL4N2RD4TD" = darwin.lib.darwinSystem {
         system = flake-utils.lib.system.aarch64-darwin;
         modules = [
