@@ -54,7 +54,7 @@
   # add the inputs declared above to the argument attribute set
   outputs =
     { self, nixpkgs, home-manager, darwin, flake-utils, ragenix, ... }@inputs:
-    let system = "aarch64-darwin";
+    let inherit (self) outputs;
     in flake-utils.lib.eachDefaultSystem
       (system: {
         checks = import ./nix/checks.nix inputs system;
@@ -72,13 +72,13 @@
         };
       }) // {
       darwinConfigurations."FL4N2RD4TD" = darwin.lib.darwinSystem {
-        inherit system;
+        system = flake-utils.lib.system.aarch64-darwin;
         modules = [
           home-manager.darwinModules.home-manager
           ./hosts/FL4N2RD4TD/default.nix
         ];
         pkgs = import nixpkgs {
-          inherit system;
+          system = flake-utils.lib.system.aarch64-darwin;
           overlays = [ self.inputs.emacs-overlay.overlay ];
           config.allowUnfree = true;
           config.allowAliases = true;
