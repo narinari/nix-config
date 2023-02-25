@@ -102,6 +102,17 @@
     orientation = "right";
   };
 
+  # Secrets
+  age = {
+    identityPaths = [
+      "/Users/narinari/.ssh/id_ed25519"
+      "/Users/narinari/.ssh/narinari.t/id_ed25519"
+    ];
+    secrets.work_env = {
+      file = ../../secrets/work/env.age;
+      owner = "narinari";
+    };
+  };
   users.users.narinari = {
     name = "narinari";
     home =
@@ -114,5 +125,8 @@
     useUserPackages = true;
     verbose = true;
   };
-  home-manager.users.narinari = { imports = [ ./core ./dev ]; };
+  home-manager.users.narinari = {
+    imports =
+      [ (import ./core { inherit (config.age.secrets) work_env; }) ./dev ];
+  };
 }

@@ -27,9 +27,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    ragenix = {
-      url = "github:yaxitech/ragenix";
-      inputs.flake-utils.follows = "flake-utils";
+    agenix = {
+      url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -53,7 +52,7 @@
 
   # add the inputs declared above to the argument attribute set
   outputs =
-    { self, nixpkgs, home-manager, darwin, flake-utils, ragenix, ... }@inputs:
+    { self, nixpkgs, home-manager, darwin, flake-utils, agenix, ... }@inputs:
     let inherit (self) outputs;
     in flake-utils.lib.eachDefaultSystem (system: {
       checks = import ./nix/checks.nix inputs system;
@@ -66,13 +65,14 @@
         config.allowUnfree = true;
         config.allowAliases = true;
       } // {
-        inherit (ragenix.packages.${system}) ragenix;
+        inherit (agenix.packages.${system}) agenix;
       };
     }) // {
       darwinConfigurations."FL4N2RD4TD" = darwin.lib.darwinSystem {
         system = flake-utils.lib.system.aarch64-darwin;
         modules = [
           home-manager.darwinModules.home-manager
+          agenix.darwinModules.default
           ./hosts/FL4N2RD4TD/default.nix
         ];
         pkgs = import nixpkgs {

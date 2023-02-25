@@ -1,3 +1,4 @@
+{ work_env }:
 { config, lib, pkgs, ... }: {
   programs.zsh = {
     enable = true;
@@ -51,6 +52,7 @@
       ${pkgs.any-nix-shell}/bin/any-nix-shell zsh | source /dev/stdin
 
       source ${pkgs.fzf-git-sh}/share/fzf-git-sh/fzf-git.sh
+      source ${work_env.path}
     '';
     sessionVariables = { RPROMPT = ""; };
     shellAliases = {
