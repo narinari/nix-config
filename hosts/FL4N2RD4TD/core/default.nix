@@ -1,4 +1,3 @@
-{ work_env }:
 { pkgs, ... }:
 let
   saml2aws_2_36_0 = pkgs.saml2aws.overrideAttrs (oldAttrs: rec {
@@ -20,7 +19,7 @@ in {
     #   ./ssh.nix
     ./tmux.nix
     #   ./xdg.nix
-    (import ./zsh.nix { inherit work_env; })
+    ./zsh.nix
     ./kitty.nix
   ];
 

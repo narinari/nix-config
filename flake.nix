@@ -73,6 +73,7 @@
         modules = [
           home-manager.darwinModules.home-manager
           agenix.darwinModules.default
+          ./nix/hm-age.nix
           ./hosts/FL4N2RD4TD/default.nix
         ];
         pkgs = import nixpkgs {

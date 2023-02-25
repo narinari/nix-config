@@ -1,5 +1,5 @@
-{ work_env }:
 { config, lib, pkgs, ... }: {
+  age.secrets.work_env.file = ../../../secrets/work/env.age;
   programs.zsh = {
     enable = true;
     enableAutosuggestions = true;
@@ -52,7 +52,7 @@
       ${pkgs.any-nix-shell}/bin/any-nix-shell zsh | source /dev/stdin
 
       source ${pkgs.fzf-git-sh}/share/fzf-git-sh/fzf-git.sh
-      source ${work_env.path}
+      source ${config.age.secrets.work_env.path}
     '';
     sessionVariables = { RPROMPT = ""; };
     shellAliases = {
