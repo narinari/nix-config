@@ -1,8 +1,8 @@
-{ self, pre-commit-hooks, deploy-rs, ... }:
+{ pkgs, pre-commit-hooks, ... }:
 
 system:
 
-with self.pkgs.${system};
+with pkgs;
 
 {
   pre-commit-check = pre-commit-hooks.lib.${system}.run {
@@ -23,4 +23,4 @@ with self.pkgs.${system};
       # stylua.enable = true;
     };
   };
-} // (deploy-rs.lib.${system}.deployChecks self.deploy)
+} # // (deploy-rs.lib.${system}.deployChecks self.deploy)

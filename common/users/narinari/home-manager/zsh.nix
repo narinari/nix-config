@@ -1,5 +1,5 @@
 { config, lib, pkgs, ... }: {
-  age.secrets.work_env.file = ../../../secrets/work/env.age;
+  age.secrets.work_env.file = ../../../../secrets/work/env.age;
   programs.zsh = {
     enable = true;
     enableAutosuggestions = true;

@@ -1,4 +1,6 @@
-{ lib, pkgs, ... }: {
+{ lib, pkgs, ... }:
+
+{
   home = {
     extraOutputsToInstall = [ "doc" "devdoc" ];
     file.gdbinit = {
@@ -20,8 +22,6 @@
   programs = {
     direnv = {
       enable = true;
-      nix-direnv.enable = true;
-
       stdlib = ''
         : ''${XDG_CACHE_HOME:=$HOME/.cache}
         declare -A direnv_layout_dirs
@@ -32,13 +32,12 @@
             )}"
         }
       '';
+      nix-direnv.enable = true;
     };
 
     gh = {
       enable = true;
       settings.git_protocol = "ssh";
     };
-
-    nix-index.enable = true;
   };
 }

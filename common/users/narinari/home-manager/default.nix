@@ -25,18 +25,12 @@ in {
 
   home = {
     username = "narinari";
-    stateVersion = "22.11";
     packages = with pkgs; [
-      # google-chrome # linux only
-
       # espeak
       socat
       websocat
 
       # media
-      # gimp
-      # mediainfo
-      # pavucontrol
       ffmpeg
       streamlink
       yt-dlp
@@ -44,6 +38,7 @@ in {
 
       # games
       # lutris
+      # starsector
 
       # twitch
       # streamlink
@@ -113,7 +108,6 @@ in {
       btop
       pueue
       file
-      # strace # linux only
       viddy # alt watch
       asciinema # record the terminal
       # ncdu # build error # disk space info (a better du)
@@ -122,7 +116,8 @@ in {
       starship
       zstd
 
-      lima
+      # saml2aws # 2.36.2 buged
+      saml2aws_2_36_0
 
       # Android
       # android-studio
@@ -153,17 +148,10 @@ in {
       # haskell
       stack
 
-      # games
-      # starsector
-
-      # compsize
-
       pv
       rclone
 
-      # xdragon
       feh # light-weight image viewer
-      # killall
       # ghidra-bin
 
       unar
@@ -182,15 +170,8 @@ in {
       go
       gopls
 
-      # remote
-      # remmina # linux only
-      # anydesk # linux only
-      # rustdesk # linux only
-
       # aws
       awscli2
-      # saml2aws # 2.36.2 buged
-      saml2aws_2_36_0
       eksctl
 
       # kubernetes
@@ -208,18 +189,11 @@ in {
       docker-compose # docker manager
       docker-credential-helpers
 
-      # perf
-      # sysstat
-
-      # freeplane # mindmap linux only
       natscli
       just
-
-      # macos
-      karabiner-elements
-      iterm2
-      # xquartz
     ];
+
+    language.base = "ja_JP.UTF-8";
 
     sessionPath = [ "$HOME/.local/bin" ];
 
@@ -354,9 +328,6 @@ in {
   #   systembus-notify.enable = true;
   # };
 
-  home.language.base = "ja_JP.UTF-8";
-
   # systemd.user.startServices = "sd-switch";
 
-  xdg.configFile."nixpkgs/config.nix".text = "{ allowUnfree = true; }";
 }

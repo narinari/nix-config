@@ -13,12 +13,13 @@
       url = "github:serokell/deploy-rs";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        utils.follows = "flake-utils";
+        utils.follows = "utils";
         flake-compat.follows = "flake-compat";
       };
     };
 
-    flake-utils.url = "github:numtide/flake-utils";
+    # flake-utils.url = "github:numtide/flake-utils";
+    utils.url = "github:gytis-ivaskevicius/flake-utils-plus";
 
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
@@ -35,7 +36,7 @@
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.utils.follows = "flake-utils";
+      inputs.utils.follows = "utils";
     };
 
     darwin = {
@@ -46,42 +47,46 @@
     emacs-overlay = {
       url = "github:nix-community/emacs-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
+      inputs.flake-utils.follows = "utils";
     };
   };
 
   # add the inputs declared above to the argument attribute set
-  outputs =
-    { self, nixpkgs, home-manager, darwin, flake-utils, agenix, ... }@inputs:
-    let inherit (self) outputs;
-    in flake-utils.lib.eachDefaultSystem (system: {
-      checks = import ./nix/checks.nix inputs system;
+  outputs = { self, nixpkgs, home-manager, darwin, utils, agenix, ... }@inputs:
+    let
+      inherit (self) outputs;
+      inherit (nixpkgs.lib) recursiveUpdate;
 
-      devShells.default = import ./nix/dev-shell.nix inputs system;
+      lib = import ./lib;
+      # packages = import ./pkgs;
+    in utils.lib.mkFlake rec {
+      inherit self inputs lib;
 
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [ self.inputs.emacs-overlay.overlay ];
-        config.allowUnfree = true;
-        config.allowAliases = true;
-      } // {
-        inherit (agenix.packages.${system}) agenix;
+      sharedOverlays = [ self.inputs.emacs-overlay.overlay ];
+
+      hostDefaults.modules = [ ./common/configuration.nix ];
+
+      hosts = lib.mkHosts {
+        inherit self;
+        hostsPath = ./hosts;
       };
-    }) // {
-      darwinConfigurations."FL4N2RD4TD" = darwin.lib.darwinSystem {
-        system = flake-utils.lib.system.aarch64-darwin;
-        modules = [
-          home-manager.darwinModules.home-manager
-          agenix.darwinModules.default
-          ./nix/hm-age.nix
-          ./hosts/FL4N2RD4TD/default.nix
-        ];
-        pkgs = import nixpkgs {
-          system = flake-utils.lib.system.aarch64-darwin;
-          overlays = [ self.inputs.emacs-overlay.overlay ];
-          config.allowUnfree = true;
-          config.allowAliases = true;
+
+      outputsBuilder = channels: {
+        # checks = import ./nix/checks.nix {
+        #   pkgs = channels.nixpkgs;
+        #   inherit (inputs) pre-commit-hooks deploy-rs;
+        # } channels.nixpkgs.system;
+        devShell = import ./nix/dev-shell.nix {
+          pkgs = channels.nixpkgs // {
+            inherit (agenix.packages.${channels.nixpkgs.system}) agenix;
+          };
         };
+        #   packages =
+        #     let
+        #       inherit (channels.nixpkgs.stdenv.hostPlatform) system;
+        #     in
+        #     packages { inherit lib channels; };
       };
     };
+
 }

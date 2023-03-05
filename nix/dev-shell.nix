@@ -1,8 +1,6 @@
-{ self, ... }:
+{ pkgs, ... }:
 
-system:
-
-with self.pkgs.${system};
+with pkgs;
 
 mkShell {
   name = "nix-config";
@@ -40,7 +38,7 @@ mkShell {
     git
   ];
 
-  shellHook = ''
-    ${self.checks.${system}.pre-commit-check.shellHook}
-  '';
+  # shellHook = ''
+  #   ${self.checks.${system}.pre-commit-check.shellHook}
+  # '';
 }
