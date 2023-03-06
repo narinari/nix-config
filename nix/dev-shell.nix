@@ -1,4 +1,6 @@
-{ pkgs, ... }:
+{ pkgs, checks, ... }:
+
+system:
 
 with pkgs;
 
@@ -38,7 +40,7 @@ mkShell {
     git
   ];
 
-  # shellHook = ''
-  #   ${self.checks.${system}.pre-commit-check.shellHook}
-  # '';
+  shellHook = ''
+    ${checks.pre-commit-check.shellHook}
+  '';
 }

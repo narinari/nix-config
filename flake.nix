@@ -62,6 +62,8 @@
     in utils.lib.mkFlake rec {
       inherit self inputs lib;
 
+      supportedSystems = [ "x86_64-linux" "aarch64-darwin" ];
+
       sharedOverlays = [ self.inputs.emacs-overlay.overlay ];
 
       hostDefaults.modules = [ ./common/configuration.nix ];
@@ -71,16 +73,17 @@
         hostsPath = ./hosts;
       };
 
-      outputsBuilder = channels: {
-        # checks = import ./nix/checks.nix {
-        #   pkgs = channels.nixpkgs;
-        #   inherit (inputs) pre-commit-hooks deploy-rs;
-        # } channels.nixpkgs.system;
+      outputsBuilder = channels: rec {
+        checks = import ./nix/checks.nix {
+          pkgs = channels.nixpkgs;
+          inherit (inputs) pre-commit-hooks deploy-rs;
+        } channels.nixpkgs.system;
         devShell = import ./nix/dev-shell.nix {
           pkgs = channels.nixpkgs // {
             inherit (agenix.packages.${channels.nixpkgs.system}) agenix;
           };
-        };
+          inherit checks;
+        } channels.nixpkgs.system;
         #   packages =
         #     let
         #       inherit (channels.nixpkgs.stdenv.hostPlatform) system;

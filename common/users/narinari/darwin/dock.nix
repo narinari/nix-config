@@ -1,4 +1,4 @@
-{ ... }:
+{ _, ... }:
 
 {
   targets.darwin.defaults.dock = {
