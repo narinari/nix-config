@@ -21,6 +21,14 @@ with pkgs;
       };
       statix.enable = true;
       # stylua.enable = true;
+      git-secrets = {
+        enable = true;
+        name = "Git Secrets";
+        description =
+          "git-secrets scans commits, commit messages, and --no-ff merges to prevent adding secrets into your git repositories.";
+        entry = "${git-secrets}/bin/git-secrets --pre_commit_hook";
+        language = "script";
+      };
     };
   };
 } # // (deploy-rs.lib.${system}.deployChecks self.deploy)
