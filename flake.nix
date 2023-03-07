@@ -49,10 +49,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "utils";
     };
+
+    my-secrets = {
+      url = "path:./secrets";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   # add the inputs declared above to the argument attribute set
-  outputs = { self, nixpkgs, home-manager, darwin, utils, agenix, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, darwin, utils, agenix, my-secrets
+    , ... }@inputs:
     let
       inherit (self) outputs;
       inherit (nixpkgs.lib) recursiveUpdate;

@@ -1,5 +1,5 @@
-{ config, lib, pkgs, ... }: {
-  age.secrets.work_env.file = ../../../../secrets/work/env.age;
+{ config, lib, pkgs, flake, ... }: {
+  age.secrets.work_env.file = "${flake.inputs.my-secrets.outPath}/work/env.age";
   programs.zsh = {
     enable = true;
     enableAutosuggestions = true;
