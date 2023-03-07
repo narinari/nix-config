@@ -68,6 +68,11 @@
     in utils.lib.mkFlake rec {
       inherit self inputs lib;
 
+      channelsConfig = {
+        allowUnfree = true;
+        allowUnfreePredicate = _: true;
+      };
+
       supportedSystems = [ "x86_64-linux" "aarch64-darwin" ];
 
       sharedOverlays = [ self.inputs.emacs-overlay.overlay ];

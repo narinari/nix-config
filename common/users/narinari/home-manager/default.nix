@@ -172,6 +172,7 @@ in {
 
       # aws
       awscli2
+      ssm-session-manager-plugin
       eksctl
 
       # kubernetes
