@@ -31,6 +31,7 @@
     agenix = {
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.darwin.follows = "darwin";
     };
 
     home-manager = {
@@ -53,6 +54,7 @@
     my-secrets = {
       url = "path:./secrets";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.agenix.follows = "agenix";
     };
   };
 
