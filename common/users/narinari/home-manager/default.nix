@@ -116,8 +116,8 @@ in {
       starship
       zstd
 
-      # saml2aws # 2.36.2 buged
-      saml2aws_2_36_0
+      saml2aws # 2.36.2 buged
+      # saml2aws_2_36_0
 
       # Android
       # android-studio

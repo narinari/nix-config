@@ -1,6 +1,8 @@
 autoload -Uz colors
 colors
 
+alias saml2aws="ONELOGIN_MFA_IP_ADDRESS=$(curl -SsL checkip.amazonaws.com) saml2aws"
+
 switch_profile() {
   local profile=$({grep '\[profile .\+\]' ~/.aws/config | sed -e 's/\[profile //' -e 's/\].*$//'; grep '^\[.\+\]$' ~/.aws/credentials | sed -e 's/^\[//' -e 's/\]$//'}| sort -u | fzf)
   export AWS_PROFILE="$profile"
