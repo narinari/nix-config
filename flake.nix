@@ -52,7 +52,7 @@
     };
 
     my-secrets = {
-      url = "path:./secrets";
+      url = "git+file:./secrets";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.agenix.follows = "agenix";
     };
