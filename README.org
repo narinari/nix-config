@@ -66,6 +66,17 @@ nix build .#darwinConfigurations.FL4N2RD4TD.system && darwin-rebuild switch --fl
 # On Linux machine
 nix build .#nixosConfigurations.khali.system && nixos-rebuild switch --flake .
 #+end_src
+*** Nix on Ubuntu
+
+#+begin_src shell
+# install nix
+
+# enable flake
+mkdir -p ~/.config/nix
+echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+# install home-manager
+nix run home-manager/master -- init --switch
+#+end_src
 
 ** Edit secrets
 #+begin_src shell

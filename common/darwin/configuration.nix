@@ -25,8 +25,8 @@ in {
   ];
 
   nix = {
-    # configureBuildUsers = true;
-    # settings.sandbox = "relaxed";
+    configureBuildUsers = true;
+    settings.sandbox = "relaxed";
     nixPath = mkForce nixPath;
   };
 

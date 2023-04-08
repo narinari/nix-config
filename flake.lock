@@ -208,17 +208,14 @@
         ]
       },
       "locked": {
-        "lastModified": 1679625082,
+        "lastModified": 1,
         "narHash": "sha256-qFxMw0o5wU0JDLNjM8oEDuJcM79DQEL4O57XpZ+72bw=",
-        "ref": "refs/heads/main",
-        "rev": "386a19fc11d01eb54e9994308b51f46779b1c329",
-        "revCount": 3,
-        "type": "git",
-        "url": "file:./secrets"
+        "path": "./secrets",
+        "type": "path"
       },
       "original": {
-        "type": "git",
-        "url": "file:./secrets"
+        "path": "./secrets",
+        "type": "path"
       }
     },
     "nixpkgs": {

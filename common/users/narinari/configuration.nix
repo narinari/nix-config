@@ -6,6 +6,8 @@
     identityPaths = [
       "/Users/narinari/.ssh/id_ed25519"
       "/Users/narinari/.ssh/narinari.t/id_ed25519"
+      "/home/narinari/.ssh/id_ed25519"
+      "/home/narinari/.ssh/narinari.t/id_ed25519"
     ];
   };
 

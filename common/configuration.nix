@@ -18,8 +18,6 @@
       trusted-users = [ "@admin" ];
     };
 
-    configureBuildUsers = true;
-
     # Enable experimental nix command and flakes
     # nix.package = pkgs.nixUnstable;
     extraOptions = ''
