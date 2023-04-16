@@ -3,13 +3,14 @@
 {
   imports = [
     ./btop.nix
-    ./tmux.nix
+    ./direnv.nix
     ./docker.nix
     ./git.nix
     ./go.nix
     ./haskell.nix
     ./kubernetes.nix
     ./rust.nix
+    ./tmux.nix
     ./zsh.nix
   ];
 

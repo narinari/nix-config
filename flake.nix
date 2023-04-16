@@ -49,6 +49,9 @@
 
     let
       inherit (self) outputs;
+      forEachSystem = nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-darwin" ];
+      forEachPkgs = f: forEachSystem (sys: f nixpkgs.legacyPackages.${sys});
+
       mkHome = modules: pkgs:
         home-manager.lib.homeManagerConfiguration {
           inherit modules pkgs;
@@ -56,6 +59,8 @@
         };
     in {
       overlays = import ./overlays { inherit inputs outputs; };
+
+      devShells = forEachPkgs (pkgs: import ./nix/shell.nix { inherit pkgs; });
 
       homeConfigurations = {
         "narinari@work-dev" = mkHome [ ./home-manager/narinari/work-ec2.nix ]
