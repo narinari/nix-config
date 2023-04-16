@@ -57,13 +57,13 @@ let
     };
 in {
   home-manager.sharedModules = [ hmModule ];
-  age.secrets = mkMerge (flatten (flip mapAttrsToList config.home-manager.users
-    (username: userConfig:
-      flip mapAttrsToList userConfig.age.secrets (secret: secretConfig: {
-        "hm.${username}.${secret}" = {
-          inherit (secretConfig) file path mode symlink;
-          name = "hm/${username}/${secretConfig.name}";
-          owner = username;
-        };
-      }))));
+  # age.secrets = mkMerge (flatten (flip mapAttrsToList config.home-manager.users
+  #   (username: userConfig:
+  #     flip mapAttrsToList userConfig.age.secrets (secret: secretConfig: {
+  #       "hm.${username}.${secret}" = {
+  #         inherit (secretConfig) file path mode symlink;
+  #         name = "hm/${username}/${secretConfig.name}";
+  #         owner = username;
+  #       };
+  #     }))));
 }

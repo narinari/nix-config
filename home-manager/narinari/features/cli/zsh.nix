@@ -1,5 +1,5 @@
-{ config, lib, pkgs, flake, ... }: {
-  age.secrets.work_env.file = "${flake.inputs.my-secrets.outPath}/work/env.age";
+{ config, lib, pkgs, ... }: {
+  # age.secrets.work_env.file = "${pkgs.my-secrets.outPath}/work/env.age";
   programs.zsh = {
     enable = true;
     enableAutosuggestions = true;
@@ -20,11 +20,14 @@
       export LESSHISTFILE="${config.xdg.dataHome}/less_history"
       #export CARGO_HOME="${config.xdg.cacheHome}/cargo" # doesn't work with emacs
     '';
+    initExtraFirst = ''
+      [ $TERM = "dumb" ] && unsetopt zle && PS1='$ ' && return
+    '';
     initExtra = ''
-        if [[ "$TERM" != 'dumb' && -z "$INSIDE_EMACS" ]]; then
-          source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
-          [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-        fi
+      if [[ "$TERM" != 'dumb' && -z "$INSIDE_EMACS" ]]; then
+        source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
+        [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+      fi
 
       nix-closure-size() {
         nix-store -q --size $(nix-store -qR $(${pkgs.coreutils}/bin/readlink -e $1) ) |
@@ -52,8 +55,9 @@
       ${pkgs.any-nix-shell}/bin/any-nix-shell zsh | source /dev/stdin
 
       source ${pkgs.fzf-git-sh}/share/fzf-git-sh/fzf-git.sh
-      source ${config.age.secrets.work_env.path}
     '';
+    # source ${config.age.secrets.work_env.path}
+
     sessionVariables = { RPROMPT = ""; };
     shellAliases = {
       cat = "${pkgs.bat}/bin/bat";
@@ -69,10 +73,6 @@
         name = "powerlevel10k-config";
         src = lib.cleanSource ./p10k-config;
         file = "p10k.zsh";
-      }
-      {
-        name = "work-config";
-        src = lib.cleanSource ./work-config;
       }
       {
         name = "zsh-you-should-use";

@@ -2,24 +2,23 @@
   description = "My first nix flake";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
+    home-manager = {
+      url = "github:nix-community/home-manager/release-22.11";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    deploy-rs = {
-      url = "github:serokell/deploy-rs";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        utils.follows = "utils";
-        flake-compat.follows = "flake-compat";
-      };
+    home-manager-unstable = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
-    # flake-utils.url = "github:numtide/flake-utils";
-    utils.url = "github:gytis-ivaskevicius/flake-utils-plus";
+    darwin = {
+      url = "github:LnL7/nix-darwin";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
@@ -34,75 +33,49 @@
       inputs.darwin.follows = "darwin";
     };
 
-    home-manager = {
-      url = "github:nix-community/home-manager";
+    nix-packages = {
+      url = "github:reckenrode/nix-packages";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.utils.follows = "utils";
     };
 
-    darwin = {
-      url = "github:LnL7/nix-darwin";
-      inputs.nixpkgs.follows = "nixpkgs";
+    nix-unstable-packages = {
+      url = "github:reckenrode/nix-packages";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
     emacs-overlay = {
       url = "github:nix-community/emacs-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "utils";
     };
 
     my-secrets = {
-      url = "path:./secrets";
+      url = "git+file:./secrets";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.agenix.follows = "agenix";
     };
   };
 
-  # add the inputs declared above to the argument attribute set
-  outputs = { self, nixpkgs, home-manager, darwin, utils, agenix, my-secrets
-    , ... }@inputs:
-    let
-      inherit (self) outputs;
-      inherit (nixpkgs.lib) recursiveUpdate;
+  outputs = { self, nixpkgs, nixpkgs-unstable, darwin, home-manager
+    , home-manager-unstable, sops-nix, agenix, my-secrets, emacs-overlay, ...
+    }@inputs:
 
-      lib = import ./lib;
-      # packages = import ./pkgs;
-    in utils.lib.mkFlake rec {
-      inherit self inputs lib;
+    let inherit (self) outputs;
+    in {
+      overlays = { emacs-overlay = emacs-overlay.overlay; };
 
-      channelsConfig = {
-        allowUnfree = true;
-        allowUnfreePredicate = _: true;
-      };
-
-      supportedSystems = [ "x86_64-linux" "aarch64-darwin" ];
-
-      sharedOverlays = [ self.inputs.emacs-overlay.overlay ];
-
-      hostDefaults.modules = [ ./common/configuration.nix ];
-
-      hosts = lib.mkHosts {
-        inherit self;
-        hostsPath = ./hosts;
-      };
-
-      outputsBuilder = channels: rec {
-        checks = import ./nix/checks.nix {
-          pkgs = channels.nixpkgs;
-          inherit (inputs) pre-commit-hooks deploy-rs;
-        } channels.nixpkgs.system;
-        devShell = import ./nix/dev-shell.nix {
-          pkgs = channels.nixpkgs // {
-            inherit (agenix.packages.${channels.nixpkgs.system}) agenix;
+      homeConfigurations = {
+        narinari = let
+          system = "x86_64-linux";
+          pkgs = nixpkgs.legacyPackages.${system} // {
+            inherit (agenix.packages.${system}) agenix;
           };
-          inherit checks;
-        } channels.nixpkgs.system;
-        #   packages =
-        #     let
-        #       inherit (channels.nixpkgs.stdenv.hostPlatform) system;
-        #     in
-        #     packages { inherit lib channels; };
+        in home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+
+          modules = [ ./home-manager/narinari/work-ec2.nix ];
+
+          extraSpecialArgs = { inherit inputs outputs; };
+        };
       };
     };
-
 }
