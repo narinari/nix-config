@@ -38,7 +38,7 @@
     };
 
     my-secrets = {
-      url = "git+file:./secrets";
+      url = "git+ssh://github.com.private/narinari/nix-secrets?ref=main";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.agenix.follows = "agenix";
     };

@@ -27,6 +27,11 @@
     git.enable = true;
   };
 
+  sops = {
+    age.keyFile = "${config.home.homeDirectory}/.config/sops/age/keys.txt";
+    defaultSopsFile = ./secrets.yaml;
+  };
+
   home = {
     username = lib.mkDefault "narinari";
     homeDirectory = lib.mkDefault "/home/${config.home.username}";

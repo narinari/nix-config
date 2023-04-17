@@ -1,7 +1,13 @@
-{ pkgs, ... }:
+{ pkgs, config, inputs, ... }:
 
 {
   imports = [ ./zsh.nix ];
+
+  sops.secrets.work-env = {
+    sopsFile = "${inputs.my-secrets}/work/c-fo.yaml";
+    path = "${config.xdg.dataHome}/profile/work-env.sh";
+  };
+
   programs = {
     ssh = {
       enable = true;

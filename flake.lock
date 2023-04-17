@@ -163,17 +163,18 @@
         ]
       },
       "locked": {
-        "lastModified": 1679625082,
-        "narHash": "sha256-qFxMw0o5wU0JDLNjM8oEDuJcM79DQEL4O57XpZ+72bw=",
-        "ref": "386a19fc11d01eb54e9994308b51f46779b1c329",
-        "rev": "386a19fc11d01eb54e9994308b51f46779b1c329",
-        "revCount": 3,
+        "lastModified": 1681714991,
+        "narHash": "sha256-1d4rqNHsKfD95G7dp1z/9Vt/UzvfwGc8HJipiygu3XE=",
+        "ref": "main",
+        "rev": "b84ff49b3a2611102805d469605290fee65d49f4",
+        "revCount": 4,
         "type": "git",
-        "url": "file:./secrets"
+        "url": "ssh://github.com.private/narinari/nix-secrets"
       },
       "original": {
+        "ref": "main",
         "type": "git",
-        "url": "file:./secrets"
+        "url": "ssh://github.com.private/narinari/nix-secrets"
       }
     },
     "nix-packages": {

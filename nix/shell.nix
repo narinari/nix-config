@@ -37,7 +37,7 @@
       pre-commit
       rage
       sops
-      git
+      ssh-to-age
     ];
 
     # shellHook = ''
