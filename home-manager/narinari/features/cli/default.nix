@@ -1,6 +1,9 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
-{
+let
+  inherit (pkgs) stdenv;
+  inherit (lib) optionalAttrs;
+in {
   imports = [
     ./btop.nix
     ./direnv.nix
@@ -166,6 +169,7 @@
         VerifyHostKeyDNS = "ask";
         VisualHostKey = "no";
         StrictHostKeyChecking = "no";
+      } // optionalAttrs stdenv.isDarwin {
         # for macos
         AddKeysToAgent = "yes";
         UseKeychain = "yes";
