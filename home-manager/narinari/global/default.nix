@@ -1,7 +1,7 @@
 { inputs, lib, pkgs, config, outputs, ... }:
 
 {
-  imports = [ ../features/cli ];
+  imports = [ ../features/cli ../features/emacs ];
 
   nixpkgs = {
     overlays = builtins.attrValues outputs.overlays;
