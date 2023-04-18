@@ -23,7 +23,6 @@
 
   programs.git = {
     enable = true;
-    package = pkgs.gitAndTools.gitFull;
     aliases = {
       alias =
         "!git config --list | grep 'alias\\.' | sed 's/alias\\.\\([^=]*\\)=\\(.*\\)/\\1\\	 => \\2/' | sort";
