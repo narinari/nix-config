@@ -1,7 +1,7 @@
 { pkgs, config, inputs, ... }:
 
 {
-  imports = [ ./zsh.nix ];
+  imports = [ ./git.nix ./zsh.nix ];
 
   sops.secrets.work-env = {
     sopsFile = "${inputs.my-secrets}/work/c-fo.yaml";

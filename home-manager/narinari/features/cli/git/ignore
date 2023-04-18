@@ -1,0 +1,8 @@
+*~
+*.class
+.svn/
+.vscode/
+.DS_Store
+.config/*
+!.config/fish
+.zsh/history/
