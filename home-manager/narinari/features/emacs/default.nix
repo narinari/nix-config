@@ -2,35 +2,54 @@
 let
   inherit (pkgs) stdenv;
   inherit (lib) optional mkIf;
+  doom = {
+    repoUrl = "https://github.com/doomemacs/doomemacs";
+    configRepoUrl = "git@github.com.private:narinari/doom.git";
+  };
   customEmacs = (pkgs.emacsPackagesFor pkgs.emacsUnstablePgtk).emacsWithPackages
     (epkgs: [ epkgs.vterm ]);
 in {
-  home.packages = with pkgs; [
-    ## Emacs itself
-    binutils # native-comp needs 'as', provided by this
+  home = {
+    packages = with pkgs; [
+      ## Emacs itself
+      binutils # native-comp needs 'as', provided by this
 
-    ## Doom dependencies
-    git
-    (ripgrep.override { withPCRE2 = true; })
-    gnutls # for TLS connectivity
+      ## Doom dependencies
+      git
+      (ripgrep.override { withPCRE2 = true; })
+      gnutls # for TLS connectivity
 
-    ## Optional dependencies
-    fd # faster projectile indexing
-    imagemagick # for image-dired
-    (mkIf (config.programs.gpg.enable) pinentry_emacs) # in-emacs gnupg prompts
-    zstd # for undo-fu-session/undo-tree compression
+      ## Optional dependencies
+      fd # faster projectile indexing
+      imagemagick # for image-dired
+      (mkIf (config.programs.gpg.enable)
+        pinentry_emacs) # in-emacs gnupg prompts
+      zstd # for undo-fu-session/undo-tree compression
 
-    ## Module dependencies
-    # :checkers spell
-    (aspellWithDicts (ds: with ds; [ en en-computers en-science ]))
-    # :tools editorconfig
-    editorconfig-core-c # per-project style config
-    # :tools lookup & :lang org +roam
-    sqlite
-    # :lang latex & :lang org (latex previews)
-    texlive.combined.scheme-medium
-    # unstable.fava # HACK Momentarily broken on nixos-unstable
-  ];
+      ## Module dependencies
+      # :checkers spell
+      (aspellWithDicts (ds: with ds; [ en en-computers en-science ]))
+      # :tools editorconfig
+      editorconfig-core-c # per-project style config
+      # :tools lookup & :lang org +roam
+      sqlite
+      # :lang latex & :lang org (latex previews)
+      texlive.combined.scheme-medium
+      # unstable.fava # HACK Momentarily broken on nixos-unstable
+    ];
+
+    sessionPath = [ "${config.xdg.configHome}/emacs/bin" ];
+
+    extraActivationPath = with pkgs; [ git openssh ];
+    activation = {
+      installDoomEmacs = ''
+        if [ ! -d "${config.xdg.configHome}/emacs" ]; then
+           $DRY_RUN_CMD git clone --depth=1 --single-branch "${doom.repoUrl}" "${config.xdg.configHome}/emacs"
+           $DRY_RUN_CMD git clone "${doom.configRepoUrl}" "${config.xdg.configHome}/doom"
+        fi
+      '';
+    };
+  };
 
   programs.emacs = {
     enable = true;
