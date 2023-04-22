@@ -56,14 +56,14 @@ Host env-step
   User narinari
   ForwardAgent yes
 
-Host dev-env-step
+Host freee-dev-env-step
   HostName 52.69.75.91
   ForwardAgent yes
 
 Host narinari-dev i-086e2a1f159186c16
   HostName 172.29.36.124
   User narinari
-  ProxyJump dev-env-step
+  ProxyJump freee-dev-env-step
   ForwardAgent yes
   # for VNC
   LocalForward 5901 localhost:5901
