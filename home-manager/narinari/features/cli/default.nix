@@ -17,6 +17,8 @@ in {
     ./zsh.nix
   ];
 
+  home.sessionVariables = { COLORTERM = "truecolor"; };
+
   home.packages = with pkgs; [
     # nix
     cachix
