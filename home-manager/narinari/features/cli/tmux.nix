@@ -1,4 +1,7 @@
 { pkgs, ... }: {
+
+  home.packages = with pkgs; [ (lib.mkIf (stdenv.isLinux) sysstat) ];
+
   programs.tmux = {
     enable = true;
     prefix = "C-q";
@@ -14,6 +17,7 @@
       extrakto
       # nord
       gruvbox
+      cpu
       prefix-highlight
       yank
       tmux-thumbs
@@ -40,7 +44,8 @@
     terminal = "tmux-256color";
     historyLimit = 30000;
     extraConfig = ''
-      new-session -A -D -s main
+      set -ag status-right ' | #{cpu_bg_color} #{cpu_icon} #{cpu_percentage} | #{ram_bg_color} #{ram_icon} #{ram_percentage}'
+      #new-session -A -D -s main
 
       # C-bのキーバインドを解除する
       unbind C-b
