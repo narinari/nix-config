@@ -78,6 +78,10 @@
         name = "zsh-you-should-use";
         src = pkgs.zsh-you-should-use;
       }
+      {
+        name = "dev";
+        src = lib.cleanSource ./dev;
+      }
       # {
       #   # https://github.com/zdharma/fast-syntax-highlighting
       #   name = "fast-syntax-highlighting";
