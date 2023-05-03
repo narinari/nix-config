@@ -1,7 +1,8 @@
 { inputs, outputs, consig, pkgs, ... }:
 
 {
-  imports = [ inputs.sops-nix.homeManagerModule ./global ./work ];
+  imports =
+    [ inputs.sops-nix.homeManagerModule ./global ./work ./features/rclone ];
 
   # linux only
   # services = {
