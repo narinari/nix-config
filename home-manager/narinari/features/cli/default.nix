@@ -12,6 +12,7 @@ in {
     ./go.nix
     ./haskell.nix
     ./kubernetes.nix
+    ./nodejs.nix
     ./rust.nix
     ./tmux.nix
     ./zsh.nix
