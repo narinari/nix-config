@@ -1,6 +1,6 @@
 { pkgs, ... }: {
 
-  home.packages = with pkgs; [ (lib.mkIf (stdenv.isLinux) sysstat) ];
+  home.packages = with pkgs; [ (lib.mkIf stdenv.isLinux sysstat) ];
 
   programs.tmux = {
     enable = true;

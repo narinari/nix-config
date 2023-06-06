@@ -17,7 +17,10 @@ with pkgs;
       shellcheck.enable = true;
       shfmt = {
         enable = true;
-        excludes = [ "hosts/FL4N2RD4TD/core/p10k-config/p10k.zsh" ];
+        excludes = [
+          "hosts/FL4N2RD4TD/core/p10k-config/p10k.zsh"
+          "home-manager/narinari/work/work-config/aws.zsh"
+        ];
       };
       statix.enable = true;
       # stylua.enable = true;

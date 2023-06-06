@@ -10,9 +10,11 @@ in {
     ./docker.nix
     ./git.nix
     ./go.nix
+    ./gnupg.nix
     ./haskell.nix
     ./kubernetes.nix
     ./nodejs.nix
+    ./less.nix
     ./rust.nix
     ./tmux.nix
     ./zsh.nix
@@ -154,7 +156,6 @@ in {
         "fg+" = "#d4d4d4";
       };
     };
-    gpg.enable = true;
     navi.enable = true;
     sqls.enable = true;
 

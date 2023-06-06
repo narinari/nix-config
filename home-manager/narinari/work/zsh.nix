@@ -6,10 +6,7 @@
     enable = true;
 
     initExtra = ''
-      source ${
-        builtins.trace config.sops.secrets.work-env.path
-        config.sops.secrets.work-env.path
-      }
+      source ${config.sops.secrets.work-env.path}
     '';
 
     plugins = [{

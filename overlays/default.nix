@@ -10,6 +10,7 @@
       inputs;
   };
 
-  fcitx-overlay = final: prev: { fcitx-engines = final.fcitx5; };
+  fcitx-overlay = final: prev:
+    if prev.stdenv.isLinux then { fcitx-engines = final.fcitx5; } else { };
   emacs-overlay = inputs.emacs-overlay.overlay;
 }

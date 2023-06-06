@@ -7,7 +7,7 @@
     overlays = builtins.attrValues outputs.overlays;
     config = {
       allowUnfree = true;
-      allowUnfreePredicate = (_: true);
+      allowUnfreePredicate = _: true;
     };
   };
 
@@ -19,8 +19,7 @@
     };
   };
 
-  targets.genericLinux.enable = true;
-  systemd.user.startServices = "sd-switch";
+  # systemd.user.startServices = "sd-switch";
 
   programs = {
     home-manager.enable = true;
@@ -35,7 +34,7 @@
   home = {
     username = lib.mkDefault "narinari";
     homeDirectory = lib.mkDefault "/home/${config.home.username}";
-    stateVersion = lib.mkDefault "22.11";
+    stateVersion = lib.mkDefault "23.05";
 
     language.base = "ja_JP.UTF-8";
 

@@ -1,4 +1,4 @@
-{ pkgs, lib, flake, ... }:
+{ pkgs, lib, outputs, inputs, ... }:
 
 # nix.nixPath based on the logic from `flake-utils-plus`
 # https://github.com/gytis-ivaskevicius/flake-utils-plus/blob/v1.3.0/lib/options.nix
@@ -11,13 +11,13 @@ let
   hasPackages = _: flake:
     flake.outputs ? legacyPackages || flake.outputs ? packages;
 
-  flakesWithPkgs =
-    pipe flake.inputs (map filterAttrs [ hasOutputs hasPackages ]);
+  flakesWithPkgs = pipe inputs (map filterAttrs [ hasOutputs hasPackages ]);
   nixPath =
     mapAttrsToList (name: _: "${name}=/etc/nix/inputs/${name}") flakesWithPkgs;
 in {
   imports = [
-    # ./copy-applications.nix
+    inputs.home-manager.darwinModules.home-manager
+    ./copy-applications.nix
     ./diff-closures.nix
     ./nix-optimizations-darwin.nix
     ./fonts.nix
@@ -26,7 +26,12 @@ in {
 
   nix = {
     configureBuildUsers = true;
-    settings.sandbox = "relaxed";
+    settings.sandbox = false;
+    settings.trusted-users = [ "@admin" "root" "narinari" ];
+    extraOptions = ''
+      sandbox = false
+      trusted-users = @admin root narinari
+    '';
     nixPath = mkForce nixPath;
   };
 

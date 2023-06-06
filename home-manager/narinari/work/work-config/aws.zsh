@@ -104,7 +104,7 @@ eval "$(saml2aws --completion-script-zsh)"
 go_dev() {
   if [[ -n $TMUX ]]; {
 tmux display AWS_PROFILE=freee-development\(507110214534\):freee-sso-developer
-tmux setenv AWS_PROFILE freee-development\(507110214534\):freee-sso-developer \; setenv AWS_REGION ap-northeast-1 \; new-window -n " narinari-dev" connect-remote-env.zsh i-0f246ac8a48605437
+tmux setenv AWS_PROFILE freee-development\(507110214534\):freee-sso-developer \; setenv AWS_REGION ap-northeast-1 \; new-window -n " narinari-dev" connect-remote-env.zsh i-086e2a1f159186c16
   }
 }
 
@@ -115,6 +115,47 @@ bg_color() {
     "other") echo "253320";;
     *) echo "101010"
   esac
+}
+
+progress() {
+  while :
+  do
+    echo -n .
+    sleep 1
+  done
+}
+
+wait_process() {
+  progress &
+  pj=$!
+  wait $1
+  kill $pj
+}
+
+start_instance() {
+  i=$1
+  shift
+
+  s=$(aws ec2 describe-instance-status --instance-id $i --query 'InstanceStatuses[*].InstanceState.Name|[0]' --output text)
+  if [ "$s" = "running" ]; then
+    echo "${fg[green]} already running $i ${reset_color}"
+    return 0
+  fi
+
+  echo start instance $i
+
+  aws ec2 start-instances --instance-ids $i > /dev/null &
+  wait_process $!
+  if [ $? != 0 ]; then
+    echo "${fg[red]} can not start $i ${reset_color}"
+    return 1
+  fi
+
+  aws ec2 wait instance-running --instance-ids $i &
+  wait_process $!
+
+  aws ec2 wait instance-status-ok --instance-ids $i &
+  wait_process $!
 }
 
 function eks-step() {

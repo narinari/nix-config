@@ -5,7 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-22.11";
+      url = "github:nix-community/home-manager/release-23.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -25,6 +25,7 @@
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.darwin.follows = "darwin";
+      inputs.home-manager.follows = "home-manager";
     };
 
     nix-packages = {
@@ -52,6 +53,18 @@
       forEachSystem = nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-darwin" ];
       forEachPkgs = f: forEachSystem (sys: f nixpkgs.legacyPackages.${sys});
 
+      mkNixos = modules:
+        nixpkgs.lib.nixosSystem {
+          inherit modules;
+          specialArgs = { inherit inputs outputs; };
+        };
+
+      mkDarwin = system: modules:
+        darwin.lib.darwinSystem {
+          inherit system modules;
+          specialArgs = { inherit inputs outputs; };
+        };
+
       mkHome = modules: pkgs:
         home-manager.lib.homeManagerConfiguration {
           inherit modules pkgs;
@@ -60,11 +73,25 @@
     in {
       overlays = import ./overlays { inherit inputs outputs; };
 
-      devShells = forEachPkgs (pkgs: import ./nix/shell.nix { inherit pkgs; });
+      devShells = forEachPkgs (pkgs:
+        import ./nix/shell.nix {
+          inherit pkgs;
+          checks = import ./nix/checks.nix {
+            inherit pkgs;
+            inherit (inputs) pre-commit-hooks;
+          } pkgs.system;
+        });
+
+      darwinConfigurations = {
+        FL4N2RD4TD = mkDarwin "aarch64-darwin" [ ./hosts/FL4N2RD4TD ];
+      };
 
       homeConfigurations = {
         "narinari@work-dev" = mkHome [ ./home-manager/narinari/work-ec2.nix ]
           nixpkgs.legacyPackages."x86_64-linux";
+        "narinari@FL4N2RD4TD" =
+          mkHome [ ./home-manager/narinari/FL4N2RD4TD.nix ]
+          nixpkgs.legacyPackages."aarch64-darwin";
       };
     };
 }

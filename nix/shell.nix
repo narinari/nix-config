@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, checks, ... }:
 
 {
   default = pkgs.mkShell {
@@ -40,8 +40,8 @@
       ssh-to-age
     ];
 
-    # shellHook = ''
-    #   ${checks.pre-commit-check.shellHook}
-    # '';
+    shellHook = ''
+      ${checks.pre-commit-check.shellHook}
+    '';
   };
 }

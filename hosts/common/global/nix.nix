@@ -1,15 +1,7 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, config, inputs, ... }:
 
 {
-  imports = [ ./home-manager.nix ./nix-flakes.nix ];
-
-  environment.systemPackages = with pkgs; [ git terminal-notifier ];
-
   nix = {
-    generateRegistryFromInputs = true;
-    generateNixPathFromInputs = true;
-    linkInputs = true;
-
     settings = {
       substituters = [ "https://cache.nixos.org/" ];
       trusted-public-keys =
@@ -17,6 +9,15 @@
 
       trusted-users = [ "@admin" ];
     };
+
+    # Add each flake input as a registry
+    # To make nix3 commands consistent with the flake
+    registry = lib.mapAttrs (_: value: { flake = value; }) inputs;
+
+    # Map registries to channels
+    # Very useful when using legacy commands
+    nixPath = lib.mapAttrsToList (key: value: "${key}=${value.to.path}")
+      config.nix.registry;
 
     # Enable experimental nix command and flakes
     # nix.package = pkgs.nixUnstable;
@@ -30,8 +31,5 @@
     # '';
   };
 
-  programs = {
-    zsh.enable = true;
-    nix-index.enable = true;
-  };
+  programs = { nix-index.enable = true; };
 }
