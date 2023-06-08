@@ -32,6 +32,13 @@ with pkgs;
         entry = "${git-secrets}/bin/git-secrets --pre_commit_hook";
         language = "script";
       };
+
+    };
+
+    settings = {
+      statix.ignore = [
+        "hosts/common/users/narinari/default.nix" # BUG: Statix throws parsing error if parameter expansion exists in path.
+      ];
     };
   };
 } # // (deploy-rs.lib.${system}.deployChecks self.deploy)
