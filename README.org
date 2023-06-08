@@ -38,10 +38,22 @@ scp ~/.config/sops/age/keys.txt <remote>:.config/sops/age # upload age secret ke
 home-manager switch --flake ~/nix-config"#narinari@work-dev"
 #+end_src
 
-** Edit secrets
+*** Nix on Darwin
 #+begin_src shell
-cd secrets
-agenix -e work/env.age
+# build and switch
+nix build ~/nix-config#darwinConfigurations.FL4N2RD4TD.system && darwin-rebuild switch --flake ~/nix-config
+#+end_src
+
+** Edit secrets
+
+#+begin_src shell
+cd nix-secrets
+# edit secrets
+sops work/xxx.yaml
+git ci -m "Update secrets" && git pu
+
+cd nix-config
+nix flake update my-secrets
 #+end_src
 
 * See
