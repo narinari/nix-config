@@ -57,11 +57,11 @@ Host env-step
   ForwardAgent yes
 
 Host dev-env-step
-  HostName 18.183.133.94
+  HostName 52.69.75.91
   ForwardAgent yes
 
-Host narinari-dev i-0f246ac8a48605437
-  HostName 172.32.32.42
+Host narinari-dev i-086e2a1f159186c16
+  HostName 172.29.36.124
   User narinari
   ProxyJump dev-env-step
   ForwardAgent yes
