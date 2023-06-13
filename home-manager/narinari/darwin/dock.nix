@@ -5,6 +5,11 @@
     AppleActionOnDoubleClick = "Minimize";
   };
 
+  targets.darwin.defaults.dock = {
+    autohide = true;
+    orientation = "right";
+  };
+
   targets.darwin.defaults."com.apple.dock" = {
     "mru-spaces" = false;
     "show-recents" = false;
