@@ -58,7 +58,7 @@ in {
         # Fix OS window role (needed for window managers like yabai)
         (pkgs.fetchpatch {
           url =
-            "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-29/fix-window-role.patch";
+            "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-28/fix-window-role.patch";
           sha256 = "+z/KfsBm1lvZTZNiMbxzXQGRTjkCFO4QPlEK35upjsE=";
         })
         # Use poll instead of select to get file descriptors
@@ -76,7 +76,7 @@ in {
         # Make Emacs aware of OS-level light/dark mode
         (pkgs.fetchpatch {
           url =
-            "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-29/system-appearance.patch";
+            "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-28/system-appearance.patch";
           sha256 = "oM6fXdXCWVcBnNrzXmF0ZMdp8j0pzkLE66WteeCutv8=";
         })
       ];
