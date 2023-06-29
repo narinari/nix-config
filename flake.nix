@@ -50,32 +50,16 @@
 
     let
       inherit (self) outputs;
-      forEachSystem = nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-darwin" ];
-      forEachPkgs = f: forEachSystem (sys: f nixpkgs.legacyPackages.${sys});
-
-      mkNixos = modules:
-        nixpkgs.lib.nixosSystem {
-          inherit modules;
-          specialArgs = { inherit inputs outputs; };
-        };
-
-      mkDarwin = system: modules:
-        darwin.lib.darwinSystem {
-          inherit system modules;
-          specialArgs = { inherit inputs outputs; };
-        };
-
-      mkHome = modules: pkgs:
-        home-manager.lib.homeManagerConfiguration {
-          inherit modules pkgs;
-          extraSpecialArgs = { inherit inputs outputs; };
-        };
+      lib = nixpkgs.lib // home-manager.lib;
+      systems = [ "x86_64-linux" "aarch64-darwin" ];
+      forEachSystem = f: lib.genAttrs systems (sys: f pkgsFor.${sys});
+      pkgsFor = nixpkgs.legacyPackages;
     in {
       overlays = import ./overlays { inherit inputs outputs; };
 
-      packages = forEachPkgs (pkgs: (import ./pkgs { inherit pkgs; }));
+      packages = forEachSystem (pkgs: (import ./pkgs { inherit pkgs; }));
 
-      devShells = forEachPkgs (pkgs:
+      devShells = forEachSystem (pkgs:
         import ./nix/shell.nix {
           inherit pkgs;
           checks = import ./nix/checks.nix {
@@ -85,15 +69,24 @@
         });
 
       darwinConfigurations = {
-        FL4N2RD4TD = mkDarwin "aarch64-darwin" [ ./hosts/FL4N2RD4TD ];
+        FL4N2RD4TD = darwin.lib.darwinSystem {
+          system = "aarch64-darwin";
+          modules = [ ./hosts/FL4N2RD4TD ];
+          specialArgs = { inherit inputs outputs; };
+        };
       };
 
       homeConfigurations = {
-        "narinari@work-dev" = mkHome [ ./home-manager/narinari/work-ec2.nix ]
-          nixpkgs.legacyPackages."x86_64-linux";
-        "narinari@FL4N2RD4TD" =
-          mkHome [ ./home-manager/narinari/FL4N2RD4TD.nix ]
-          nixpkgs.legacyPackages."aarch64-darwin";
+        "narinari@work-dev" = lib.homeManagerConfiguration {
+          modules = [ ./home-manager/narinari/work-ec2.nix ];
+          pkgs = pkgsFor.x86_64-linux;
+          extraSpecialArgs = { inherit inputs outputs; };
+        };
+        "narinari@FL4N2RD4TD" = lib.homeManagerConfiguration {
+          modules = [ ./home-manager/narinari/FL4N2RD4TD.nix ];
+          pkgs = pkgsFor.aarch64-darwin;
+          extraSpecialArgs = { inherit inputs outputs; };
+        };
       };
     };
 }
