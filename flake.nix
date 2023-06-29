@@ -73,6 +73,8 @@
     in {
       overlays = import ./overlays { inherit inputs outputs; };
 
+      packages = forEachPkgs (pkgs: (import ./pkgs { inherit pkgs; }));
+
       devShells = forEachPkgs (pkgs:
         import ./nix/shell.nix {
           inherit pkgs;

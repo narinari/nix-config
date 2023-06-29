@@ -1,4 +1,4 @@
-{ pkgs, config, inputs, ... }:
+{ pkgs, config, inputs, outputs, ... }:
 
 {
   imports = [ ./git.nix ./zsh.nix ];
@@ -7,6 +7,8 @@
     sopsFile = "${inputs.my-secrets}/work/c-fo.yaml";
     path = "${config.xdg.dataHome}/profile/work-env.sh";
   };
+
+  home.packages = [ outputs.packages.${pkgs.system}.fosi ];
 
   programs = {
     ssh = {
