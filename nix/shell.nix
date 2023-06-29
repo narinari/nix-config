@@ -5,6 +5,7 @@
     name = "nix-config";
     NIX_CONFIG = "extra-experimental-features = nix-command flakes repl-flake";
     nativeBuildInputs = with pkgs; [
+      nix
       git
       home-manager
 
@@ -13,14 +14,12 @@
       deploy-rs
       nix-build-uncached
       nixpkgs-fmt
-      age
+      sops
+      # age
+      rage
+      ssh-to-age
       rnix-lsp
       statix
-
-      # Lua
-      # stylua
-      # (luajit.withPackages (p: with p; [ luacheck ]))
-      # sumneko-lua-language-server
 
       # Shell
       shellcheck
@@ -30,14 +29,10 @@
       act
       actionlint
       python3Packages.pyflakes
-      shellcheck
 
       # Misc
       jq
       pre-commit
-      rage
-      sops
-      ssh-to-age
     ];
 
     shellHook = ''
