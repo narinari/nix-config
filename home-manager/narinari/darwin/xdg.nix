@@ -6,9 +6,7 @@
   # Move Cache home to ~/Library/Caches, so it plays nicely with backups
   xdg.cacheHome = "${config.home.homeDirectory}/Library/Caches";
 
-  home.sessionVariables = {
-    SOPS_AGE_KEY_FILE = "${config.xdg.configHome}/sops/age/keys.txt";
-  };
+  home.sessionVariables = { SOPS_AGE_KEY_FILE = config.sops.age.keyFile; };
 
   launchd.agents.xdg_cache_home = {
     enable = true;

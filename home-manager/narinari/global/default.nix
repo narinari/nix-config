@@ -27,7 +27,7 @@
   };
 
   sops = {
-    age.keyFile = "${config.home.homeDirectory}/.config/sops/age/keys.txt";
+    age.keyFile = "${config.xdg.configHome}/sops/age/keys.txt";
     defaultSopsFile = ./secrets.yaml;
   };
 
@@ -39,6 +39,9 @@
     language.base = "ja_JP.UTF-8";
 
     sessionPath = [ "$HOME/.local/bin" ];
+    sessionVariables = {
+      SOPS_AGE_KEY_FILE = config.sops.age.keyFile; # for macos
+    };
 
     file.".local/bin" = {
       source = ./home/bin;
