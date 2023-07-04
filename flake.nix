@@ -14,11 +14,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
+    };
 
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
     };
 
     agenix = {
@@ -26,11 +31,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.darwin.follows = "darwin";
       inputs.home-manager.follows = "home-manager";
-    };
-
-    nix-packages = {
-      url = "github:reckenrode/nix-packages";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     emacs-overlay = {
