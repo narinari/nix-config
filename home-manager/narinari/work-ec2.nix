@@ -4,6 +4,8 @@
   imports =
     [ inputs.sops-nix.homeManagerModule ./global ./work ./features/rclone ];
 
+  targets.genericLinux.enable = true;
+
   # linux only
   # services = {
   #   syncthing.enable = true;
