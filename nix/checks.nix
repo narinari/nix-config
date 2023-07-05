@@ -17,7 +17,10 @@ with pkgs;
       shellcheck.enable = true;
       shfmt = {
         enable = true;
-        excludes = [ "hosts/FL4N2RD4TD/core/p10k-config/p10k.zsh" ];
+        excludes = [
+          "hosts/FL4N2RD4TD/core/p10k-config/p10k.zsh"
+          "home-manager/narinari/work/work-config/aws.zsh"
+        ];
       };
       statix.enable = true;
       # stylua.enable = true;
@@ -29,6 +32,13 @@ with pkgs;
         entry = "${git-secrets}/bin/git-secrets --pre_commit_hook";
         language = "script";
       };
+
+    };
+
+    settings = {
+      statix.ignore = [
+        "hosts/common/users/narinari/default.nix" # BUG: Statix throws parsing error if parameter expansion exists in path.
+      ];
     };
   };
 } # // (deploy-rs.lib.${system}.deployChecks self.deploy)

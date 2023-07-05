@@ -3,59 +3,8 @@
 * Highlights
 - [[https://nixos.wiki/wiki/Flakes][Nix Flakes]]
 - [[https://github.com/nix-community/home-manager][home-manager]]
-- [[https://github.com/gytis-ivaskevicius/flake-utils-plus/][flake-utils-plus]]
-- Encrypt secret resources with [[https://github.com/ryantm/agenix][agenix]]
+- Encrypt secret resources with sops-nix and age
 - Multi-platform(Linux & Darwin(MacOS)), Multi-architecture(x86_64 & aarch64)
-
-* Configuration Structure
-- =hosts=: NixOS Configurations, accessible via =nixos-rebuild --flake=.
-  - =common=: Shared configurations consumed by the machine-specific ones.
-    - =global=: Configurations that are globally applied to all my machines.
-    - =optional=: Opt-in configurations my machines can use.
-
-** Varibles
-- architecture :: "x86_64" | "aarch64"
-- platform :: "linux" | "darwin"
-- host name :: String
-- user name :: String
-
-** Structure
-- =flake.nix=: Entrypoint for hosts and home configurations. Also exposes a
-  devshell for boostrapping (=nix develop= or =nix-shell=).
-- =/common=: Shared configurations consumed by the machine-specific ones.
-  - =/<platform>=: Platform-specific
-    - =/<architecture>=: CPU Architecture-specific
-  - =/users=:
-    - =/configuration.nix=: Shared configurations with all users.
-    - =/home-manager.nix=: Shared Home-manager configuration, acessible via =home-manager --flake=
-    - =/nix-flakes.nix=:
-    - =/<user name>=:
-      - =/<platform>=:
-        - =/home-manager=: My Home-manager configuration, acessible via =home-manager --flake=
-      - =/home-manager=:
-      - =/configuration.nix=:
-- =/hosts=: NixOS Configurations, accessible via =nixos-rebuild --flake=.
-  - =/<architecture>-<platform>=:
-    - =/<host name>=:
-      - =/users=:
-        - =/<user name>=:
-          - =/home-manager=:
-      - =/configuration.nix=:
-- =/lib=: A few lib functions for making my flake cleaner
-- =/nix=:
-- =/overlays=: Patches and version overrides for some packages. Accessible via =nix build=.
-  - =/<platform>=: Platform-specific overlays
-- =/modules=: A few actual modules (with options) I haven't upstreamed yet.
-- =/pkgs=: My custom packages. Also accessible via =nix build=. You can compose
-  these into your own configuration by using my flake's overlay, or consume them through NUR.
-- =/secrets=: The secret resources are encrypted and stored with the age.
-  - secrets.nix: User's public key and specification for encrypted resources.
-- =/templates=: A couple project templates for different languages. Accessible
-  via =nix init=.
-
-** Hosts
-- =aarch64-darwin/FL4N2RD4TD=: MacBook Pro 2021 - 32GB RAM, Apple M1 | MacOS
-- =x86_64-linux/khali=: Desktop PC - 32GB RAM, Intel i5, RX 5700XT | XMonad
 
 * Commands
 ** Setup on machine
@@ -76,14 +25,38 @@ mkdir -p ~/.config/nix
 echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
 # install home-manager
 nix run home-manager/master -- init --switch
+
+# upload keys
+## on localhost
+ssh <remote> sh -c 'mkdir -p ~/.config/sops/age'
+scp ~/.config/sops/age/keys.txt <remote>:.config/sops/age # upload age secret keys
+
+# checkout nix-config
+## on remote
+
+# build
+home-manager switch --flake ~/nix-config"#narinari@work-dev"
+#+end_src
+
+*** Nix on Darwin
+#+begin_src shell
+# build and switch
+nix build ~/nix-config#darwinConfigurations.FL4N2RD4TD.system && darwin-rebuild switch --flake ~/nix-config
 #+end_src
 
 ** Edit secrets
+
 #+begin_src shell
-cd secrets
-agenix -e work/env.age
+cd nix-secrets
+# edit secrets
+sops work/xxx.yaml
+git ci -m "Update secrets" && git pu
+
+cd nix-config
+nix flake update my-secrets
 #+end_src
 
 * See
 - https://github.com/reckenrode/nixos-configs/
 - https://github.com/Misterio77/nix-config/
+- https://sr.ht/~misterio/nix-config/

@@ -4,40 +4,9 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
-
-    deploy-rs = {
-      url = "github:serokell/deploy-rs";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        utils.follows = "utils";
-        flake-compat.follows = "flake-compat";
-      };
-    };
-
-    # flake-utils.url = "github:numtide/flake-utils";
-    utils.url = "github:gytis-ivaskevicius/flake-utils-plus";
-
-    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
-
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    agenix = {
-      url = "github:ryantm/agenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.darwin.follows = "darwin";
-    };
-
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-23.05";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.utils.follows = "utils";
     };
 
     darwin = {
@@ -45,64 +14,79 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
+    };
+
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
+    };
+
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.darwin.follows = "darwin";
+      inputs.home-manager.follows = "home-manager";
+    };
+
     emacs-overlay = {
       url = "github:nix-community/emacs-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "utils";
     };
 
     my-secrets = {
-      url = "path:./secrets";
+      url = "git+ssh://github.com.private/narinari/nix-secrets?ref=main";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.agenix.follows = "agenix";
     };
   };
 
-  # add the inputs declared above to the argument attribute set
-  outputs = { self, nixpkgs, home-manager, darwin, utils, agenix, my-secrets
+  outputs = { self, nixpkgs, darwin, home-manager, my-secrets, emacs-overlay
     , ... }@inputs:
+
     let
       inherit (self) outputs;
-      inherit (nixpkgs.lib) recursiveUpdate;
+      lib = nixpkgs.lib // home-manager.lib;
+      systems = [ "x86_64-linux" "aarch64-darwin" ];
+      forEachSystem = f: lib.genAttrs systems (sys: f pkgsFor.${sys});
+      pkgsFor = nixpkgs.legacyPackages;
+    in {
+      overlays = import ./overlays { inherit inputs outputs; };
 
-      lib = import ./lib;
-      # packages = import ./pkgs;
-    in utils.lib.mkFlake rec {
-      inherit self inputs lib;
+      packages = forEachSystem (pkgs: (import ./pkgs { inherit pkgs; }));
 
-      channelsConfig = {
-        allowUnfree = true;
-        allowUnfreePredicate = _: true;
+      devShells = forEachSystem (pkgs:
+        import ./nix/shell.nix {
+          inherit pkgs;
+          checks = import ./nix/checks.nix {
+            inherit pkgs;
+            inherit (inputs) pre-commit-hooks;
+          } pkgs.system;
+        });
+
+      darwinConfigurations = {
+        FL4N2RD4TD = darwin.lib.darwinSystem {
+          system = "aarch64-darwin";
+          modules = [ ./hosts/FL4N2RD4TD ];
+          specialArgs = { inherit inputs outputs; };
+        };
       };
 
-      supportedSystems = [ "x86_64-linux" "aarch64-darwin" ];
-
-      sharedOverlays = [ self.inputs.emacs-overlay.overlay ];
-
-      hostDefaults.modules = [ ./common/configuration.nix ];
-
-      hosts = lib.mkHosts {
-        inherit self;
-        hostsPath = ./hosts;
-      };
-
-      outputsBuilder = channels: rec {
-        checks = import ./nix/checks.nix {
-          pkgs = channels.nixpkgs;
-          inherit (inputs) pre-commit-hooks deploy-rs;
-        } channels.nixpkgs.system;
-        devShell = import ./nix/dev-shell.nix {
-          pkgs = channels.nixpkgs // {
-            inherit (agenix.packages.${channels.nixpkgs.system}) agenix;
-          };
-          inherit checks;
-        } channels.nixpkgs.system;
-        #   packages =
-        #     let
-        #       inherit (channels.nixpkgs.stdenv.hostPlatform) system;
-        #     in
-        #     packages { inherit lib channels; };
+      homeConfigurations = {
+        "narinari@work-dev" = lib.homeManagerConfiguration {
+          modules = [ ./home-manager/narinari/work-ec2.nix ];
+          pkgs = pkgsFor.x86_64-linux;
+          extraSpecialArgs = { inherit inputs outputs; };
+        };
+        "narinari@FL4N2RD4TD" = lib.homeManagerConfiguration {
+          modules = [ ./home-manager/narinari/FL4N2RD4TD.nix ];
+          pkgs = pkgsFor.aarch64-darwin;
+          extraSpecialArgs = { inherit inputs outputs; };
+        };
       };
     };
-
 }
