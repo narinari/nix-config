@@ -7,4 +7,6 @@
     feh # light-weight image viewer
     xdg-utils
   ];
+
+  sessionVariables = { VISUAL = "emacsclient"; };
 }
