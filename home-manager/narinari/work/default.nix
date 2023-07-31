@@ -8,7 +8,7 @@
     path = "${config.xdg.dataHome}/profile/work-env.sh";
   };
 
-  home.packages = [ outputs.packages.${pkgs.system}.fosi ];
+  home.packages = with outputs.packages.${pkgs.system}; [ lsec2 fosi ];
 
   programs = {
     ssh = {
