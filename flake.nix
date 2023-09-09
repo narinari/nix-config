@@ -77,7 +77,7 @@
       };
 
       homeConfigurations = {
-        "narinari@work-dev" = lib.homeManagerConfiguration {
+        "narinari@work-ec2" = lib.homeManagerConfiguration {
           modules = [ ./home-manager/narinari/work-ec2.nix ];
           pkgs = pkgsFor.x86_64-linux;
           extraSpecialArgs = { inherit inputs outputs; };
