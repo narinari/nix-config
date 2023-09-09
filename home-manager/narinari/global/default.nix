@@ -14,10 +14,7 @@
 
   nix = {
     package = lib.mkDefault pkgs.nix;
-    settings = {
-      experimental-features = [ "nix-command" "flakes" "repl-flake" ];
-      warn-dirty = false;
-    };
+    settings = { warn-dirty = false; };
   };
 
   # systemd.user.startServices = "sd-switch";
