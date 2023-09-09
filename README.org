@@ -22,7 +22,7 @@ nix build .#nixosConfigurations.khali.system && nixos-rebuild switch --flake .
 
 # enable flake
 mkdir -p ~/.config/nix
-echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+echo "experimental-features = nix-command flakes repl-flake" >> ~/.config/nix/nix.conf
 # install home-manager
 nix run home-manager/master -- init --switch
 
