@@ -1,5 +1,5 @@
 { _, ... }:
 
 {
-  sessionVariables = { VISUAL = "emacsclient -nw"; };
+  home.sessionVariables = { VISUAL = "emacsclient -nw"; };
 }
