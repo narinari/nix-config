@@ -1,11 +1,10 @@
 #!/usr/bin/env zsh
 
-[[ -e ~/.zsh/plugins/fzf.zsh ]] && . ~/.zsh/plugins/fzf.zsh
-. ~/.zsh/plugins/dev.zsh
+. ~/.config/zsh/plugins/dev/dev.plugin.zsh
 
 if [ -n "$TMUX" ]; then
-  SELECTED="$(ghq list | fzf-tmux)"
-  if [ -n "$SELECTED" ]; then
-    open-project $SELECTED
-  fi
+	SELECTED="$(ghq list | fzf-tmux)"
+	if [ -n "$SELECTED" ]; then
+		open-project $SELECTED
+	fi
 fi
