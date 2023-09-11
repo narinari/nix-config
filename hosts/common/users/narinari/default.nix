@@ -13,7 +13,9 @@ in {
       "/Users/narinari"; # need only on macos https://github.com/LnL7/nix-darwin/issues/423
   } // lib.optionalAttrs pkgs.stdenv.isLinux {
     isNormalUser = true;
-    openssh.authorizedKeys.keys = (../../../keys/secrets.nix).allKeys;
+    # openssh.authorizedKeys.keys = (../../../keys/secrets.nix).allKeys;
+    openssh.authorizedKeys.keys =
+      [ (builtins.readFile ../../../../home-manager/narinari/id_ed25519.pub) ];
     extraGroups = [ "wheel" "video" "audio" ] ++ ifTheyExist [
       "network"
       "wireshark"

@@ -3,6 +3,11 @@
 {
   nix = {
     settings = {
+      # Enable flakes and new 'nix' command
+      experimental-features = [ "nix-command" "flakes" "repl-flake" ];
+      # Deduplicate and optimize nix store
+      auto-optimise-store = true;
+
       substituters = [ "https://cache.nixos.org/" ];
       trusted-public-keys =
         [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
@@ -21,15 +26,16 @@
 
     # Enable experimental nix command and flakes
     # nix.package = pkgs.nixUnstable;
-    extraOptions = ''
-      auto-optimise-store = true
-      experimental-features = nix-command flakes
-    '' + lib.optionalString (pkgs.system == "aarch64-darwin") ''
+
+    extraOptions = lib.optionalString (pkgs.system == "aarch64-darwin") ''
       extra-platforms = aarch64-darwin
     '';
     #   extra-platforms = x86_64-darwin aarch64-darwin
     # '';
   };
 
-  programs = { nix-index.enable = true; };
+  programs = {
+    nix-index.enable = true;
+    command-not-found.enable = false;
+  };
 }

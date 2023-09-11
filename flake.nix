@@ -4,6 +4,11 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    nixos-generators = {
+      url = "github:nix-community/nixos-generators";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager/release-23.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -39,7 +44,7 @@
     };
 
     my-secrets = {
-      url = "git+ssh://github.com.private/narinari/nix-secrets?ref=main";
+      url = "git+ssh://git@github.com.private/narinari/nix-secrets?ref=main";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.agenix.follows = "agenix";
     };
@@ -67,6 +72,14 @@
             inherit (inputs) pre-commit-hooks;
           } pkgs.system;
         });
+
+      nixosConfigurations = {
+        rin = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          system = "x86_64-linux";
+          modules = [ ./hosts/rin ];
+        };
+      };
 
       darwinConfigurations = {
         FL4N2RD4TD = darwin.lib.darwinSystem {

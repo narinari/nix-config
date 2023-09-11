@@ -8,14 +8,4 @@
     ./darwin
     ./features/desktop/common
   ];
-
-  # linux only
-  # services = {
-  #   syncthing.enable = true;
-  #   easyeffects.enable = true;
-  #   systembus-notify.enable = true;
-  # };
-
-  # systemd.user.startServices = "sd-switch";
-
 }

@@ -172,18 +172,54 @@
         ]
       },
       "locked": {
-        "lastModified": 1693816704,
-        "narHash": "sha256-C3N4SbUbLDHuOGFRLqXVuqtMP785R+xVs1ygrOsDAps=",
+        "lastModified": 1694475195,
+        "narHash": "sha256-0A6v2OLwwAINWSjy8tQ4sdrZOYyDmCj/Vj75d4/Y6sI=",
         "ref": "main",
-        "rev": "8451c3a4d5811f40aef377937c0ffb6938dfb056",
-        "revCount": 14,
+        "rev": "683f0e457501349afd399fabbd2d0d85a055c6db",
+        "revCount": 16,
         "type": "git",
-        "url": "ssh://github.com.private/narinari/nix-secrets"
+        "url": "ssh://git@github.com.private/narinari/nix-secrets"
       },
       "original": {
         "ref": "main",
         "type": "git",
-        "url": "ssh://github.com.private/narinari/nix-secrets"
+        "url": "ssh://git@github.com.private/narinari/nix-secrets"
+      }
+    },
+    "nixlib": {
+      "locked": {
+        "lastModified": 1693701915,
+        "narHash": "sha256-waHPLdDYUOHSEtMKKabcKIMhlUOHPOOPQ9UyFeEoovs=",
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "rev": "f5af57d3ef9947a70ac86e42695231ac1ad00c25",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "type": "github"
+      }
+    },
+    "nixos-generators": {
+      "inputs": {
+        "nixlib": "nixlib",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1693791338,
+        "narHash": "sha256-wHmtB5H8AJTUaeGHw+0hsQ6nU4VyvVrP2P4NeCocRzY=",
+        "owner": "nix-community",
+        "repo": "nixos-generators",
+        "rev": "8ee78470029e641cddbd8721496da1316b47d3b4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixos-generators",
+        "type": "github"
       }
     },
     "nixpkgs": {
@@ -252,6 +288,7 @@
         "emacs-overlay": "emacs-overlay",
         "home-manager": "home-manager",
         "my-secrets": "my-secrets",
+        "nixos-generators": "nixos-generators",
         "nixpkgs": "nixpkgs",
         "pre-commit-hooks": "pre-commit-hooks",
         "sops-nix": "sops-nix"
