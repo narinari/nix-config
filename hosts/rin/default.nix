@@ -6,6 +6,7 @@
     "${toString modulesPath}/virtualisation/proxmox-image.nix"
     ../common/global
     ../common/linux
+    ../common/linux/home-network.nix
     ../common/users/narinari
   ];
 

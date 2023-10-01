@@ -10,15 +10,11 @@
           hostname = "github.com";
           user = "git";
           port = 22;
-          identitiesOnly = true;
-
           extraOptions = { TCPKeepAlive = "yes"; };
         };
 
         "github.com" = {
           user = "git";
-          identitiesOnly = true;
-
           extraOptions = { TCPKeepAlive = "yes"; };
         };
       };

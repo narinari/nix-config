@@ -14,7 +14,10 @@
     package = pkgs.nixVersions.nix_2_12;
   };
 
-  environment.enableAllTerminfo = true;
+  environment = {
+    enableAllTerminfo = true;
+    shells = with pkgs; [ zsh bashInteractive ];
+  };
 
   hardware.enableRedistributableFirmware = true;
 
