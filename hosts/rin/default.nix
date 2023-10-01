@@ -1,8 +1,9 @@
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, modulesPath, inputs, ... }:
 
 {
   imports = [
     inputs.nixos-generators.nixosModules.all-formats
+    "${toString modulesPath}/virtualisation/proxmox-image.nix"
     ../common/global
     ../common/linux
     ../common/users/narinari

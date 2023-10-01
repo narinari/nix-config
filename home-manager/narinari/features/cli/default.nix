@@ -16,6 +16,7 @@ in {
     ./nodejs.nix
     ./less.nix
     ./rust.nix
+    ./ssh.nix
     ./tmux.nix
     ./zsh.nix
   ];

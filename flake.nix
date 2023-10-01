@@ -105,6 +105,11 @@
           pkgs = pkgsFor.x86_64-linux;
           extraSpecialArgs = { inherit inputs outputs; };
         };
+        "narinari@rin" = lib.homeManagerConfiguration {
+          modules = [ ./home-manager/narinari/rin.nix ];
+          pkgs = pkgsFor.x86_64-linux;
+          extraSpecialArgs = { inherit inputs outputs; };
+        };
         "narinari@FL4N2RD4TD" = lib.homeManagerConfiguration {
           modules = [ ./home-manager/narinari/FL4N2RD4TD.nix ];
           pkgs = pkgsFor.aarch64-darwin;
