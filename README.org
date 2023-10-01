@@ -15,6 +15,15 @@ nix build .#darwinConfigurations.FL4N2RD4TD.system && darwin-rebuild switch --fl
 # On Linux machine
 nix build .#nixosConfigurations.khali.system && nixos-rebuild switch --flake .
 #+end_src
+
+*** on Nixos
+#+begin_src shell
+# checkout nix-config
+## on remote
+
+# build
+sudo nixos-rebuild switch --flake ~/nix-config#rin
+#+end_src
 *** Nix on Ubuntu
 
 #+begin_src shell
