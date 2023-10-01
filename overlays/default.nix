@@ -13,4 +13,34 @@
   fcitx-overlay = final: prev:
     if prev.stdenv.isLinux then { fcitx-engines = final.fcitx5; } else { };
   emacs-overlay = inputs.emacs-overlay.overlay;
+
+  # #  xcbuild-overlay = final: prev: {
+  # #    xcbuild = prev.xcbuild.override {
+  # #      stdenv = prev.stdenv // {
+  # #        targetPlatform = prev.stdenv.targetPlatform // {
+  # #          xcodeVer = "13.4";
+  # #          darwinSdkVersion = "13.4";
+  # #        };
+  # #      };
+  # #    };
+  # # };
+  # lima-overlay = final: prev: {
+  #   lima = prev.lima.override {
+  #     # xcbuild = final.xcbuild;
+  #     xcbuild = prev.xcbuild.override {
+  #       stdenv = prev.stdenv // {
+  #         targetPlatform = prev.stdenv.targetPlatform // {
+  #           xcodeVer = "13.4";
+  #           darwinSdkVersion = "13.4";
+  #         };
+  #       };
+  #     };
+  #     stdenv = prev.stdenv // {
+  #       targetPlatform = prev.stdenv.targetPlatform // {
+  #         xcodeVer = "13.4";
+  #         darwinSdkVersion = "13.4";
+  #       };
+  #     };
+  #   };
+  # };
 }

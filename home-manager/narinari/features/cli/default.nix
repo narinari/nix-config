@@ -135,7 +135,7 @@ in {
       settings.auto_sync = true;
     };
     bat.enable = true;
-    exa = {
+    eza = {
       enable = true;
       enableAliases = true;
     };

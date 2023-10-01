@@ -19,9 +19,10 @@ in {
     inputs.home-manager.darwinModules.home-manager
     ./copy-applications.nix
     ./diff-closures.nix
-    ./nix-optimizations-darwin.nix
     ./fonts.nix
     ./homebrew.nix
+    ./launchd.nix
+    ./nix-optimizations-darwin.nix
   ];
 
   nix = {

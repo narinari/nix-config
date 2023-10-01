@@ -10,7 +10,7 @@
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-23.05";
+      url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -21,21 +21,28 @@
 
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
+        flake-utils.follows = "emacs-overlay/flake-utils";
+      };
     };
 
     sops-nix = {
       url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
+      };
     };
 
     agenix = {
       url = "github:ryantm/agenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.darwin.follows = "darwin";
-      inputs.home-manager.follows = "home-manager";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        darwin.follows = "darwin";
+        home-manager.follows = "home-manager";
+      };
     };
 
     emacs-overlay = {
@@ -45,8 +52,10 @@
 
     my-secrets = {
       url = "git+ssh://git@github.com.private/narinari/nix-secrets?ref=main";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.agenix.follows = "agenix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        agenix.follows = "agenix";
+      };
     };
   };
 
@@ -82,8 +91,9 @@
       };
 
       darwinConfigurations = {
-        FL4N2RD4TD = darwin.lib.darwinSystem {
-          system = "aarch64-darwin";
+        FL4N2RD4TD = let system = "aarch64-darwin";
+        in darwin.lib.darwinSystem {
+          inherit system;
           modules = [ ./hosts/FL4N2RD4TD ];
           specialArgs = { inherit inputs outputs; };
         };

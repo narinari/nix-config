@@ -1,8 +1,7 @@
 { inputs, outputs, consig, pkgs, ... }:
 
 {
-  imports =
-    [ inputs.sops-nix.homeManagerModule ./global ./features/terminal-access ];
+  imports = [ ./global ./features/terminal-access ];
 
   targets.genericLinux.enable = true;
 

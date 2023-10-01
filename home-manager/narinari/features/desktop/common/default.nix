@@ -8,5 +8,5 @@
     xdg-utils
   ];
 
-  sessionVariables = { VISUAL = "emacsclient"; };
+  home.sessionVariables = { VISUAL = "emacsclient"; };
 }

@@ -103,8 +103,10 @@ eval "$(saml2aws --completion-script-zsh)"
 
 go_dev() {
   if [[ -n $TMUX ]]; {
-tmux display AWS_PROFILE=freee-development\(507110214534\):freee-sso-developer
-tmux setenv AWS_PROFILE freee-development\(507110214534\):freee-sso-developer \; setenv AWS_REGION ap-northeast-1 \; new-window -n " narinari-dev" connect-remote-env.zsh i-086e2a1f159186c16
+tmux setenv AWS_PROFILE freee-development\(507110214534\):freee-sso-developer \; \
+  setenv AWS_REGION ap-northeast-1 \; \
+  setenv SSH_AUTH_SOCK $SSH_AUTH_SOCK \; \
+  new-window -n " narinari-dev" connect-remote-env.zsh i-086e2a1f159186c16
   }
 }
 

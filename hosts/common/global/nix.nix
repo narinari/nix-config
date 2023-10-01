@@ -38,8 +38,5 @@
     # '';
   };
 
-  programs = {
-    nix-index.enable = true;
-    command-not-found.enable = false;
-  };
+  programs = { nix-index.enable = true; };
 }
