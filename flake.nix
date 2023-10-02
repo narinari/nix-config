@@ -101,7 +101,10 @@
 
       homeConfigurations = {
         "narinari@work-ec2" = lib.homeManagerConfiguration {
-          modules = [ ./home-manager/narinari/work-ec2.nix ];
+          modules = [
+            ./home-manager/narinari/work-ec2.nix
+            inputs.sops-nix.homeManagerModule # home-manager only (nix on ubuntu)
+          ];
           pkgs = pkgsFor.x86_64-linux;
           extraSpecialArgs = { inherit inputs outputs; };
         };
