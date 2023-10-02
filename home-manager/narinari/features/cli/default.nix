@@ -14,6 +14,7 @@ in {
     ./haskell.nix
     ./kubernetes.nix
     ./nodejs.nix
+    ./lf.nix
     ./less.nix
     ./rust.nix
     ./ssh.nix
