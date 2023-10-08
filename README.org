@@ -23,6 +23,11 @@ nix build .#nixosConfigurations.khali.system && nixos-rebuild switch --flake .
 
 # build
 sudo nixos-rebuild switch --flake ~/nix-config#rin
+
+# build disk image
+cd ~/nix-config
+nix build .#nixosConfigurations.rin.config.formats.proxmox
+
 #+end_src
 *** Nix on Ubuntu
 
