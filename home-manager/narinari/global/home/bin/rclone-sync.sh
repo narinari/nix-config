@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-rclone sync ~/GoogleDrive/org p_drive:org
+rclone sync p_drive:org ~/GoogleDrive/org
