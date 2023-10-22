@@ -233,7 +233,6 @@
         url = {
           "git://github.com/ghc/packages-".insteadOf =
             "git://github.com/ghc/packages/";
-          "ssh://git@github.com/C-FO/".insteadOf = "https://github.com/C-FO/";
         };
         commit.template =
           "${config.xdg.configFile."git/commit-template".source}";
