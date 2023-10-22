@@ -8,5 +8,8 @@
     xdg-utils
   ];
 
-  home.sessionVariables = { VISUAL = "emacsclient"; };
+  home.sessionVariables = {
+    EDITOR = "emacsclient -c -a emacs";
+    VISUAL = "emacsclient -c -a emacs";
+  };
 }
