@@ -2,7 +2,7 @@
   description = "My first nix flake";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
