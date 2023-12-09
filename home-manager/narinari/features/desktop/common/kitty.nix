@@ -2,7 +2,7 @@
   programs.kitty = {
     enable = true;
     font = {
-      name = "SFMono Nerd Font";
+      name = "BerkeleyMono Nerd Font";
       size = 11;
     };
     settings = { macos_option_as_alt = true; };
@@ -53,5 +53,8 @@
       "ctrl+tab" = "send_text all \\x11\\x0C";
       "shift+ctrl+tab" = "send_text all \\x11\\x08";
     };
+    extraConfig = ''
+      symbol_map U+3041-U+30FC,U+4EDD,U+3400-U+4DB5,U+4E00-U+9FCB,U+F900-U+FA6A,U+2E80-U+2FD5,U+FF5F-U+FF9F,U+3000-U+303F,U+31F0-U+31FF,U+3220-U+3243,U+3280-U+337F,U+FF01-U+FF5E Noto Sans CJK JP
+    '';
   };
 }
