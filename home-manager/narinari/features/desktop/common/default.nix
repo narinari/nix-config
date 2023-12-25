@@ -1,7 +1,7 @@
 { pkgs, lib, outputs, ... }:
 
 {
-  imports = [ ./kitty.nix ];
+  imports = [ ./kitty.nix ./wezterm.nix ];
 
   home.packages = with pkgs; [
     feh # light-weight image viewer

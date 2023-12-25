@@ -92,6 +92,7 @@ in {
     # cloudflared
     # tmate
     tmux
+    wezterm
     # josm
     # ntp
     #
