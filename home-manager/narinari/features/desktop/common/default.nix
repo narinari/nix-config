@@ -9,6 +9,7 @@
     noto-fonts-cjk
     outputs.packages."${pkgs.system}".berkeley-mono
     outputs.packages."${pkgs.system}".berkeley-mono-nerdfonts
+    outputs.packages."${pkgs.system}".ibm-plex-sans
   ];
 
   home.sessionVariables = {
