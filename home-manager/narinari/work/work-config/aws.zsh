@@ -106,7 +106,7 @@ go_dev() {
 tmux setenv AWS_PROFILE freee-development\(507110214534\):freee-sso-developer \; \
   setenv AWS_REGION ap-northeast-1 \; \
   setenv SSH_AUTH_SOCK $SSH_AUTH_SOCK \; \
-  new-window -n " narinari-dev" connect-remote-env.zsh i-086e2a1f159186c16
+  new-window -n "󰢹 narinari-dev" connect-remote-env.zsh i-086e2a1f159186c16
   }
 }
 
@@ -192,7 +192,7 @@ function eks-step() {
 
   BUFFER="AWS_PROFILE=$AWS_PROFILE ONELOGIN_USERNAME=\"narinari@c-fo.com\" ssh $id"
   if [[ ! -z $TMUX ]]; then
-    BUFFER="tmux new-window -n \" ${environment} ${id}\" '$BUFFER'"
+    BUFFER="tmux new-window -n \"󰢹 ${environment} ${id}\" '$BUFFER'"
   fi
   zle redisplay
 }
