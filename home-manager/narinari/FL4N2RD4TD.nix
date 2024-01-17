@@ -1,6 +1,5 @@
 { inputs, outputs, consig, pkgs, ... }:
 
 {
-  imports =
-    [ ./global ./work ./darwin ./features/desktop/common ./features/rclone ];
+  imports = [ ./global ./work ./darwin ./features/desktop/common ];
 }

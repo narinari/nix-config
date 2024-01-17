@@ -1,7 +1,7 @@
 { inputs, outputs, consig, pkgs, ... }:
 
 {
-  imports = [ ./global ./work ./features/terminal-access ./features/rclone ];
+  imports = [ ./global ./work ./features/terminal-access ];
 
   targets.genericLinux.enable = true;
 
