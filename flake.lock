@@ -160,12 +160,12 @@
         "rev": "e6e840d595409dcb7e10cd0078c4568cc808dca3",
         "revCount": 22,
         "type": "git",
-        "url": "ssh://git@github.com.private/narinari/nix-secrets"
+        "url": "ssh://git@github.com/narinari/nix-secrets"
       },
       "original": {
         "ref": "main",
         "type": "git",
-        "url": "ssh://git@github.com.private/narinari/nix-secrets"
+        "url": "ssh://git@github.com/narinari/nix-secrets"
       }
     },
     "nixlib": {
