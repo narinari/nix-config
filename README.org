@@ -7,10 +7,27 @@
 - Multi-platform(Linux & Darwin(MacOS)), Multi-architecture(x86_64 & aarch64)
 
 * Commands
+** Install nix
+- Disable channel by default
+- Enable the use flake
+
+#+begin_src shell
+CONFIGURATION="
+extra-experimental-features = nix-command flakes repl-flake
+extra-trusted-users = ${USER}
+"
+sh <(curl -L https://nixos.org/nix/install) \
+    --no-channel-add \
+    --nix-extra-conf-file <(<<< "${CONFIGURATION}")
+#+end_src
 ** Setup on machine
 #+begin_src shell
 # On MacOS machine
-nix build .#darwinConfigurations.FL4N2RD4TD.system && darwin-rebuild switch --flake .
+# - first time
+git clone git@github.com:narinari/nix-config.git
+nix nix run nix-darwin -- switch --flake ~/nix-config
+# - second and more
+darwin-rebuild switch --flake ~/nix-config
 
 # On Linux machine
 nix build .#nixosConfigurations.khali.system && nixos-rebuild switch --flake .
@@ -67,7 +84,7 @@ sops work/xxx.yaml
 git ci -m "Update secrets" && git pu
 
 cd nix-config
-nix flake update my-secrets
+nix flake update --input-update my-secrets
 #+end_src
 
 * See
