@@ -70,7 +70,8 @@ in {
     sd # find & replace
     bandwhich
     dogdns
-    btop
+    (btop.overrideDerivation
+      (oldAttrs: { stdenv = gcc12Stdenv; })) # 2023/1/17 時点でビルドできないのでパッチ
     pueue
     file
     viddy # alt watch
@@ -129,6 +130,8 @@ in {
 
     natscli
     just
+
+    ditaa
   ];
 
   programs = {
