@@ -66,8 +66,12 @@
       inherit (self) outputs;
       lib = nixpkgs.lib // home-manager.lib;
       systems = [ "x86_64-linux" "aarch64-darwin" ];
-      forEachSystem = f: lib.genAttrs systems (sys: f pkgsFor.${sys});
-      pkgsFor = nixpkgs.legacyPackages;
+      forEachSystem = f: lib.genAttrs systems (sys: f (pkgsFor sys));
+      pkgsFor = system:
+        import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
     in {
       overlays = import ./overlays { inherit inputs outputs; };
 
@@ -105,17 +109,17 @@
             ./home-manager/narinari/work-ec2.nix
             inputs.sops-nix.homeManagerModule # home-manager only (nix on ubuntu)
           ];
-          pkgs = pkgsFor.x86_64-linux;
+          pkgs = pkgsFor "x86_64-linux";
           extraSpecialArgs = { inherit inputs outputs; };
         };
         "narinari@rin" = lib.homeManagerConfiguration {
           modules = [ ./home-manager/narinari/rin.nix ];
-          pkgs = pkgsFor.x86_64-linux;
+          pkgs = pkgsFor "x86_64-linux";
           extraSpecialArgs = { inherit inputs outputs; };
         };
         "narinari@FL4N2RD4TD" = lib.homeManagerConfiguration {
           modules = [ ./home-manager/narinari/FL4N2RD4TD.nix ];
-          pkgs = pkgsFor.aarch64-darwin;
+          pkgs = pkgsFor "aarch64-darwin";
           extraSpecialArgs = { inherit inputs outputs; };
         };
       };
