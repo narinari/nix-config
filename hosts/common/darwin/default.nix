@@ -20,9 +20,12 @@ in {
     ./copy-applications.nix
     ./diff-closures.nix
     ./fonts.nix
+    ./keyboad.nix
     ./homebrew.nix
     ./launchd.nix
     ./nix-optimizations-darwin.nix
+    ./karabiner-elements.nix
+    ./yabai.nix
   ];
 
   nix = {

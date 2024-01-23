@@ -16,16 +16,16 @@
       "mecab"
       "yadm"
       "goldeneggg/lsec2/lsec2"
-      {
-        name = "koekeishiya/formulae/skhd";
-        start_service = true;
-        restart_service = "changed";
-      }
-      {
-        name = "koekeishiya/formulae/yabai";
-        start_service = true;
-        restart_service = "changed";
-      }
+      # {
+      #   name = "koekeishiya/formulae/skhd";
+      #   start_service = true;
+      #   restart_service = "changed";
+      # }
+      # {
+      #   name = "koekeishiya/formulae/yabai";
+      #   start_service = true;
+      #   restart_service = "changed";
+      # }
     ];
 
     casks = [
@@ -37,7 +37,6 @@
       "google-chrome"
       "licecap"
       "contexts"
-      "raycast"
       "firefox"
       "skitch"
     ];

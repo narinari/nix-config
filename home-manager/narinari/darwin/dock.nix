@@ -5,14 +5,12 @@
     darwin.defaults = {
       NSGlobalDomain = { AppleActionOnDoubleClick = "Minimize"; };
 
-      dock = {
-        autohide = true;
-        orientation = "right";
-      };
-
       "com.apple.dock" = {
         "mru-spaces" = false;
         "show-recents" = false;
+        "autohide" = 1;
+        "orientation" = "right";
+        "tilesize" = 40;
       };
 
       "com.apple.menuextra.clock" = {

@@ -13,9 +13,9 @@
   home.packages = with pkgs; [
     lima
 
-    karabiner-elements
     iterm2
     # xquartz
+    raycast
 
     bzip2
     coreutils
