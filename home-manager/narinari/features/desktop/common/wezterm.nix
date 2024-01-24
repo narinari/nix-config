@@ -13,6 +13,7 @@
           { family = 'Apple Color Emoji', assume_emoji_presentation = true},
           { family = 'Noto Emoji', assume_emoji_presentation = true},
         },
+        treat_east_asian_ambiguous_width_as_wide = true,
         use_ime = true,
         color_scheme = "nord",
         allow_square_glyphs_to_overflow_width = "Always",
