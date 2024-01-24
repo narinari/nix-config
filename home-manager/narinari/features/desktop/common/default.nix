@@ -9,6 +9,8 @@
     noto-fonts-cjk
     outputs.packages."${pkgs.system}".berkeley-mono
     outputs.packages."${pkgs.system}".berkeley-mono-nerdfonts
+    outputs.packages."${pkgs.system}".sf-mono
+    outputs.packages."${pkgs.system}".sf-mono-nerdfonts
     outputs.packages."${pkgs.system}".ibm-plex-sans
   ];
 

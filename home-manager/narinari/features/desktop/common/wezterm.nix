@@ -7,7 +7,7 @@
 
       return {
         font = wezterm.font_with_fallback {
-          { family = 'BerkeleyMono Nerd Font', assume_emoji_presentation = false},
+          { family = 'SF Mono', assume_emoji_presentation = false},
           { family = 'IBM Plex Sans JP', assume_emoji_presentation = false},
           { family = 'Symbols Nerd Font Mono', assume_emoji_presentation = false},
           { family = 'Apple Color Emoji', assume_emoji_presentation = true},
@@ -71,7 +71,6 @@
           { key="\\", mods="OPT", action=wezterm.action.SendKey { key="\\", mods="OPT" } },
           { key="Space", mods="OPT", action=wezterm.action.SendKey { key="Space", mods="OPT" } },
           { key=";", mods="CTRL", action=wezterm.action.SendString "\x18@;" }, -- for emacs in terminal
-          { key="j", mods="CTRL", action=wezterm.action.SendString "\x18@j" }, -- for emacs ddskk interminal
 
           -- for default
           { key = 'Tab', mods = 'CTRL', action = act.ActivateTabRelative(1) },
