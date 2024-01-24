@@ -24,7 +24,7 @@ in {
     ./homebrew.nix
     ./launchd.nix
     ./nix-optimizations-darwin.nix
-    ./karabiner-elements.nix
+    # ./karabiner-elements.nix
     ./yabai.nix
   ];
 

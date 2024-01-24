@@ -8,6 +8,7 @@
     ./xdg.nix
     ./ui.nix
     ./dock.nix
+    ./karabiner-elements.nix
   ];
 
   home.packages = with pkgs; [
