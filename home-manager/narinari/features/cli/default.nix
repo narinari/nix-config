@@ -138,7 +138,12 @@ in {
     aria2.enable = true;
     atuin = {
       enable = true;
-      settings.auto_sync = true;
+      settings = {
+        auto_sync = true;
+        style = "compact";
+        invert = true;
+        inline_height = 20;
+      };
     };
     bat.enable = true;
     eza = {
