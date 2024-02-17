@@ -13,9 +13,19 @@
           { family = 'Apple Color Emoji', assume_emoji_presentation = true},
           { family = 'Noto Emoji', assume_emoji_presentation = true},
         },
-        treat_east_asian_ambiguous_width_as_wide = true,
+        -- treat_east_asian_ambiguous_width_as_wide = true,
         use_ime = true,
+
         color_scheme = "nord",
+        colors = {
+          tab_bar = {
+            active_tab = {
+              fg_color = "#2E3440",
+              bg_color = "#5E81AC"
+            }
+          }
+        },
+
         allow_square_glyphs_to_overflow_width = "Always",
         adjust_window_size_when_changing_font_size = false,
         warn_about_missing_glyphs = true,
@@ -26,6 +36,7 @@
           bottom = 0,
         },
         window_close_confirmation = 'NeverPrompt',
+
         disable_default_key_bindings = true,
         keys = {
           { key="0", mods="OPT", action=wezterm.action.SendKey { key="0", mods="OPT" } },
