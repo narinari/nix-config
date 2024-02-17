@@ -92,6 +92,8 @@ Host artifact-proxy
   ProxyJump step
   LocalForward 8000 localhost:4567
   LocalForward 8001 localhost:4568
+  LocalForward 8002 localhost:4569
+  LocalForward 8003 localhost:4570
 
 Host lima-default
   IdentityFile "/Users/tanabe-takashi/.lima/_config/user"
