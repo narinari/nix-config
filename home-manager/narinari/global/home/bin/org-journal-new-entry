@@ -1,0 +1,19 @@
+#!/usr/bin/env zsh
+
+# for Raycast
+# Required parameters:
+# @raycast.schemaVersion 1
+# @raycast.title Add new entry of org-journal
+# @raycast.mode silent
+
+set -u
+
+autoload -Uz colors
+colors
+
+if emacsclient -n -e "(select-frame-set-input-focus (selected-frame))" >/dev/null 2>&1; then
+	emacsclient -n -e "(org-journal-new-entry nil)" >/dev/null
+else
+	$EMACS &
+	emacsclient -n -e "(org-journal-new-entry nil)" >/dev/null
+fi
