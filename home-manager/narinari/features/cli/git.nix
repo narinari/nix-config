@@ -176,6 +176,7 @@
       extraConfig = {
         init.defaultBranch = "main";
         i18n.logOutputEncoding = "utf-8";
+        branch.sort = "-committerdate";
         color = {
           status = "auto";
           diff = "auto";
@@ -184,6 +185,7 @@
           grep = "auto";
           ui = "auto";
         };
+        column.ui = "auto";
         core = {
           autocrlf = false;
           safecrlf = true;
@@ -191,6 +193,10 @@
           quotepath = "off";
           packedGitLimit = "128m";
           packedGitWindowSize = "128m";
+        };
+        fetch = {
+          prune = true;
+          writeCommitGraph = true;
         };
         pack = {
           deltaCacheSize = "128m";
@@ -204,6 +210,7 @@
         pull = {
           rebase = true;
           ff = "only";
+          autoStash = true;
         };
         merge = {
           ff = false;
@@ -214,6 +221,7 @@
           autosquash = true;
           autoStash = true;
         };
+        rerere.enabled = true;
         secrets = {
           providers = "git secrets --aws-provider";
           patterns = [
