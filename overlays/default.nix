@@ -13,6 +13,7 @@
   fcitx-overlay = final: prev:
     if prev.stdenv.isLinux then { fcitx-engines = final.fcitx5; } else { };
   emacs-overlay = inputs.emacs-overlay.overlay;
+  nixpkgs-firefox-darwin = inputs.nixpkgs-firefox-darwin.overlay;
 
   # #  xcbuild-overlay = final: prev: {
   # #    xcbuild = prev.xcbuild.override {

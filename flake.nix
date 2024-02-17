@@ -57,10 +57,19 @@
         agenix.follows = "agenix";
       };
     };
+
+    nixpkgs-firefox-darwin = {
+      url = "github:bandithedoge/nixpkgs-firefox-darwin";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    firefox-addons = {
+      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, darwin, home-manager, my-secrets, emacs-overlay
-    , ... }@inputs:
+    , nixpkgs-firefox-darwin, ... }@inputs:
 
     let
       inherit (self) outputs;

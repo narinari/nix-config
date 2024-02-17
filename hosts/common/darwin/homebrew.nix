@@ -37,7 +37,6 @@
       "google-chrome"
       "licecap"
       "contexts"
-      "firefox"
       "skitch"
     ];
   };
