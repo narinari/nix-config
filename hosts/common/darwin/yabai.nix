@@ -11,6 +11,7 @@
         # global settings
         yabai -m config mouse_follows_focus          on
         yabai -m config focus_follows_mouse          on
+        yabai -m config window_origin_display        default
         yabai -m config window_placement             second_child
         yabai -m config window_topmost               off
         yabai -m config window_shadow                on
@@ -19,7 +20,7 @@
         yabai -m config active_window_opacity        1.0
         yabai -m config normal_window_opacity        0.90
         yabai -m config window_border                on
-        yabai -m config window_border_width          1
+        yabai -m config window_border_width          6
         yabai -m config active_window_border_color   0xff775759
         yabai -m config normal_window_border_color   0xff555555
         yabai -m config insert_feedback_color        0xffd75f5f
@@ -28,6 +29,7 @@
         yabai -m config mouse_modifier               fn
         yabai -m config mouse_action1                move
         yabai -m config mouse_action2                resize
+        yabai -m config mouse_drop_action            swap
 
         # general space settings
         yabai -m config layout                       bsp
@@ -35,13 +37,20 @@
         yabai -m config bottom_padding               0
         yabai -m config left_padding                 0
         yabai -m config right_padding                0
-        yabai -m config window_gap                   02
+        yabai -m config window_gap                   06
 
         # float system preferences
         yabai -m rule --add app="^System Preferences$" manage=off
         yabai -m rule --add app="^システム環境設定$" manage=off
         yabai -m rule --add app="^システム設定$" manage=off
         yabai -m rule --add app="^Raycast$" manage=off
+        yabai -m rule --add app="^Finder$" title="^Connect to Server$" manage=off
+        yabai -m rule --add app="^Finder$" title="^Connecting to Server$" manage=off
+        yabai -m rule --add app="^Finder$" title="^.* Info$" manage=off
+        yabai -m rule --add app="^Finder$" title="^Copy$" manage=off
+        yabai -m rule --add app="^Archive Utility$" manage=off
+
+        yabai -m rule --add app=Emacs manage=on
 
         # show digital colour meter topmost and on all spaces
         yabai -m rule --add app="^Digital Colou?r Meter$" sticky=on
@@ -61,16 +70,29 @@
         ctrl + cmd - k  : yabai -m display --focus prev
 
         # ウィンドウをモニターに移動する
-        ctrl + cmd - 1  : yabai -m window --space 1; yabai -m space --focus 1
-        ctrl + cmd - 2  : yabai -m window --space 2; yabai -m space --focus 2
-        ctrl + cmd - 3  : yabai -m window --space 3; yabai -m space --focus 3
+        shift + alt - 1  : yabai -m window --space 1; yabai -m space --focus 1
+        shift + alt - 2  : yabai -m window --space 2; yabai -m space --focus 2
+        shift + alt - 3  : yabai -m window --space 3; yabai -m space --focus 3
+        shift + alt - 3  : yabai -m window --space 3; yabai -m space --focus 3
+        shift + alt - 4  : yabai -m window --space 4; yabai -m space --focus 4
+        shift + alt - 5  : yabai -m window --space 5; yabai -m space --focus 5
+        shift + alt - 6  : yabai -m window --space 6; yabai -m space --focus 6
 
         #------------------------------------------------------------
         # ウィンドウの選択・操作
         #------------------------------------------------------------
         # ウィンドウを選択する
-        alt - j : yabai -m window --focus prev
-        alt - k : yabai -m window --focus next
+        alt - h : yabai -m window --focus west
+        alt - j : yabai -m window --focus south
+        alt - k : yabai -m window --focus north
+        alt - l : yabai -m window --focus east
+
+        # ----------------------------------------------------------
+        # ウィンドウを移動する(Float時のみ)
+        shift + alt - h : yabai -m window --warp west
+        shift + alt - j : yabai -m window --warp south
+        shift + alt - k : yabai -m window --warp north
+        shift + alt - l : yabai -m window --warp east
 
         # ウィンドウを入れ替える
         ctrl + cmd - b : yabai -m window --swap west
@@ -89,21 +111,21 @@
 
         # ウィンドウを移動する
         shift + ctrl - a : yabai -m window --move rel:-20:0
-        shift + ctrl - s : yabai -m window --move rel:0:20
-        shift + ctrl - w : yabai -m window --move rel:0:-20
-        shift + ctrl - d : yabai -m window --move rel:20:0
+        shift + ctrl - r : yabai -m window --move rel:0:20
+        shift + ctrl - s : yabai -m window --move rel:0:-20
+        shift + ctrl - t : yabai -m window --move rel:20:0
 
         # ウィンドウのサイズを増やす
         shift + alt - a : yabai -m window --resize left:-20:0
-        shift + alt - s : yabai -m window --resize bottom:0:20
-        shift + alt - w : yabai -m window --resize top:0:-20
-        shift + alt - d : yabai -m window --resize right:20:0
+        shift + alt - r : yabai -m window --resize bottom:0:20
+        shift + alt - s : yabai -m window --resize top:0:-20
+        shift + alt - t : yabai -m window --resize right:20:0
 
         # ウィンドウのサイズを減らす
         shift + cmd - a : yabai -m window --resize left:20:0
-        shift + cmd - s : yabai -m window --resize bottom:0:-20
-        shift + cmd - w : yabai -m window --resize top:0:20
-        shift + cmd - d : yabai -m window --resize right:-20:0
+        shift + cmd - r : yabai -m window --resize bottom:0:-20
+        shift + cmd - s : yabai -m window --resize top:0:20
+        shift + cmd - t : yabai -m window --resize right:-20:0
 
         # set insertion point in focused container
         ctrl + alt - h : yabai -m window --insert west
@@ -119,18 +141,10 @@
         ctrl + alt - b : yabai -m space --layout bsp
         ctrl + alt - f : yabai -m space --layout float
 
-        # ----------------------------------------------------------
-        #   float 時のレイアウト操作
-        # ----------------------------------------------------------
-        # ウィンドウを移動する(Float時のみ)
-        #ctrl + cmd - b : yabai -m window --warp west
-        #ctrl + cmd - n : yabai -m window --warp south
-        #ctrl + cmd - p : yabai -m window --warp north
-        #ctrl + cmd - f : yabai -m window --warp east
-
-
         # フルスクリーンにする
         shift + cmd - up     : yabai -m window --grid 1:1:0:0:1:1
+        # toggle window native fullscreen
+        alt - f : yabai -m window --toggle native-fullscreen
 
         # 左半分にする
         shift + cmd - left   : yabai -m window --grid 1:2:0:0:1:1
@@ -160,7 +174,7 @@
         shift + alt - e : yabai -m window --toggle split
 
         # 画面中央に表示する
-        alt - t : yabai -m window --toggle float; \\
+        alt - t : yabai -m window --toggle float; \
                   yabai -m window --grid 12:12:1:1:10:10
 
         # focus window
@@ -182,10 +196,10 @@
         # shift + alt - left   : yabai -m window --grid 1:2:0:0:1:1
 
         # create desktop, move window and follow focus - uses jq for parsing json (brew install jq)
-        # shift + cmd - n : yabai -m space --create && \\
-        #                   index="$(yabai -m query --spaces --display | jq 'map(select(."native-fullscreen" == 0))[-1].index')" && \\
-        #                   yabai -m window --space "\$\{index}" && \\
-        #                   yabai -m space --focus "\$\{index}"
+        # shift + cmd - n : yabai -m space --create && \
+        #                   index="$(yabai -m query --spaces --display | jq 'map(select(."native-fullscreen" == 0))[-1].index')" && \
+        #                   yabai -m window --space "$\{index}" && \
+        #                   yabai -m space --focus "$\{index}"
 
         # fast focus desktop
         # cmd + alt - x : yabai -m space --focus recent
@@ -226,12 +240,12 @@
         # alt - e : yabai -m window --toggle split
 
         # float / unfloat window and center on screen
-        # alt - t : yabai -m window --toggle float; \\
+        # alt - t : yabai -m window --toggle float; \
         #           yabai -m window --grid 4:4:1:1:2:2
 
         # toggle sticky(+float), topmost, picture-in-picture
-        # alt - p : yabai -m window --toggle sticky; \\
-        #           yabai -m window --toggle topmost; \\
+        # alt - p : yabai -m window --toggle sticky; \
+        #           yabai -m window --toggle topmost; \
         #           yabai -m window --toggle pip
       '';
     };
