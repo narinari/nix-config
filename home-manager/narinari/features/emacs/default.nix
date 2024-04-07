@@ -41,14 +41,14 @@ in {
     sessionPath = [ "${config.xdg.configHome}/emacs/bin" ];
 
     extraActivationPath = with pkgs; [ git openssh ];
-    activation = {
-      installDoomEmacs = ''
-        if [ ! -d "${config.xdg.configHome}/emacs" ]; then
-           $DRY_RUN_CMD git clone --depth=1 --single-branch "${doom.repoUrl}" "${config.xdg.configHome}/emacs"
-           $DRY_RUN_CMD git clone "${doom.configRepoUrl}" "${config.xdg.configHome}/doom"
-        fi
-      '';
-    };
+    # activation = {
+    #   installDoomEmacs = ''
+    #     if [ ! -d "${config.xdg.configHome}/emacs" ]; then
+    #        $DRY_RUN_CMD git clone --depth=1 --single-branch "${doom.repoUrl}" "${config.xdg.configHome}/emacs"
+    #        $DRY_RUN_CMD git clone "${doom.configRepoUrl}" "${config.xdg.configHome}/doom"
+    #     fi
+    #   '';
+    # };
   };
 
   programs.emacs = {

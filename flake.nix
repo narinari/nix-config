@@ -19,15 +19,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
-        flake-utils.follows = "emacs-overlay/flake-utils";
-      };
-    };
-
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs = {
@@ -66,10 +57,26 @@
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
+    deploy-rs = {
+      url = "github:serokell/deploy-rs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
+        flake-utils.follows = "emacs-overlay/flake-utils";
+        flake-compat.follows = "deploy-rs/flake-compat";
+      };
+    };
   };
 
   outputs = { self, nixpkgs, darwin, home-manager, my-secrets, emacs-overlay
-    , nixpkgs-firefox-darwin, ... }@inputs:
+    , deploy-rs, nixpkgs-firefox-darwin, ... }@inputs:
 
     let
       inherit (self) outputs;
@@ -91,7 +98,7 @@
           inherit pkgs;
           checks = import ./nix/checks.nix {
             inherit pkgs;
-            inherit (inputs) pre-commit-hooks;
+            inherit (inputs) pre-commit-hooks deploy-rs;
           } pkgs.system;
         });
 
@@ -100,6 +107,16 @@
           specialArgs = { inherit inputs outputs; };
           system = "x86_64-linux";
           modules = [ ./hosts/rin ];
+        };
+        rpi4-base = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          system = "aarch64-linux";
+          modules = [ ./hosts/rpi4-base ];
+        };
+        jarvis2 = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          system = "aarch64-linux";
+          modules = [ ./hosts/jarvis2 ];
         };
       };
 
@@ -130,6 +147,33 @@
           modules = [ ./home-manager/narinari/FL4N2RD4TD.nix ];
           pkgs = pkgsFor "aarch64-darwin";
           extraSpecialArgs = { inherit inputs outputs; };
+        };
+      };
+
+      deploy = {
+        # Deployment options applied to all nodes
+        sshUser = "narinari";
+        # User to which profile will be deployed.
+        user = "root";
+        sshOpts = [ "-p" "22" "-F" "./etc/ssh.config" ];
+
+        fastConnection = false;
+        autoRollback = true;
+        magicRollback = true;
+
+        # Or setup cross compilation
+        remoteBuild = true;
+
+        nodes = {
+          jarvis2 = {
+            hostname = "jarvis2";
+            profiles.system = {
+              path = deploy-rs.lib.aarch64-linux.activate.nixos
+                self.nixosConfigurations.jarvis2;
+              remoteBuild = false;
+              autoRollback = false;
+            };
+          };
         };
       };
     };

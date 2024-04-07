@@ -1,41 +1,20 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, config, ... }:
 
-let
-  inherit (pkgs) stdenv;
-  inherit (lib) optionalAttrs;
-in {
+{
   imports = [
-    ./btop.nix
-    ./direnv.nix
     ./docker.nix
-    ./git.nix
     ./go.nix
-    ./gnupg.nix
     ./haskell.nix
     ./kubernetes.nix
     ./nodejs.nix
-    ./lf.nix
-    ./less.nix
     ./rust.nix
-    ./ssh.nix
-    ./tmux.nix
-    ./zsh.nix
   ];
 
-  home.sessionVariables = { COLORTERM = "truecolor"; };
-
   home.packages = with pkgs; [
-    # nix
-    cachix
-    comma # Install and run programs by sticking a , before them
     nix-prefetch
     nix-prefetch-scripts
     nix-prefetch-github
     nixpkgs-review
-    nix-update
-    nixpkgs-fmt
-    nixos-shell
-    manix
     # rnix-lsp # nix lsp server
     nil # Nix LSP
     nixfmt # Nix formatter
@@ -55,9 +34,6 @@ in {
     eva # calc
     bottom # System viewer
     # ncdu # build error # disk space info (a better du)
-    ripgrep # Better grep
-    fd # Better find
-    httpie # Better curl
     diffsitter # Better diff
     neofetch
     hexyl
@@ -66,20 +42,14 @@ in {
     procs
     hyperfine
     pwgen
-    rage
     sd # find & replace
     bandwhich
     dogdns
-    (btop.overrideDerivation
-      (oldAttrs: { stdenv = gcc12Stdenv; })) # 2023/1/17 時点でビルドできないのでパッチ
     pueue
     file
     viddy # alt watch
     asciinema # record the terminal
     prettyping # a nicer ping
-    sops
-    starship
-    zstd
 
     pv
     rclone
@@ -92,7 +62,6 @@ in {
     # anytype
     # cloudflared
     # tmate
-    tmux
     wezterm
     # josm
     # ntp
@@ -173,29 +142,6 @@ in {
     sqls.enable = true;
 
     bashmount.enable = true;
-
-    ssh = {
-      enable = true;
-      controlMaster = "auto";
-      controlPersist = "10m";
-      hashKnownHosts = false;
-      userKnownHostsFile = "/dev/null";
-      serverAliveInterval = 300;
-
-      extraOptionOverrides = {
-        VerifyHostKeyDNS = "ask";
-        VisualHostKey = "no";
-        StrictHostKeyChecking = "no";
-      } // optionalAttrs stdenv.isDarwin {
-        # for macos
-        AddKeysToAgent = "yes";
-        UseKeychain = "yes";
-        HostkeyAlgorithms = "+ssh-rsa";
-        PubkeyAcceptedAlgorithms = "+ssh-rsa";
-      };
-
-      matchBlocks = { "*" = { sendEnv = [ "COLORTERM" ]; }; };
-    };
 
     tealdeer.enable = true;
     zoxide.enable = true;

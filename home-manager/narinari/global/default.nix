@@ -1,7 +1,7 @@
 { inputs, lib, pkgs, config, outputs, ... }:
 
 {
-  imports = [ ../features/cli ../features/emacs ];
+  imports = [ ../features/essentials ../features/emacs ];
 
   nixpkgs = {
     overlays = builtins.attrValues outputs.overlays;
@@ -47,4 +47,6 @@
       executable = true;
     };
   };
+
+  xdg.enable = true;
 }

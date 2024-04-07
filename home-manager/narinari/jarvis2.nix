@@ -1,7 +1,7 @@
 { inputs, outputs, consig, pkgs, ... }:
 
 {
-  imports = [ ./global ./features/cli ./features/terminal-access ];
+  imports = [ ./global ./features/terminal-access ];
 
   targets.genericLinux.enable = true;
 

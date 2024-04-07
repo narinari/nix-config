@@ -1,4 +1,4 @@
-{ pkgs, pre-commit-hooks, ... }:
+{ pkgs, pre-commit-hooks, deploy-rs, ... }:
 
 system:
 
@@ -41,4 +41,4 @@ with pkgs;
       ];
     };
   };
-} # // (deploy-rs.lib.${system}.deployChecks self.deploy)
+} // (deploy-rs.lib.${system}.deployChecks self.deploy)
