@@ -1,6 +1,23 @@
 { inputs, lib, pkgs, config, outputs, ... }:
 
-{
+let
+  emacs-pkg = config.programs.emacs.package;
+  org-journal-new-entry = pkgs.writeShellScript "org-journal-new-entry" ''
+    # for Raycast
+    # Required parameters:
+    # @raycast.schemaVersion 1
+    # @raycast.title Add new entry of org-journal
+    # @raycast.mode silent
+
+    EMACS_CLINET=${emacs-pkg}/bin/emacsclient
+    if $EMACS_CLINET -n -e "(select-frame-set-input-focus (selected-frame))" >/dev/null 2>&1; then
+    	$EMACS_CLINET -n -e "(org-journal-new-entry nil)" >/dev/null
+    else
+    	$EMACS &
+    	$EMACS_CLINET -n -e "(org-journal-new-entry nil)" >/dev/null
+    fi
+  '';
+in {
   imports = [ ../features/essentials ../features/emacs ];
 
   nixpkgs = {
@@ -46,6 +63,7 @@
       recursive = true;
       executable = true;
     };
+    file.".local/bin/org-journal-new-entry".source = org-journal-new-entry;
   };
 
   xdg.enable = true;
