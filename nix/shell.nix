@@ -18,7 +18,6 @@
       # age
       rage
       ssh-to-age
-      rnix-lsp
       statix
 
       # Shell

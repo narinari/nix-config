@@ -2,7 +2,7 @@
   # age.secrets.work_env.file = "${pkgs.my-secrets.outPath}/work/env.age";
   programs.zsh = {
     enable = true;
-    enableAutosuggestions = true;
+    autosuggestion.enable = true;
     enableCompletion = true;
     syntaxHighlighting.enable = true;
     enableVteIntegration = pkgs.stdenv.isLinux;

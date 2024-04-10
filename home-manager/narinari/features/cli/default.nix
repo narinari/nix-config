@@ -45,6 +45,7 @@
     sd # find & replace
     bandwhich
     dogdns
+    btop
     pueue
     file
     viddy # alt watch
@@ -117,7 +118,7 @@
     bat.enable = true;
     eza = {
       enable = true;
-      enableAliases = true;
+      enableZshIntegration = true;
     };
     jq.enable = true;
     fzf = {
