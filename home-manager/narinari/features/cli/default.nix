@@ -88,7 +88,7 @@
     xh
 
     # security?
-    bitwarden-cli
+    # bitwarden-cli # [build error] 2024-06-10
 
     # utils
     coreutils

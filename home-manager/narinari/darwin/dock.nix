@@ -8,7 +8,7 @@
       "com.apple.dock" = {
         "mru-spaces" = false;
         "show-recents" = false;
-        "autohide" = 1;
+        "autohide" = true;
         "orientation" = "right";
         "tilesize" = 40;
       };
