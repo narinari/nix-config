@@ -242,8 +242,10 @@
           "git://github.com/ghc/packages-".insteadOf =
             "git://github.com/ghc/packages/";
         };
-        commit.template =
-          "${config.xdg.configFile."git/commit-template".source}";
+        commit = {
+          template = "${config.xdg.configFile."git/commit-template".source}";
+          verbose = true;
+        };
         github.user = "narinari";
       };
       lfs.enable = true;

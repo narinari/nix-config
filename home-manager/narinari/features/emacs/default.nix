@@ -8,7 +8,7 @@ let
   };
   customEmacs =
     (pkgs.emacsPackagesFor pkgs.emacs-unstable-pgtk).emacsWithPackages
-    (epkgs: [ epkgs.vterm ]);
+    (epkgs: with epkgs; [ vterm treesit-grammars.with-all-grammars ]);
 in {
   home = {
     packages = with pkgs; [

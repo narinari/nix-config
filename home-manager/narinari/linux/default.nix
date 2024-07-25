@@ -22,4 +22,6 @@
 
     # freeplane # mindmap linux only
   ];
+
+  service.gpg-agent.enable = true;
 }
