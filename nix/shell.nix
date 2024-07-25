@@ -18,6 +18,7 @@
       # age
       rage
       ssh-to-age
+      nil
       statix
 
       # Shell

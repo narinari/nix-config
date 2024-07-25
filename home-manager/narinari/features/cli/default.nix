@@ -15,9 +15,12 @@
     nix-prefetch-scripts
     nix-prefetch-github
     nixpkgs-review
-    # rnix-lsp # nix lsp server
+    nix-update
+    nixpkgs-fmt
+    nixos-shell
+    manix
     nil # Nix LSP
-    nixfmt # Nix formatter
+    nixfmt-rfc-style # Nix formatter
 
     # espeak
     socat
