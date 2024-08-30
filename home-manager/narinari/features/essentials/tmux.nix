@@ -16,7 +16,17 @@
       copy-toolkit
       extrakto
       # nord
-      gruvbox
+      # gruvbox
+      {
+        plugin = tokyo-night-tmux;
+        extraConfig = ''
+          set -g @tokyo-night-tmux_show_datetime 0
+          set -g @tokyo-night-tmux_show_git 0
+          set -g @tokyo-night-tmux_show_path 1
+          set -g @tokyo-night-tmux_path_format relative
+          set -g @tokyo-night-tmux_window_id_style dsquare
+        '';
+      }
       cpu
       prefix-highlight
       yank
@@ -44,7 +54,6 @@
     terminal = "tmux-256color";
     historyLimit = 30000;
     extraConfig = ''
-      set -ag status-right ' | #{cpu_bg_color} #{cpu_icon} #{cpu_percentage} | #{ram_bg_color} #{ram_icon} #{ram_percentage}'
       #new-session -A -D -s main
 
       # C-bのキーバインドを解除する
