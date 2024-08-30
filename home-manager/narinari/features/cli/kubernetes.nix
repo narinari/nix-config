@@ -3,7 +3,7 @@
 {
   home.packages = with pkgs; [
     k9s
-    kdash
+    # kdash # 2024/08/27 build error
     kubectl
     kubectx
     kubelogin-oidc
