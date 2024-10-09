@@ -16,7 +16,11 @@
         -- treat_east_asian_ambiguous_width_as_wide = true,
         use_ime = true,
 
-        color_scheme = "nord",
+        -- Work around https://github.com/wez/wezterm/issues/5990
+        front_end = "WebGpu",
+        enable_wayland = false,
+
+        color_scheme = "Tokyo Night",
         colors = {
           tab_bar = {
             active_tab = {
