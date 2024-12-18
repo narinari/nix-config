@@ -4,9 +4,7 @@
   nix = {
     settings = {
       # Enable flakes and new 'nix' command
-      experimental-features = [ "nix-command" "flakes" "repl-flake" ];
-      # Deduplicate and optimize nix store
-      auto-optimise-store = true;
+      experimental-features = [ "nix-command" "flakes" ];
 
       substituters =
         [ "https://cache.nixos.org/" "https://nix-community.cachix.org/" ];
@@ -17,6 +15,9 @@
 
       trusted-users = [ "@wheel" "@admin" "narinari" ];
     };
+
+    # Deduplicate and optimize nix store
+    optimise.automatic = true;
 
     # Add each flake input as a registry
     # To make nix3 commands consistent with the flake
