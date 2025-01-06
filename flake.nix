@@ -21,10 +21,7 @@
 
     sops-nix = {
       url = "github:Mic92/sops-nix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
-      };
+      inputs = { nixpkgs.follows = "nixpkgs"; };
     };
 
     agenix = {
@@ -69,7 +66,6 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
-        flake-utils.follows = "emacs-overlay/flake-utils";
         flake-compat.follows = "deploy-rs/flake-compat";
       };
     };
