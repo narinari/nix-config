@@ -21,7 +21,9 @@
 
     sops-nix = {
       url = "github:Mic92/sops-nix";
-      inputs = { nixpkgs.follows = "nixpkgs"; };
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+      };
     };
 
     agenix = {
@@ -65,38 +67,54 @@
       url = "github:cachix/pre-commit-hooks.nix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        nixpkgs-stable.follows = "emacs-overlay/nixpkgs-stable";
         flake-compat.follows = "deploy-rs/flake-compat";
       };
     };
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, my-secrets, emacs-overlay
-    , deploy-rs, nixpkgs-firefox-darwin, ... }@inputs:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      darwin,
+      home-manager,
+      my-secrets,
+      emacs-overlay,
+      deploy-rs,
+      nixpkgs-firefox-darwin,
+      ...
+    }@inputs:
 
     let
       inherit (self) outputs;
       lib = nixpkgs.lib // home-manager.lib;
-      systems = [ "x86_64-linux" "aarch64-darwin" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-darwin"
+      ];
       forEachSystem = f: lib.genAttrs systems (sys: f (pkgsFor sys));
-      pkgsFor = system:
+      pkgsFor =
+        system:
         import nixpkgs {
           inherit system;
           config.allowUnfree = true;
         };
-    in {
+    in
+    {
       overlays = import ./overlays { inherit inputs outputs; };
 
       packages = forEachSystem (pkgs: (import ./pkgs { inherit pkgs; }));
 
-      devShells = forEachSystem (pkgs:
+      devShells = forEachSystem (
+        pkgs:
         import ./nix/shell.nix {
           inherit pkgs;
           checks = import ./nix/checks.nix {
             inherit pkgs;
             inherit (inputs) pre-commit-hooks deploy-rs;
           } pkgs.system;
-        });
+        }
+      );
 
       nixosConfigurations = {
         rin = nixpkgs.lib.nixosSystem {
@@ -117,12 +135,15 @@
       };
 
       darwinConfigurations = {
-        FL4N2RD4TD = let system = "aarch64-darwin";
-        in darwin.lib.darwinSystem {
-          inherit system;
-          modules = [ ./hosts/FL4N2RD4TD ];
-          specialArgs = { inherit inputs outputs; };
-        };
+        FL4N2RD4TD =
+          let
+            system = "aarch64-darwin";
+          in
+          darwin.lib.darwinSystem {
+            inherit system;
+            modules = [ ./hosts/FL4N2RD4TD ];
+            specialArgs = { inherit inputs outputs; };
+          };
       };
 
       homeConfigurations = {
@@ -151,7 +172,12 @@
         sshUser = "narinari";
         # User to which profile will be deployed.
         user = "root";
-        sshOpts = [ "-p" "22" "-F" "./etc/ssh.config" ];
+        sshOpts = [
+          "-p"
+          "22"
+          "-F"
+          "./etc/ssh.config"
+        ];
 
         fastConnection = false;
         autoRollback = true;
@@ -164,8 +190,7 @@
           jarvis2 = {
             hostname = "jarvis2";
             profiles.system = {
-              path = deploy-rs.lib.aarch64-linux.activate.nixos
-                self.nixosConfigurations.jarvis2;
+              path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.jarvis2;
               remoteBuild = false;
               autoRollback = false;
             };
