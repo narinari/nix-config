@@ -1,4 +1,10 @@
-{ config, lib, pkgs, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
   programs.wezterm = {
     enable = true;
     enableZshIntegration = true;
@@ -15,6 +21,8 @@
         },
         -- treat_east_asian_ambiguous_width_as_wide = true,
         use_ime = true,
+
+        macos_forward_to_ime_modifier_mask = "SHIFT|CTRL",
 
         -- Work around https://github.com/wez/wezterm/issues/5990
         front_end = "WebGpu",
@@ -230,6 +238,8 @@
           { key = 'DownArrow', mods = 'SHIFT|ALT|SUPER', action = act.AdjustPaneSize{ 'Down', 1 } },
           { key = 'Copy', mods = 'NONE', action = act.CopyTo 'Clipboard' },
           { key = 'Paste', mods = 'NONE', action = act.PasteFrom 'Clipboard' },
+          -- https://github.com/wez/wezterm/issues/2630
+          { key = 'q', mods = 'CTRL', action = wezterm.action { SendString = '\x11' } },
         },
       }
         --[[ default key map
