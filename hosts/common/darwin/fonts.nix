@@ -1,7 +1,5 @@
 { pkgs, ... }:
 
 {
-  fonts.fontDir.enable = true;
-  fonts.fonts = with pkgs;
-    [ (nerdfonts.override { fonts = [ "SpaceMono" ]; }) ];
+  fonts.packages = with pkgs; [ nerd-fonts.space-mono ];
 }

@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 {
   imports = [
@@ -81,7 +86,7 @@
     # net
     croc
     # webwormhole
-    wireshark
+    # wireshark
     dnsutils
     oneshot
     # tailscale
@@ -129,8 +134,12 @@
       tmux.enableShellIntegration = true;
       tmux.shellIntegrationOptions = [ "-p 80%" ];
       defaultCommand = ''rg --files --hidden --glob "!.git"'';
-      defaultOptions =
-        [ "--height 40%" "--border" "--reverse" "--inline-info" ];
+      defaultOptions = [
+        "--height 40%"
+        "--border"
+        "--reverse"
+        "--inline-info"
+      ];
       changeDirWidgetCommand = "fd --type d"; # alt+c
       changeDirWidgetOptions = [ "--preview 'tree -C {} | head -200'" ];
       fileWidgetCommand = "fd --type f";

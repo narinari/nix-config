@@ -1,19 +1,26 @@
-{ pkgs, lib, outputs, ... }:
+{
+  pkgs,
+  lib,
+  outputs,
+  ...
+}:
 
 {
-  imports = [ ./firefox.nix ./kitty.nix ./wezterm.nix ];
+  imports = [
+    ./firefox.nix
+    ./wezterm.nix
+  ];
 
   home.packages = with pkgs; [
     feh # light-weight image viewer
     xdg-utils
-    noto-fonts-cjk
+    noto-fonts-cjk-sans
     outputs.packages."${pkgs.system}".berkeley-mono
     outputs.packages."${pkgs.system}".berkeley-mono-nerdfonts
     outputs.packages."${pkgs.system}".sf-mono
     outputs.packages."${pkgs.system}".sf-mono-nerdfonts
     outputs.packages."${pkgs.system}".ibm-plex-sans
     outputs.packages."${pkgs.system}".moralerspace-hw-nerdfonts
-
   ];
 
   home.sessionVariables = {
