@@ -185,6 +185,30 @@
         "type": "github"
       }
     },
+    "my-private-modules": {
+      "inputs": {
+        "my-secrets": [
+          "my-secrets"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1739262943,
+        "narHash": "sha256-ZXiUAy3mRswrV7Xatol1TdQS+ubQDTdcVAXxAc8lmd4=",
+        "ref": "main",
+        "rev": "0a6489659b8161cd6c4e2ce37bc30d5843068379",
+        "revCount": 1,
+        "type": "git",
+        "url": "ssh://git@github.com/narinari/nix-private-modules"
+      },
+      "original": {
+        "ref": "main",
+        "type": "git",
+        "url": "ssh://git@github.com/narinari/nix-private-modules"
+      }
+    },
     "my-secrets": {
       "inputs": {
         "agenix": [
@@ -378,6 +402,7 @@
         "emacs-overlay": "emacs-overlay",
         "firefox-addons": "firefox-addons",
         "home-manager": "home-manager",
+        "my-private-modules": "my-private-modules",
         "my-secrets": "my-secrets",
         "nixos-generators": "nixos-generators",
         "nixos-hardware": "nixos-hardware",

@@ -1,6 +1,17 @@
-{ inputs, outputs, consig, pkgs, ... }:
+{
+  inputs,
+  outputs,
+  consig,
+  pkgs,
+  ...
+}:
 
 {
-  imports =
-    [ ./global ./features/cli ./work ./darwin ./features/desktop/common ];
+  imports = [
+    ./global
+    ./features/cli
+    inputs.my-private-modules.homeManagerModules.work
+    ./darwin
+    ./features/desktop/common
+  ];
 }

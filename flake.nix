@@ -48,6 +48,14 @@
       };
     };
 
+    my-private-modules = {
+      url = "git+ssh://git@github.com/narinari/nix-private-modules?ref=main";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        my-secrets.follows = "my-secrets";
+      };
+    };
+
     nixpkgs-firefox-darwin = {
       url = "github:bandithedoge/nixpkgs-firefox-darwin";
       inputs.nixpkgs.follows = "nixpkgs";

@@ -1,7 +1,18 @@
-{ inputs, outputs, consig, pkgs, ... }:
+{
+  inputs,
+  outputs,
+  consig,
+  pkgs,
+  ...
+}:
 
 {
-  imports = [ ./global ./features/cli ./work ./features/terminal-access ];
+  imports = [
+    ./global
+    ./features/cli
+    inputs.my-private-modules.homeManagerModules.work
+    ./features/terminal-access
+  ];
 
   targets.genericLinux.enable = true;
 
