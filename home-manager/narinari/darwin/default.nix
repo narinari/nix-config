@@ -1,4 +1,9 @@
-{ pkgs, config, ... }:
+{
+  pkgs,
+  config,
+  outputs,
+  ...
+}:
 
 {
   imports = [
@@ -17,6 +22,8 @@
     iterm2
     # xquartz
     raycast
+
+    slack
 
     bzip2
     coreutils
