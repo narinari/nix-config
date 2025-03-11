@@ -1,4 +1,10 @@
-{ pkgs, lib, outputs, inputs, ... }:
+{
+  pkgs,
+  lib,
+  outputs,
+  inputs,
+  ...
+}:
 
 # nix.nixPath based on the logic from `flake-utils-plus`
 # https://github.com/gytis-ivaskevicius/flake-utils-plus/blob/v1.3.0/lib/options.nix
@@ -8,13 +14,17 @@ let
   inherit (lib.trivial) pipe;
 
   hasOutputs = _: flake: flake ? outputs;
-  hasPackages = _: flake:
-    flake.outputs ? legacyPackages || flake.outputs ? packages;
+  hasPackages = _: flake: flake.outputs ? legacyPackages || flake.outputs ? packages;
 
-  flakesWithPkgs = pipe inputs (map filterAttrs [ hasOutputs hasPackages ]);
-  nixPath =
-    mapAttrsToList (name: _: "${name}=/etc/nix/inputs/${name}") flakesWithPkgs;
-in {
+  flakesWithPkgs = pipe inputs (
+    map filterAttrs [
+      hasOutputs
+      hasPackages
+    ]
+  );
+  nixPath = mapAttrsToList (name: _: "${name}=/etc/nix/inputs/${name}") flakesWithPkgs;
+in
+{
   imports = [
     inputs.home-manager.darwinModules.home-manager
     ./copy-applications.nix
@@ -29,9 +39,13 @@ in {
   ];
 
   nix = {
-    configureBuildUsers = true;
+    enable = true;
     settings.sandbox = false;
-    settings.trusted-users = [ "@admin" "root" "narinari" ];
+    settings.trusted-users = [
+      "@admin"
+      "root"
+      "narinari"
+    ];
     extraOptions = ''
       sandbox = false
       trusted-users = @admin root narinari
@@ -44,8 +58,6 @@ in {
   # security.sandbox.profiles.allowLocalNetworking = true;
 
   # programs.bash.enable = false;
-
-  services.nix-daemon.enable = true;
 
   system.defaults.ActivityMonitor.ShowCategory = null;
 }
