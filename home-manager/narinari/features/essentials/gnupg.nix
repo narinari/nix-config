@@ -1,7 +1,7 @@
 { config, ... }:
 
 {
-  programs.zsh.initExtra = ''
+  programs.zsh.initContent = ''
     [[ -o interactive ]] && export GPG_TTY=$TTY
   '';
 

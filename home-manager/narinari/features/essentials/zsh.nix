@@ -1,4 +1,10 @@
-{ config, lib, pkgs, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
   # age.secrets.work_env.file = "${pkgs.my-secrets.outPath}/work/env.age";
   programs.zsh = {
     enable = true;
@@ -23,7 +29,7 @@
     initExtraFirst = ''
       [ $TERM = "dumb" ] && unsetopt zle && PS1='$ ' && return
     '';
-    initExtra = ''
+    initContent = ''
       if [[ "$TERM" != 'dumb' && -z "$INSIDE_EMACS" ]]; then
         source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
         [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
@@ -58,12 +64,13 @@
     '';
     # source ${config.age.secrets.work_env.path}
 
-    sessionVariables = { RPROMPT = ""; };
+    sessionVariables = {
+      RPROMPT = "";
+    };
     shellAliases = {
       cat = "${pkgs.bat}/bin/bat";
       man = "${pkgs.bat-extras.batman}/bin/batman";
-      less = ''
-        ${pkgs.bat}/bin/bat --paging=always --pager "${pkgs.less}/bin/less -RF"'';
+      less = ''${pkgs.bat}/bin/bat --paging=always --pager "${pkgs.less}/bin/less -RF"'';
       j = "${pkgs.just}/bin/just";
       ".j" = "${pkgs.just}/bin/just --justfile ~/.user.justfile";
       ntp-google = "sudo ${pkgs.ntp}/bin/ntpdate time.google.com";
