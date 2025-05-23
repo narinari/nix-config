@@ -1,4 +1,11 @@
-{ inputs, lib, pkgs, config, outputs, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  config,
+  outputs,
+  ...
+}:
 
 let
   emacs-pkg = config.programs.emacs.package;
@@ -17,8 +24,12 @@ let
     	$EMACS_CLINET -n -e "(org-journal-new-entry nil)" >/dev/null
     fi
   '';
-in {
-  imports = [ ../features/essentials ../features/emacs ];
+in
+{
+  imports = [
+    ../features/essentials
+    ../features/emacs
+  ];
 
   nixpkgs = {
     overlays = builtins.attrValues outputs.overlays;
@@ -31,7 +42,13 @@ in {
 
   nix = {
     package = lib.mkDefault pkgs.nix;
-    settings = { warn-dirty = false; };
+    settings = {
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
+      warn-dirty = false;
+    };
   };
 
   # systemd.user.startServices = "sd-switch";
