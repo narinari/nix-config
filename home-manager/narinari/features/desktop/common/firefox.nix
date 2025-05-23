@@ -1,8 +1,14 @@
-{ config, lib, pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 {
   programs.firefox = {
-    enable = true;
+    enable = false;
     package = pkgs.firefox-bin;
     profiles.narinari = {
       extensions = with inputs.firefox-addons.packages.${pkgs.system}; [
