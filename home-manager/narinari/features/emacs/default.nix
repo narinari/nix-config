@@ -46,6 +46,8 @@ let
           tree-sitter-dockerfile
           tree-sitter-elisp
           tree-sitter-go
+          tree-sitter-gomod
+          tree-sitter-haskell
           tree-sitter-html
           tree-sitter-javascript
           tree-sitter-json
@@ -75,6 +77,7 @@ in
       git
       (ripgrep.override { withPCRE2 = true; })
       gnutls # for TLS connectivity
+      cmake
 
       ## Optional dependencies
       fd # faster projectile indexing
