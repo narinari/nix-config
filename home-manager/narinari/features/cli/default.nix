@@ -100,8 +100,6 @@
     findutils
     gnugrep # macos ships with outdated version
 
-    nodejs_20
-
     # backup
     restic
     kopia
