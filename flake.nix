@@ -142,17 +142,22 @@
         };
       };
 
-      darwinConfigurations = {
-        FL4N2RD4TD =
-          let
-            system = "aarch64-darwin";
-          in
-          darwin.lib.darwinSystem {
+      darwinConfigurations =
+        let
+          system = "aarch64-darwin";
+        in
+        {
+          FL4N2RD4TD = darwin.lib.darwinSystem {
             inherit system;
             modules = [ ./hosts/FL4N2RD4TD ];
             specialArgs = { inherit inputs outputs; };
           };
-      };
+          K54TXK9ML7 = darwin.lib.darwinSystem {
+            inherit system;
+            modules = [ ./hosts/K54TXK9ML7 ];
+            specialArgs = { inherit inputs outputs; };
+          };
+        };
 
       homeConfigurations = {
         "narinari@work-ec2" = lib.homeManagerConfiguration {
