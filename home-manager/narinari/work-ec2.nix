@@ -10,6 +10,7 @@
   imports = [
     ./global
     ./features/cli
+    ./features/llm
     inputs.my-private-modules.homeManagerModules.work
     ./features/terminal-access
   ];

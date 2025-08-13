@@ -179,11 +179,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1751594093,
-        "narHash": "sha256-h1KpkfAMMuaKxp5ic2rsJ92izNr2bB9IMmO3p8ovnA8=",
+        "lastModified": 1755077807,
+        "narHash": "sha256-eb7Fcnjqptv29X2+zWcgB5kTwKBr6da26on2yO0VcEo=",
         "ref": "main",
-        "rev": "2f6aa5e3ae7d166e40ca09bc879a6a0adbab1b82",
-        "revCount": 5,
+        "rev": "acfe6ee19148607e737d94f7c19aee5973588584",
+        "revCount": 8,
         "type": "git",
         "url": "ssh://git@github.com/narinari/nix-private-modules"
       },
