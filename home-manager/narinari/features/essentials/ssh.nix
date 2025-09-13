@@ -1,20 +1,23 @@
-{ pkgs, lib, config, inputs, outputs, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  inputs,
+  outputs,
+  ...
+}:
 
 {
   programs = {
     ssh = {
       enable = true;
-      controlMaster = "auto";
-      controlPersist = "10m";
-      hashKnownHosts = false;
-      userKnownHostsFile = "/dev/null";
-      serverAliveInterval = 300;
+      enableDefaultConfig = false;
 
       extraOptionOverrides = {
         VerifyHostKeyDNS = "ask";
         VisualHostKey = "no";
-        StrictHostKeyChecking = "no";
-      } // lib.optionalAttrs pkgs.stdenv.isDarwin {
+      }
+      // lib.optionalAttrs pkgs.stdenv.isDarwin {
         # for macos
         AddKeysToAgent = "yes";
         UseKeychain = "yes";
@@ -23,20 +26,34 @@
       };
 
       matchBlocks = {
-        "*" = { sendEnv = [ "COLORTERM" ]; };
+        "*" = {
+          sendEnv = [ "COLORTERM" ];
+          controlMaster = "auto";
+          controlPersist = "10m";
+          hashKnownHosts = false;
+          userKnownHostsFile = "/dev/null";
+          serverAliveInterval = 300;
+          extraOptions = {
+            StrictHostKeyChecking = "no";
+          };
+        };
 
         "github.com.private" = {
           hostname = "github.com";
           user = "git";
           port = 22;
           serverAliveInterval = 60;
-          extraOptions = { TCPKeepAlive = "yes"; };
+          extraOptions = {
+            TCPKeepAlive = "yes";
+          };
         };
 
         "github.com" = {
           user = "git";
           serverAliveInterval = 60;
-          extraOptions = { TCPKeepAlive = "yes"; };
+          extraOptions = {
+            TCPKeepAlive = "yes";
+          };
         };
       };
     };

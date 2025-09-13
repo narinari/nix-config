@@ -13,7 +13,7 @@
     syntaxHighlighting.enable = true;
     enableVteIntegration = pkgs.stdenv.isLinux;
     autocd = true;
-    dotDir = ".config/zsh";
+    dotDir = "${config.xdg.configHome}/zsh";
     history = {
       expireDuplicatesFirst = true;
       extended = true;
@@ -26,42 +26,44 @@
       export LESSHISTFILE="${config.xdg.dataHome}/less_history"
       #export CARGO_HOME="${config.xdg.cacheHome}/cargo" # doesn't work with emacs
     '';
-    initExtraFirst = ''
-      [ $TERM = "dumb" ] && unsetopt zle && PS1='$ ' && return
-    '';
-    initContent = ''
-      if [[ "$TERM" != 'dumb' && -z "$INSIDE_EMACS" ]]; then
-        source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
-        [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-      fi
+    initContent = lib.mkMerge [
+      (lib.mkBefore ''
+        [ $TERM = "dumb" ] && unsetopt zle && PS1='$ ' && return
+      '')
+      ''
+        if [[ "$TERM" != 'dumb' && -z "$INSIDE_EMACS" ]]; then
+          source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
+          [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+        fi
 
-      nix-closure-size() {
-        nix-store -q --size $(nix-store -qR $(${pkgs.coreutils}/bin/readlink -e $1) ) |
-          ${pkgs.gawk}/bin/gawk '{ a+=$1 } END { print a }' |
-          ${pkgs.coreutils}/bin/numfmt --to=iec-i
-      }
+        nix-closure-size() {
+          nix-store -q --size $(nix-store -qR $(${pkgs.coreutils}/bin/readlink -e $1) ) |
+            ${pkgs.gawk}/bin/gawk '{ a+=$1 } END { print a }' |
+            ${pkgs.coreutils}/bin/numfmt --to=iec-i
+        }
 
-      bindkey "$''${terminfo[khome]}" beginning-of-line
-      bindkey "$''${terminfo[kend]}" end-of-line
-      bindkey "$''${terminfo[kdch1]}" delete-char
-      bindkey '\eOA' history-substring-search-up
-      bindkey '\eOB' history-substring-search-down
-      bindkey "^[[A" history-substring-search-up
-      bindkey "^[[B" history-substring-search-down
-      bindkey "$$terminfo[kcuu1]" history-substring-search-up
-      bindkey "$$terminfo[kcud1]" history-substring-search-down
-      bindkey "^[[1;5C" forward-word
-      bindkey "^[[1;3C" forward-word
-      bindkey "^[[1;5D" backward-word
-      bindkey "^[[1;3D" backward-word
-      bindkey -s "^O" 'fzf | xargs -r $VISUAL^M'
+        bindkey "$''${terminfo[khome]}" beginning-of-line
+        bindkey "$''${terminfo[kend]}" end-of-line
+        bindkey "$''${terminfo[kdch1]}" delete-char
+        bindkey '\eOA' history-substring-search-up
+        bindkey '\eOB' history-substring-search-down
+        bindkey "^[[A" history-substring-search-up
+        bindkey "^[[B" history-substring-search-down
+        bindkey "$$terminfo[kcuu1]" history-substring-search-up
+        bindkey "$$terminfo[kcud1]" history-substring-search-down
+        bindkey "^[[1;5C" forward-word
+        bindkey "^[[1;3C" forward-word
+        bindkey "^[[1;5D" backward-word
+        bindkey "^[[1;3D" backward-word
+        bindkey -s "^O" 'fzf | xargs -r $VISUAL^M'
 
-      bindkey -rpM viins '^[^['
+        bindkey -rpM viins '^[^['
 
-      ${pkgs.any-nix-shell}/bin/any-nix-shell zsh | source /dev/stdin
+        ${pkgs.any-nix-shell}/bin/any-nix-shell zsh | source /dev/stdin
 
-      source ${pkgs.fzf-git-sh}/share/fzf-git-sh/fzf-git.sh
-    '';
+        source ${pkgs.fzf-git-sh}/share/fzf-git-sh/fzf-git.sh
+      ''
+    ];
     # source ${config.age.secrets.work_env.path}
 
     sessionVariables = {
