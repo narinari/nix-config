@@ -1,4 +1,10 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  outputs,
+  ...
+}:
 
 {
   imports = [
@@ -13,7 +19,9 @@
     ./zsh.nix
   ];
 
-  home.sessionVariables = { COLORTERM = "truecolor"; };
+  home.sessionVariables = {
+    COLORTERM = "truecolor";
+  };
 
   home.packages = with pkgs; [
     # nix
@@ -31,4 +39,16 @@
     sops
     zstd
   ];
+
+  programs.bash = {
+    enable = true;
+    bashrcExtra = ''
+      if command -v direnv >/dev/null 2>&1; then
+        if [ -n "$CLAUDECODE" ]; then
+          eval "$(direnv hook bash)"
+          eval "$(DIRENV_LOG_FORMAT= direnv export bash)"
+        fi
+      fi
+    '';
+  };
 }
