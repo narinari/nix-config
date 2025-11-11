@@ -6,7 +6,7 @@
 }:
 
 let
-  inherit (outputs.packages."${pkgs.system}".run-in-tmux-popup) ;
+  run-in-tmux-popup-pkg = outputs.packages."${pkgs.system}".run-in-tmux-popup;
   wrapperScript = pkgs.writeShellScript "gpg-agent-wrapper" ''
     set -Ceu
 
@@ -15,7 +15,7 @@ let
       exec pinentry-curses "$@"
       ;;
     *TMUX_POPUP*)
-      exec ${run-in-tmux-popup}/bin/tmux-popup-pinentry-curses "$@"
+      exec ${run-in-tmux-popup-pkg}/bin/tmux-popup-pinentry-curses "$@"
       ;;
     esac
 
