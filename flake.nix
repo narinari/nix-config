@@ -126,7 +126,10 @@
 
       nixosConfigurations = {
         rin = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs outputs; };
+          specialArgs = {
+            inherit inputs outputs;
+            baseHostname = "rin";
+          };
           system = "x86_64-linux";
           modules = [ ./hosts/rin ];
         };

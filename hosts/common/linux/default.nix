@@ -9,14 +9,17 @@
     ./sops.nix
   ];
 
-  nix = {
-    # TODO: temporary fix for NixOS/nix#7704
-    package = pkgs.nixVersions.nix_2_12;
-  };
+  #nix = {
+  #  # TODO: temporary fix for NixOS/nix#7704
+  #  package = pkgs.nixVersions.nix_2_12;
+  #};
 
   environment = {
     enableAllTerminfo = true;
-    shells = with pkgs; [ zsh bashInteractive ];
+    shells = with pkgs; [
+      zsh
+      bashInteractive
+    ];
   };
 
   hardware.enableRedistributableFirmware = true;
