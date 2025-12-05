@@ -3,6 +3,7 @@
   outputs,
   consig,
   pkgs,
+  lib,
   ...
 }:
 
@@ -25,4 +26,11 @@
   };
 
   systemd.user.startServices = "sd-switch";
+
+  # for gpg-agent forwarding
+  programs.gpg.settings = {
+    no-autostart = true;
+  };
+  services.gpg-agent.enable = lib.mkForce false;
+
 }
