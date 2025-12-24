@@ -10,20 +10,19 @@
 
   programs.lf = {
     enable = true;
-    commands =
-      {
-        editor-open = "$$EDITOR $f";
-        mkdir = ''
-          ''${{
-            printf "Directory Name: "
-            read DIR
-            mkdir $DIR
-          }}
-        '';
-      }
-      // lib.optionalAttrs pkgs.stdenv.isLinux {
-        dragon-out = ''%${pkgs.xdragon}/bin/xdragon -a -x "$fx"'';
-      };
+    commands = {
+      editor-open = "$$EDITOR $f";
+      mkdir = ''
+        ''${{
+          printf "Directory Name: "
+          read DIR
+          mkdir $DIR
+        }}
+      '';
+    }
+    // lib.optionalAttrs pkgs.stdenv.isLinux {
+      dragon-out = ''%${pkgs.dragon-drop}/bin/xdragon -a -x "$fx"'';
+    };
     keybindings = {
 
       "\\\"" = "";
