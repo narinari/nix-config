@@ -7,8 +7,6 @@
 
 let
   claude-notify = pkgs.writeShellScript "claude-notify" ''
-    nc -z localhost 60000 || exit 0
-
     # 標準入力からhookのInputデータを読み取り
     INPUT=$(cat)
 
