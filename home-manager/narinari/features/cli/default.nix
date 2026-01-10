@@ -52,7 +52,6 @@
     pwgen
     sd # find & replace
     bandwhich
-    dogdns
     btop
     pueue
     file
