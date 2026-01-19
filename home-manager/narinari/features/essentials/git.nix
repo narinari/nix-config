@@ -135,6 +135,7 @@
           about-branch = ''!d() { description=$(git config branch.$1.description); if [ -n "$description" ]; then echo "$1 $description"; fi;}; f() { for branch in $(git branch); do d $branch; done; }; f'';
           desc = "branch --edit-description";
           dmb = ''!f() { bs=$(git branch --merged |grep -v ^\\* | grep -v staging | grep -v master | grep -v develop); if [ -z "$bs" ]; then echo "Merged branch does not exist."; exit; fi; echo "$bs"; read -p "Delete above branches? (y/N): " yn; case "$yn" in [yY]*) git branch -d $bs;; *) echo "abort." ; exit ;; esac }; f'';
+          dgb = ''!f() { git fetch --prune; bs=$(git branch -vv | grep ': gone]' | awk '{print $1}'); if [ -z "$bs" ]; then echo "Gone branch does not exist."; exit; fi; echo "$bs"; read -p "Delete above branches? (y/N): " yn; case "$yn" in [yY]*) echo $bs | xargs git branch -D;; *) echo "abort." ; exit ;; esac }; f'';
           pr = "!f() { git fetch -fu \${2:-$(git remote |grep ^pr || echo origin)} pull/$1/head && git checkout FETCH_HEAD; }; f";
           find-merge = "!sh -c 'commit=$0 && branch=\${1:-HEAD} && (git rev-list $commit..$branch --ancestry-path | cat -n; git rev-list $commit..$branch --first-parent | cat -n) | sort -k2 -s | uniq -f1 -d | sort -n | tail -1 | cut -f2'";
           show-merge = "!sh -c 'merge=$(git find-merge $0 $1) && [ -n \"$merge\" ] && git show $merge'";
