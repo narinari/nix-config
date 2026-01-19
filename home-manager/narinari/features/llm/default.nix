@@ -7,7 +7,7 @@
 
 let
   claude-notify = pkgs.writeShellScript "claude-notify" ''
-    ${pkgs.deno}/bin/deno run --allow-read --allow-env --allow-run ${./claude/notify.ts}
+    ${pkgs.deno}/bin/deno run --allow-read --allow-env --allow-run --allow-net ${./claude/notify.ts}
   '';
   claude-statusline = pkgs.writeShellScript "claude-statusline" ''
     ${pkgs.deno}/bin/deno run --allow-read --allow-env ${./claude/statusline.ts}
@@ -27,6 +27,7 @@ in
   programs.claude-code = {
     enable = true;
     settings = {
+      language = "japanese";
       permissions = {
         allow = [ ];
         defaultMode = "plan";

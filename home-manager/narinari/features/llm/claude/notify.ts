@@ -75,18 +75,15 @@ const main = async () => {
       }
     })()
 
-    const command: Deno.Command = new Deno.Command("nc", {
-          args: ["-N", "localhost", "60000"],
-          stdout: "piped",
-          stderr: "piped",
-        })
+    const conn = await Deno.connect({
+      hostname: "localhost",
+      port: 60000,
+    });
 
-    const process = command.spawn()
+    await conn.write(new TextEncoder().encode(message))
+    await conn.closeWrite()
 
-    const writer = process.stdin.getWriter()
-    await writer.write(new TextEncoder().encode(message))
-
-    await process.output()
+    conn.close()
 
     console.log(JSON.stringify({ success: true }))
   } catch (error) {
@@ -97,19 +94,16 @@ const main = async () => {
       }),
     )
 
-    const command: Deno.Command =
-        new Deno.Command("nc", {
-          args: ["-N", "localhost", "60000"],
-          stdout: "piped",
-          stderr: "piped",
-        })
+    const conn = await Deno.connect({
+      hostname: "localhost",
+      port: 60000,
+    });
 
-    const process = command.spawn()
+    await conn.write(new TextEncoder().encode('debug test'))
+    await conn.write(new TextEncoder().encode('display notification "Hook Failed !" with title "Claude Code Error 🚨"'))
+    await conn.closeWrite()
 
-    const writer = process.stdin.getWriter()
-    await writer.write(new TextEncoder().encode('display notification "Hook Failed !" with title "Claude Code Error 🚨"'))
-
-    await process.output()
+    conn.close()
   }
 }
 
