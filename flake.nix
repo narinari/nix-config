@@ -111,7 +111,16 @@
     {
       overlays = import ./overlays { inherit inputs outputs; };
 
-      packages = forEachSystem (pkgs: (import ./pkgs { inherit pkgs; }));
+      packages = forEachSystem (pkgs: (import ./pkgs { inherit pkgs; })) // {
+        # OpenClaw LXCテンプレート生成
+        x86_64-linux = (forEachSystem (pkgs: (import ./pkgs { inherit pkgs; }))).x86_64-linux // {
+          openclaw-lxc = inputs.nixos-generators.nixosGenerate {
+            system = "x86_64-linux";
+            format = "proxmox-lxc";
+            modules = [ ./hosts/openclaw ];
+          };
+        };
+      };
 
       devShells = forEachSystem (
         pkgs:
