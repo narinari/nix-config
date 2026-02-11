@@ -35,6 +35,7 @@
       pre-commit
 
       deno
+      claude-code
     ];
 
     shellHook = ''

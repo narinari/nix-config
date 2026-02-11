@@ -1,9 +1,11 @@
 {
-  config,
   pkgs,
-  lib,
+  inputs,
   ...
 }:
+let
+  openclaw = inputs.nix-openclaw.packages.x86_64-linux.default;
+in
 {
   imports = [
     ../common/linux/locale.nix
@@ -15,9 +17,8 @@
   # Nix設定（LXC用）
   nix.settings.sandbox = false;
 
-  # Node.js環境
+  # 基本ツール
   environment.systemPackages = with pkgs; [
-    nodejs_22
     git
     curl
   ];
@@ -26,8 +27,7 @@
   users = {
     users = {
       root.openssh.authorizedKeys.keys = [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICedOiRH96VIeFYIzMGPPCG2MLYhZkolBbl4wwtY8/A8 narinari.t@gmail.com"
-        "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAy9qm4KNCA5rlPkdPlc+LMOSZvsXQxz271iq4C3ZMrR5mKkTXkCZPnLd0tizQOtG89+8MtTyWL9jNrxa2qKIy3DegHuy6YrVAlAQmsJ7dmAQ9SEKag71zibtdHvRbFjHPjmz+6VHUXS47kHM8P7DhQXDmVf5WRclq4xQqcN3EkxpYNVK95a+ifYtrks/yQqCADoo2RsttRZYEhcBVRHQDBLZGkXjH7Yam0smwpKaukMDErecJSEjlWzb7RVbTYs+NUfaFXnqdWmRDIzQX+brHbVkkhyHio124kw2A860L/qlk5+AKjX2q4wI5ULetavoaMPg1xdRzGQ/0gOhDN12UvQ== narinari.t@gmail.com"
+        (builtins.readFile ../../home-manager/narinari/id_ed25519.pub)
       ];
       openclaw = {
         isNormalUser = true;
@@ -36,8 +36,7 @@
         group = "openclaw";
         extraGroups = [ "wheel" ];
         openssh.authorizedKeys.keys = [
-          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICedOiRH96VIeFYIzMGPPCG2MLYhZkolBbl4wwtY8/A8 narinari.t@gmail.com"
-          "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAy9qm4KNCA5rlPkdPlc+LMOSZvsXQxz271iq4C3ZMrR5mKkTXkCZPnLd0tizQOtG89+8MtTyWL9jNrxa2qKIy3DegHuy6YrVAlAQmsJ7dmAQ9SEKag71zibtdHvRbFjHPjmz+6VHUXS47kHM8P7DhQXDmVf5WRclq4xQqcN3EkxpYNVK95a+ifYtrks/yQqCADoo2RsttRZYEhcBVRHQDBLZGkXjH7Yam0smwpKaukMDErecJSEjlWzb7RVbTYs+NUfaFXnqdWmRDIzQX+brHbVkkhyHio124kw2A860L/qlk5+AKjX2q4wI5ULetavoaMPg1xdRzGQ/0gOhDN12UvQ== narinari.t@gmail.com"
+          (builtins.readFile ../../home-manager/narinari/id_ed25519.pub)
         ];
       };
     };
@@ -51,11 +50,17 @@
     wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
 
-    # 永続化ディレクトリの準備
+    # 永続化ディレクトリの準備（lost+foundはext4で自動作成されるため除外）
     preStart = ''
       mkdir -p /var/lib/openclaw/.openclaw
-      chown -R openclaw:openclaw /var/lib/openclaw
+      chown openclaw:openclaw /var/lib/openclaw
+      find /var/lib/openclaw -mindepth 1 ! -name 'lost+found' -exec chown -R openclaw:openclaw {} +
     '';
+
+    environment = {
+      HOME = "/var/lib/openclaw";
+      OPENCLAW_STATE_DIR = "/var/lib/openclaw/.openclaw";
+    };
 
     serviceConfig = {
       Type = "simple";
@@ -67,7 +72,7 @@
       # "-"プレフィックスでファイルが存在しない場合もエラーにならない
       EnvironmentFile = "-/var/lib/openclaw/.env";
 
-      ExecStart = "${pkgs.nodejs_22}/bin/npx -y openclaw";
+      ExecStart = "${openclaw}/bin/openclaw gateway";
       Restart = "always";
       RestartSec = "10s";
 
@@ -75,7 +80,11 @@
       NoNewPrivileges = true;
       ProtectSystem = "strict";
       ProtectHome = true;
-      ReadWritePaths = [ "/var/lib/openclaw" ];
+      PrivateTmp = false; # OpenClawは/tmpに書き込む必要がある
+      ReadWritePaths = [
+        "/var/lib/openclaw"
+        "/tmp"
+      ];
     };
   };
 
@@ -85,8 +94,22 @@
     settings.PasswordAuthentication = false;
   };
 
+  # Avahi (mDNS)
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    publish = {
+      enable = true;
+      addresses = true;
+      workstation = true;
+    };
+  };
+
   # ファイアウォール
-  networking.firewall.allowedTCPPorts = [ 22 ];
+  networking.firewall.allowedTCPPorts = [
+    22
+    18789
+  ];
 
   system.stateVersion = "25.11";
 }

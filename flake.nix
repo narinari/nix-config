@@ -71,6 +71,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nix-openclaw = {
+      url = "github:openclaw/nix-openclaw";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
       inputs = {
@@ -117,6 +122,7 @@
           openclaw-lxc = inputs.nixos-generators.nixosGenerate {
             system = "x86_64-linux";
             format = "proxmox-lxc";
+            specialArgs = { inherit inputs; };
             modules = [ ./hosts/openclaw ];
           };
         };
