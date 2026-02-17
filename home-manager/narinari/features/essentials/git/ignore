@@ -6,3 +6,7 @@
 .config/*
 !.config/fish
 .zsh/history/
+
+# for beads (stealth mode)
+.beads/
+AGENTS.md
