@@ -67,9 +67,9 @@ const main = async () => {
 
     const message: string = (() => {
       if (data.hook_event_name === "Stop") {
-        return `display notification "Task Completed 🚀" with title "⚡ Claude Code" subtitle "${repoInfo} 📦"`
+        return `display notification "Task Completed 🚀" with title "⚡ Claude Code" subtitle "${repoInfo} 📦" sound name "Glass"`
       } else if (data.hook_event_name === "Notification") {
-        return `display notification "Awaiting Confirmation 🔔" with title "⚡ Claude Code" subtitle "${repoInfo} 📦"`
+        return `display notification "Awaiting Confirmation 🔔" with title "⚡ Claude Code" subtitle "${repoInfo} 📦" sound name "Ping"`
       } else {
         throw new Error("unknown error")
       }
@@ -80,7 +80,7 @@ const main = async () => {
       port: 60000,
     });
 
-    await conn.write(new TextEncoder().encode(message))
+    await conn.write(new TextEncoder().encode(message + "\n"))
     await conn.closeWrite()
 
     conn.close()
@@ -99,8 +99,7 @@ const main = async () => {
       port: 60000,
     });
 
-    await conn.write(new TextEncoder().encode('debug test'))
-    await conn.write(new TextEncoder().encode('display notification "Hook Failed !" with title "Claude Code Error 🚨"'))
+    await conn.write(new TextEncoder().encode('display notification "Hook Failed !" with title "Claude Code Error 🚨"\n'))
     await conn.closeWrite()
 
     conn.close()
