@@ -25,6 +25,12 @@
     envExtra = ''
       export LESSHISTFILE="${config.xdg.dataHome}/less_history"
       #export CARGO_HOME="${config.xdg.cacheHome}/cargo" # doesn't work with emacs
+
+      # SSH agent forwarding fix for tmux
+      # Use fixed path symlink created by ~/.ssh/rc
+      if [ -n "$SSH_CONNECTION" ] && [ -S "$HOME/.ssh/ssh_auth_sock" ]; then
+        export SSH_AUTH_SOCK="$HOME/.ssh/ssh_auth_sock"
+      fi
     '';
     initContent = lib.mkMerge [
       (lib.mkBefore ''
