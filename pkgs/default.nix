@@ -11,5 +11,5 @@
   sf-mono-nerdfonts = pkgs.callPackage ./font-sf-mono-nerdfonts { };
   ibm-plex-sans = pkgs.callPackage ./font-ibm-plex-sans { };
   moralerspace-hw-nerdfonts = pkgs.callPackage ./font-moralerspace-hw-nerdfonts { };
-  run-in-tmux-popup = pkgs.callPackage ./run-in-tmux-popup { };
+  macskk = pkgs.callPackage ./macskk { };
 }
