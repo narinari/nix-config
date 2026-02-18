@@ -4,7 +4,17 @@
   outputs,
   ...
 }:
-
+let
+  claude-notification-subscriber = pkgs.writeShellScript "claude-notification-subscriber.sh" ''
+    while true; do
+      nc -l 60000 | while read line; do
+        logger -t "claude-notification-subscriber" -p user.info "$line"
+        osascript -e "$line"
+      done
+      sleep 1
+    done
+  '';
+in
 {
   imports = [
     # ./copyApplications.nix
@@ -17,7 +27,7 @@
   ];
 
   home.packages = with pkgs; [
-    lima
+    colima
 
     iterm2
     # xquartz
@@ -41,4 +51,16 @@
   ];
 
   # home.homeDirectory = "/home/${config.home.username}";
+
+  launchd.agents = {
+    claude-notification-subscriber = {
+      enable = true;
+      config = {
+        ProgramArguments = [ "${claude-notification-subscriber}" ];
+        ProcessType = "Background";
+        RunAtLoad = true;
+        KeepAlive = true;
+      };
+    };
+  };
 }

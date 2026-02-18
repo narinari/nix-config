@@ -158,7 +158,10 @@
           K54TXK9ML7 = darwin.lib.darwinSystem {
             inherit system;
             modules = [ ./hosts/K54TXK9ML7 ];
-            specialArgs = { inherit inputs outputs; };
+            specialArgs = {
+              inherit inputs outputs;
+              baseHostname = "K54TXK9ML7";
+            };
           };
         };
 
