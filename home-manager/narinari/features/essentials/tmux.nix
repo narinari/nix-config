@@ -3,8 +3,6 @@
 
   home.packages = with pkgs; [
     (lib.mkIf stdenv.isLinux sysstat)
-    outputs.packages."${pkgs.system}".run-in-tmux-popup
-
   ];
 
   programs.tmux = {
