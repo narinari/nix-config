@@ -12,10 +12,6 @@
   programs.gpg = {
     enable = true;
     homedir = "${config.xdg.dataHome}/gnupg";
-    settings = {
-      # Darwinではlaunchdにgpg-agent管理を任せる
-      no-autostart = lib.mkIf pkgs.stdenv.isDarwin true;
-    };
   };
 
   # Linux用: services.gpg-agentを使用（systemd統合）
