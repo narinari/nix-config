@@ -23,6 +23,12 @@
       share = true;
     };
     envExtra = ''
+      # Fix getcwd error when current directory no longer exists
+      # This can happen in tmux sessions or when tools spawn subshells
+      if ! pwd >/dev/null 2>&1; then
+        cd "$HOME" 2>/dev/null || cd /
+      fi
+
       export LESSHISTFILE="${config.xdg.dataHome}/less_history"
       #export CARGO_HOME="${config.xdg.cacheHome}/cargo" # doesn't work with emacs
 
@@ -68,6 +74,11 @@
         ${pkgs.any-nix-shell}/bin/any-nix-shell zsh | source /dev/stdin
 
         source ${pkgs.fzf-git-sh}/share/fzf-git-sh/fzf-git.sh
+
+        # sops wrapper to filter shell-init errors from stdout
+        sops() {
+          ${pkgs.sops}/bin/sops "$@" 2>&1 | ${pkgs.gnugrep}/bin/grep -v '^shell-init:'
+        }
       ''
     ];
     # source ${config.age.secrets.work_env.path}
