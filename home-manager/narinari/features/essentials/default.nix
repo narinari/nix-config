@@ -43,11 +43,6 @@
   programs.bash = {
     enable = true;
     bashrcExtra = ''
-      # Fix getcwd error when current directory no longer exists
-      if ! pwd >/dev/null 2>&1; then
-        cd "$HOME" 2>/dev/null || cd /
-      fi
-
       if command -v direnv >/dev/null 2>&1; then
         if [ -n "$CLAUDECODE" ]; then
           eval "$(direnv hook bash)"
