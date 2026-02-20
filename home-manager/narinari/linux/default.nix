@@ -1,4 +1,5 @@
-{ pkgs, ... }: {
+{ pkgs, ... }:
+{
   home.packages = with pkgs; [
     google-chrome # linux only
 
@@ -23,5 +24,5 @@
     # freeplane # mindmap linux only
   ];
 
-  service.gpg-agent.enable = true;
+  services.gpg-agent.enable = true;
 }
