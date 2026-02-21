@@ -125,6 +125,12 @@
             specialArgs = { inherit inputs; };
             modules = [ ./hosts/openclaw ];
           };
+          jellyfin-lxc = inputs.nixos-generators.nixosGenerate {
+            system = "x86_64-linux";
+            format = "proxmox-lxc";
+            specialArgs = { inherit inputs; };
+            modules = [ ./hosts/jellyfin ];
+          };
         };
       };
 
@@ -157,6 +163,11 @@
           specialArgs = { inherit inputs outputs; };
           system = "aarch64-linux";
           modules = [ ./hosts/jarvis2 ];
+        };
+        jellyfin = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          system = "x86_64-linux";
+          modules = [ ./hosts/jellyfin ];
         };
       };
 
@@ -227,6 +238,12 @@
               path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.jarvis2;
               remoteBuild = false;
               autoRollback = false;
+            };
+          };
+          jellyfin = {
+            hostname = "jellyfin.local";
+            profiles.system = {
+              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.jellyfin;
             };
           };
         };
