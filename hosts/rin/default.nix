@@ -9,7 +9,6 @@
 
 {
   imports = [
-    #inputs.nixos-generators.nixosModules.all-formats
     "${toString modulesPath}/virtualisation/proxmox-lxc.nix"
     ../common/global
     ../common/linux
@@ -19,32 +18,53 @@
 
   networking = {
     hostName = "rin";
+    useNetworkd = true;
+    useDHCP = false;
+  };
+
+  # eth0 DHCP設定
+  systemd.network = {
+    enable = true;
+    networks."10-eth0" = {
+      matchConfig.Name = "eth0";
+      networkConfig = {
+        DHCP = "yes";
+        IPv6AcceptRA = true;
+      };
+      linkConfig.RequiredForOnline = "routable";
+    };
   };
 
   nixpkgs.hostPlatform = "x86_64-linux";
   system.stateVersion = "23.05";
 
-  # formatConfigs = {
-  #   proxmox = { config, ... }: {
-  #     proxmox.qemuConf = {
-  #       name = "nixos-${config.system.nixos.label}-rin";
-  #       cores = 2;
-  #       memory = 4096;
-  #     };
-  #   };
+  # LXC固有設定
+  boot.isContainer = true;
+  nix.settings.sandbox = false;
 
-  #   # customize an existing format
-  #   vmware = { config, ... }: { services.openssh.enable = true; };
+  # LXCではpam_limitsが動作しないため無効化
+  # （ホスト側で lxc.prlimit.nofile を設定）
+  security.pam.loginLimits = lib.mkForce [ ];
 
-  #   # define a new format
-  #   my-custom-format = { config, modulesPath, ... }: {
-  #     imports =
-  #       [ "${toString modulesPath}/installer/cd-dvd/installation-cd-base.nix" ];
-  #     formatAttr = "isoImage";
-  #     fileExtension = ".iso";
-  #     networking.wireless.networks = {
-  #       # ...
-  #     };
-  #   };
-  # };
+  # Podman（Docker互換、LXC親和性が高い）
+  virtualisation.podman = {
+    enable = true;
+    dockerCompat = true;
+    defaultNetwork.settings.dns_enabled = true;
+  };
+
+  # ファイアウォール
+  networking.firewall = {
+    allowedTCPPorts = [ 22 ];
+    allowedTCPPortRanges = [
+      {
+        from = 3000;
+        to = 3100;
+      } # 開発サーバー用
+      {
+        from = 8000;
+        to = 8100;
+      }
+    ];
+  };
 }

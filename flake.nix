@@ -131,6 +131,15 @@
             specialArgs = { inherit inputs; };
             modules = [ ./hosts/jellyfin ];
           };
+          rin-lxc = inputs.nixos-generators.nixosGenerate {
+            system = "x86_64-linux";
+            format = "proxmox-lxc";
+            specialArgs = {
+              inherit inputs outputs;
+              baseHostname = "rin";
+            };
+            modules = [ ./hosts/rin ];
+          };
         };
       };
 
@@ -244,6 +253,12 @@
             hostname = "jellyfin.local";
             profiles.system = {
               path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.jellyfin;
+            };
+          };
+          rin = {
+            hostname = "rin.local";
+            profiles.system = {
+              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.rin;
             };
           };
         };
