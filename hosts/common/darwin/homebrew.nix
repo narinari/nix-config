@@ -2,12 +2,16 @@
 
 {
   homebrew = {
+    enable = true;
     onActivation = {
-      enable = true;
       autoUpdate = true;
+      cleanup = "zap"; # Remove unlisted casks/brews
     };
 
-    taps = [ "goldeneggg/lsec2" "koekeishiya/formulae" ];
+    taps = [
+      "goldeneggg/lsec2"
+      "koekeishiya/formulae"
+    ];
 
     brews = [
       "automake"
@@ -29,15 +33,13 @@
     ];
 
     casks = [
+      "wezterm"
       "keycastr"
       "the-unarchiver"
-      "aquaskk"
       "xquartz"
       "bestres"
-      "google-chrome"
       "licecap"
       "contexts"
-      "skitch"
     ];
   };
 }

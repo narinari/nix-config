@@ -7,7 +7,10 @@
 {
   programs.wezterm = {
     enable = true;
-    enableZshIntegration = true;
+    # On macOS, use Homebrew cask version for code-signed app (required for notifications)
+    # See: https://github.com/wezterm/wezterm/issues/6731
+    package = if pkgs.stdenv.isDarwin then pkgs.emptyDirectory else pkgs.wezterm;
+    enableZshIntegration = !pkgs.stdenv.isDarwin;
     extraConfig = ''
       local act = wezterm.action
 
@@ -48,6 +51,8 @@
           bottom = 0,
         },
         window_close_confirmation = 'NeverPrompt',
+
+        notification_handling = "AlwaysShow",
 
         disable_default_key_bindings = true,
         keys = {
