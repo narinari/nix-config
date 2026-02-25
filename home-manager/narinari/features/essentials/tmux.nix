@@ -57,6 +57,9 @@
     terminal = "tmux-256color";
     historyLimit = 30000;
     extraConfig = ''
+      # OSC 777等のエスケープシーケンスをパススルー（wezterm通知用）
+      set -g allow-passthrough on
+
       #new-session -A -D -s main
 
       # C-bのキーバインドを解除する
