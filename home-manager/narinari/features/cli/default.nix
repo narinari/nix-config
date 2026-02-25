@@ -7,6 +7,7 @@
 
 {
   imports = [
+    ./claude-podman.nix
     ./docker.nix
     ./go.nix
     ./haskell.nix

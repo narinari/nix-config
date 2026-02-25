@@ -1,0 +1,69 @@
+# Claude Code Podman Container
+# Based on official anthropics/claude-code devcontainer
+# Adapted for rootless Podman on Ubuntu/Debian
+
+FROM docker.io/library/node:20-bookworm
+
+ARG CLAUDE_CODE_VERSION=""
+ARG ZSH_IN_DOCKER_VERSION="1.2.1"
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    wget \
+    sudo \
+    ca-certificates \
+    gnupg \
+    ripgrep \
+    fd-find \
+    fzf \
+    jq \
+    tree \
+    htop \
+    tmux \
+    less \
+    vim \
+    unzip \
+    iptables \
+    ipset \
+    dnsutils \
+    iproute2 \
+    python3 \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install zsh with plugins
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh)" -- \
+    -t robbyrussell \
+    -p git \
+    -p fzf \
+    -a "source /usr/share/doc/fzf/examples/key-bindings.zsh" \
+    -a "source /usr/share/doc/fzf/examples/completion.zsh" \
+    -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+    -x
+
+# Install Claude Code
+RUN if [ -n "$CLAUDE_CODE_VERSION" ]; then \
+      npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}; \
+    else \
+      npm install -g @anthropic-ai/claude-code; \
+    fi
+
+# Copy firewall script
+COPY init-firewall.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/init-firewall.sh && \
+    echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
+    chmod 0440 /etc/sudoers.d/node-firewall
+
+# Setup Python venv for node user
+USER node
+RUN python3 -m venv /home/node/.venv
+ENV PATH="/home/node/.venv/bin:$PATH"
+
+# Create directories
+RUN mkdir -p /home/node/.claude /commandhistory
+
+USER node
+WORKDIR /workspace
