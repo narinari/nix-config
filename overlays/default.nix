@@ -12,7 +12,8 @@
 
   fcitx-overlay = final: prev: if prev.stdenv.isLinux then { fcitx-engines = final.fcitx5; } else { };
   emacs-overlay = inputs.emacs-overlay.overlay;
-  nixpkgs-firefox-darwin = inputs.nixpkgs-firefox-darwin.overlay;
+  # nixpkgs-firefox-darwinのoverlayは古い形式(self: super:)なのでラップ
+  nixpkgs-firefox-darwin = final: prev: inputs.nixpkgs-firefox-darwin.overlay final prev;
 
   # #  xcbuild-overlay = final: prev: {
   # #    xcbuild = prev.xcbuild.override {

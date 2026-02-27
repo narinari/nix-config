@@ -103,6 +103,7 @@
       lib = nixpkgs.lib // home-manager.lib;
       systems = [
         "x86_64-linux"
+        "aarch64-linux"
         "aarch64-darwin"
       ];
       forEachSystem = f: lib.genAttrs systems (sys: f (pkgsFor sys));
@@ -164,17 +165,26 @@
           modules = [ ./hosts/rin ];
         };
         rpi4-base = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs outputs; };
+          specialArgs = {
+            inherit inputs outputs;
+            baseHostname = "";
+          };
           system = "aarch64-linux";
           modules = [ ./hosts/rpi4-base ];
         };
         jarvis2 = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs outputs; };
+          specialArgs = {
+            inherit inputs outputs;
+            baseHostname = "";
+          };
           system = "aarch64-linux";
           modules = [ ./hosts/jarvis2 ];
         };
         jellyfin = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs outputs; };
+          specialArgs = {
+            inherit inputs outputs;
+            baseHostname = "";
+          };
           system = "x86_64-linux";
           modules = [ ./hosts/jellyfin ];
         };
