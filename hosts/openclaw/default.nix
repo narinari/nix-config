@@ -101,7 +101,7 @@ in
     publish = {
       enable = true;
       addresses = true;
-      workstation = true;
+      workstation = false; # OpenClawが"openclaw"名でサービス公開できるようにする
     };
   };
 
