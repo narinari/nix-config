@@ -210,12 +210,18 @@
           extraSpecialArgs = { inherit inputs outputs; };
         };
         "narinari@rin" = lib.homeManagerConfiguration {
-          modules = [ ./home-manager/narinari/rin.nix ];
+          modules = [
+            ./home-manager/narinari/rin.nix
+            inputs.sops-nix.homeManagerModule
+          ];
           pkgs = pkgsFor "x86_64-linux";
           extraSpecialArgs = { inherit inputs outputs; };
         };
         "narinari@FL4N2RD4TD" = lib.homeManagerConfiguration {
-          modules = [ ./home-manager/narinari/FL4N2RD4TD.nix ];
+          modules = [
+            ./home-manager/narinari/FL4N2RD4TD.nix
+            inputs.sops-nix.homeManagerModule
+          ];
           pkgs = pkgsFor "aarch64-darwin";
           extraSpecialArgs = { inherit inputs outputs; };
         };
