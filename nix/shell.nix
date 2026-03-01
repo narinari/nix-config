@@ -36,6 +36,7 @@
 
       deno
       claude-code
+      bitwarden-cli
     ];
 
     shellHook = ''

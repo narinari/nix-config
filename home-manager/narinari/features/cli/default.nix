@@ -65,7 +65,7 @@
 
     unar
     # dbeaver
-    mycli
+    # mycli # broken: sqlglot version mismatch (requires 27.*, nixpkgs has 28.x)
     # obsidian
     # logseq
     # anytype
