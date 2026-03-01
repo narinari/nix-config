@@ -13,6 +13,7 @@
     ./features/cli
     ./features/llm
     ./features/terminal-access
+    ./features/bitwarden
   ];
 
   targets.genericLinux.enable = true;
