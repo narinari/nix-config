@@ -38,6 +38,7 @@ ALLOWED_DOMAINS=(
 	"raw.githubusercontent.com"
 	"pypi.org"
 	"files.pythonhosted.org"
+	"api.inhouse-flugel.freee.co.jp"
 )
 
 # Resolve and add IPs

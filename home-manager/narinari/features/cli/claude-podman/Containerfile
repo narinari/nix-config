@@ -9,6 +9,7 @@ ARG ZSH_IN_DOCKER_VERSION="1.2.1"
 
 # System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    locales \
     git \
     curl \
     wget \
@@ -25,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     less \
     vim \
     unzip \
+    zsh \
     iptables \
     ipset \
     dnsutils \
@@ -33,6 +35,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-venv \
     && rm -rf /var/lib/apt/lists/*
+
+# Setup locale
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+    sed -i '/ja_JP.UTF-8/s/^# //g' /etc/locale.gen && \
+    locale-gen
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 
 # Install zsh with plugins
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh)" -- \
@@ -54,16 +63,34 @@ RUN if [ -n "$CLAUDE_CODE_VERSION" ]; then \
 # Copy firewall script
 COPY init-firewall.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/init-firewall.sh && \
-    echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
-    chmod 0440 /etc/sudoers.d/node-firewall
+    echo "ALL ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/firewall && \
+    chmod 0440 /etc/sudoers.d/firewall
 
-# Setup Python venv for node user
-USER node
-RUN python3 -m venv /home/node/.venv
+# Create directories (as root, then chown)
+RUN mkdir -p /home/node/.claude /commandhistory && \
+    chown -R node:node /home/node/.claude /commandhistory
+
+# Setup Python venv (as root, will be accessible to mapped user)
+RUN python3 -m venv /home/node/.venv && \
+    chown -R node:node /home/node/.venv
 ENV PATH="/home/node/.venv/bin:$PATH"
 
-# Create directories
-RUN mkdir -p /home/node/.claude /commandhistory
+# Create empty .zshrc to skip zsh-newuser-install
+RUN touch /home/node/.zshrc && chown node:node /home/node/.zshrc
 
-USER node
+# Allow git to work with mounted directories (different ownership)
+# This will be overridden by user's config when --userns keep-id maps the user
+RUN git config --global --add safe.directory '*'
+
+# Add known hosts for common git providers
+RUN mkdir -p /home/node/.ssh && \
+    ssh-keyscan -t ed25519,rsa github.com >> /home/node/.ssh/known_hosts && \
+    ssh-keyscan -t ed25519,rsa gitlab.com >> /home/node/.ssh/known_hosts && \
+    chmod 700 /home/node/.ssh && \
+    chmod 600 /home/node/.ssh/known_hosts && \
+    chown -R node:node /home/node/.ssh
+
 WORKDIR /workspace
+
+# Note: No USER directive - container runs as root in image
+# but --userns keep-id maps host user (e.g., UID 1001) at runtime

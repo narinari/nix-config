@@ -98,10 +98,20 @@ let
     build_image() {
         if [[ "$FORCE_BUILD" == true ]] || ! ${pkgs.podman}/bin/podman image exists "$IMAGE_NAME"; then
             info "Building image: ''${IMAGE_NAME}..."
+
+            # Create temp build context with resolved symlinks
+            local build_dir
+            build_dir=$(mktemp -d)
+            trap "rm -rf ''${build_dir}" EXIT
+
+            # Copy files, resolving symlinks (home-manager creates symlinks to nix store)
+            cp -L "''${DEVCONTAINER_DIR}/Containerfile" "''${build_dir}/"
+            cp -L "''${DEVCONTAINER_DIR}/init-firewall.sh" "''${build_dir}/"
+
             ${pkgs.podman}/bin/podman build \
                 -t "$IMAGE_NAME" \
-                -f "''${DEVCONTAINER_DIR}/Containerfile" \
-                "''${DEVCONTAINER_DIR}"
+                -f "''${build_dir}/Containerfile" \
+                "''${build_dir}"
             info "Image built successfully"
         else
             info "Image \"''${IMAGE_NAME}\" already exists (use --build to rebuild)"
@@ -123,15 +133,27 @@ let
             -v "''${workspace}:/workspace:Z"
             -v "''${CLAUDE_CONFIG_DIR}:/home/node/.claude:Z"
             -v "claude-bash-history-''${name}:/commandhistory:Z"
+            -v "/nix/store:/nix/store:ro"
+            -v "/nix/var/nix/profiles:/nix/var/nix/profiles:ro"
             # Environment
+            -e "HOME=/home/node"
+            -e "PATH=$(readlink -f ~/.nix-profile)/bin:/usr/local/bin:/usr/bin:/bin"
             -e "NODE_OPTIONS=--max-old-space-size=4096"
             -e "CLAUDE_CONFIG_DIR=/home/node/.claude"
             -e "TERM=xterm-256color"
         )
 
-        # Add ANTHROPIC_API_KEY if set
+        # Add Anthropic environment variables if set
         if [[ -n "''${ANTHROPIC_API_KEY:-}" ]]; then
             run_args+=(-e "ANTHROPIC_API_KEY=''${ANTHROPIC_API_KEY}")
+        fi
+        if [[ -n "''${ANTHROPIC_CUSTOM_HEADERS:-}" ]]; then
+            run_args+=(-e "ANTHROPIC_CUSTOM_HEADERS=''${ANTHROPIC_CUSTOM_HEADERS}")
+        fi
+
+        # Forward SSH agent if available
+        if [[ -n "''${SSH_AUTH_SOCK:-}" ]]; then
+            run_args+=(-v "''${SSH_AUTH_SOCK}:/ssh-agent" -e "SSH_AUTH_SOCK=/ssh-agent")
         fi
 
         # Firewall needs NET_ADMIN + NET_RAW
@@ -238,5 +260,22 @@ in
       source = ./claude-podman/init-firewall.sh;
       executable = true;
     };
+
+    # Podman container policy (required for rootless podman)
+    ".config/containers/policy.json".text = builtins.toJSON {
+      default = [ { type = "insecureAcceptAnything"; } ];
+    };
+
+    # Podman registries config
+    ".config/containers/registries.conf".text = ''
+      [registries.search]
+      registries = ['docker.io', 'quay.io', 'ghcr.io']
+
+      [registries.insecure]
+      registries = []
+
+      [registries.block]
+      registries = []
+    '';
   };
 }
