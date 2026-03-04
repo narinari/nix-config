@@ -245,7 +245,7 @@
     gh = {
       enable = true;
       settings.git_protocol = "ssh";
-      extensions = with pkgs; [ gh-copilot ];
+      extensions = with pkgs; [ github-copilot-cli ];
     };
   };
 }

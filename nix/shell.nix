@@ -33,6 +33,8 @@
       # Misc
       jq
       pre-commit
+
+      deno
     ];
 
     shellHook = ''
