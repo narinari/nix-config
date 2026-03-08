@@ -2,6 +2,7 @@
 {
   imports = [
     ../common/linux/locale.nix
+    ../common/home-server
   ];
 
   # Proxmox LXC基本設定

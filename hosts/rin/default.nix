@@ -53,15 +53,14 @@
     defaultNetwork.settings.dns_enabled = true;
   };
 
-  # SSHホスト鍵を通常の場所から読み込む（sopsシークレットを使わない）
+  # rinではsopsシークレットを無効化（host_keys.yamlにrinの鍵がないため）
+  # sops.secretsをクリアするとopenssh.nixのhost-keys参照が壊れるためhostKeysもオーバーライド
   services.openssh.hostKeys = lib.mkForce [
     {
       path = "/etc/ssh/ssh_host_ed25519_key";
       type = "ed25519";
     }
   ];
-
-  # rinではsopsシークレットを無効化
   sops.secrets = lib.mkForce { };
 
   # Nix リモートビルダー用ユーザー

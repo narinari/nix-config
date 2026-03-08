@@ -2,6 +2,9 @@
   pkgs ? import <nixpkgs> { },
 }:
 
+let
+  libarib25 = pkgs.callPackage ./libarib25 { };
+in
 {
   fosi = pkgs.callPackage ./fosi { };
   lsec2 = pkgs.callPackage ./lsec2 { };
@@ -12,4 +15,10 @@
   ibm-plex-sans = pkgs.callPackage ./font-ibm-plex-sans { };
   moralerspace-hw-nerdfonts = pkgs.callPackage ./font-moralerspace-hw-nerdfonts { };
   macskk = pkgs.callPackage ./macskk { };
+
+  # TV recording packages
+  inherit libarib25;
+  recpt1 = pkgs.callPackage ./recpt1 { inherit libarib25; };
+  it930x-firmware = pkgs.callPackage ./it930x-firmware { };
+  epgstation-scripts = pkgs.callPackage ./epgstation-scripts { };
 }

@@ -172,13 +172,21 @@
           system = "aarch64-linux";
           modules = [ ./hosts/rpi4-base ];
         };
-        jarvis2 = nixpkgs.lib.nixosSystem {
+        jarvis = nixpkgs.lib.nixosSystem {
           specialArgs = {
             inherit inputs outputs;
             baseHostname = "";
           };
           system = "aarch64-linux";
-          modules = [ ./hosts/jarvis2 ];
+          modules = [ ./hosts/jarvis ];
+        };
+        friday = nixpkgs.lib.nixosSystem {
+          specialArgs = {
+            inherit inputs outputs;
+            baseHostname = "";
+          };
+          system = "aarch64-linux";
+          modules = [ ./hosts/friday ];
         };
         jellyfin = nixpkgs.lib.nixosSystem {
           specialArgs = {
@@ -187,6 +195,14 @@
           };
           system = "x86_64-linux";
           modules = [ ./hosts/jellyfin ];
+        };
+        silk = nixpkgs.lib.nixosSystem {
+          specialArgs = {
+            inherit inputs outputs;
+            baseHostname = "";
+          };
+          system = "aarch64-linux";
+          modules = [ ./hosts/silk ];
         };
       };
 
@@ -257,10 +273,18 @@
         remoteBuild = true;
 
         nodes = {
-          jarvis2 = {
-            hostname = "jarvis2";
+          jarvis = {
+            hostname = "jarvis";
             profiles.system = {
-              path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.jarvis2;
+              path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.jarvis;
+              remoteBuild = false;
+              autoRollback = false;
+            };
+          };
+          friday = {
+            hostname = "friday";
+            profiles.system = {
+              path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.friday;
               remoteBuild = false;
               autoRollback = false;
             };
@@ -275,6 +299,14 @@
             hostname = "rin.local";
             profiles.system = {
               path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.rin;
+            };
+          };
+          silk = {
+            hostname = "silk";
+            profiles.system = {
+              path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.silk;
+              remoteBuild = false;
+              autoRollback = false;
             };
           };
         };

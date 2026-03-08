@@ -1,0 +1,39 @@
+{
+  "config": {
+    "elementaryStreams": [
+      {
+        "key": "video-stream0",
+        "videoStream": {
+          "h264": {
+            "heightPixels": 1024,
+            "widthPixels": 1980,
+            "bitrateBps": 9000000,
+            "frameRate": 60,
+            "gopDuration": "4.0s",
+            "pixelFormat": "yuv420p",
+            "rateControlMode": "vbr",
+            "crfLevel": 10,
+            "bFrameCount": 6,
+            "profile": "high",
+            "enableTwoPass": true,
+            "preset": "medium"
+          }
+        }
+      },
+      {
+        "key": "audio-stream0",
+        "audioStream": {
+          "codec": "aac",
+          "bitrateBps": 160000
+        }
+      }
+    ],
+    "muxStreams": [
+      {
+        "key": "hd",
+        "container": "mp4",
+        "elementaryStreams": ["video-stream0", "audio-stream0"]
+      }
+    ]
+  }
+}
