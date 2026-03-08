@@ -277,7 +277,6 @@
             hostname = "jarvis";
             profiles.system = {
               path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.jarvis;
-              remoteBuild = false;
               autoRollback = false;
             };
           };
@@ -285,7 +284,6 @@
             hostname = "friday";
             profiles.system = {
               path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.friday;
-              remoteBuild = false;
               autoRollback = false;
             };
           };
@@ -305,7 +303,6 @@
             hostname = "silk";
             profiles.system = {
               path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.silk;
-              remoteBuild = false;
               autoRollback = false;
             };
           };
