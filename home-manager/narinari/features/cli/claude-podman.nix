@@ -146,10 +146,19 @@ let
             -e "TERM=xterm-256color"
         )
 
-        # Mount MCP config if available (from mcp-proxy-hub)
-        if [[ -f "$MCP_CONFIG" ]]; then
-            run_args+=(-v "''${MCP_CONFIG}:/home/node/.mcp-servers.json:ro")
-            run_args+=(-e "MCP_CONFIG_FILE=/home/node/.mcp-servers.json")
+        # Override .claude.json with SSE MCP config for container
+        # (host uses stdio, container uses SSE via mcp-proxy-hub)
+        if [[ -f "$MCP_CONFIG" ]] && command -v ${pkgs.jq}/bin/jq &>/dev/null; then
+            local container_claude_json
+            container_claude_json=$(mktemp)
+            ${pkgs.jq}/bin/jq --slurpfile mcp "$MCP_CONFIG" '.mcpServers = $mcp[0].mcpServers' \
+                "''${CLAUDE_CONFIG_DIR}/.claude.json" > "$container_claude_json" 2>/dev/null
+            if [[ -s "$container_claude_json" ]]; then
+                run_args+=(-v "''${container_claude_json}:/home/node/.claude/.claude.json:Z")
+                info "MCP: Using SSE transport via mcp-proxy-hub"
+            else
+                rm -f "$container_claude_json"
+            fi
         fi
 
         # Add Anthropic environment variables if set
@@ -173,61 +182,39 @@ let
         # Remove existing container with same name
         ${pkgs.podman}/bin/podman rm -f "$name" 2>/dev/null || true
 
-        # MCP setup script (runs in container if config file is mounted)
-        local mcp_setup='
-            if [[ -n "''${MCP_CONFIG_FILE:-}" ]] && [[ -f "''${MCP_CONFIG_FILE}" ]]; then
-                echo "[MCP] Configuring MCP servers from ''${MCP_CONFIG_FILE}..."
-                # Parse JSON and add each server
-                for name in $(jq -r ".mcpServers | keys[]" "''$MCP_CONFIG_FILE" 2>/dev/null); do
-                    url=$(jq -r ".mcpServers[\"''$name\"].url" "''$MCP_CONFIG_FILE")
-                    if [[ -n "''$url" ]] && [[ "''$url" != "null" ]]; then
-                        # Remove existing and add new (idempotent)
-                        claude mcp remove "''$name" --scope user 2>/dev/null || true
-                        claude mcp add --transport sse "''$name" "''$url" --scope user 2>/dev/null && \
-                            echo "[MCP] Added: ''$name -> ''$url" || \
-                            echo "[MCP] Failed to add: ''$name"
-                    fi
-                done
-            fi
-        '
-
         case "$mode" in
             interactive)
                 info "Starting interactive session: ''${name}"
                 run_args+=(-it --rm)
-                ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c "
+                ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
-                    $mcp_setup
-                    exec claude ''${CLAUDE_ARGS}
-                "
+                    exec claude '"''${CLAUDE_ARGS}"'
+                '
                 ;;
             auto)
                 info "Starting auto session: ''${name} (--dangerously-skip-permissions)"
                 run_args+=(-it --rm)
-                ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c "
+                ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
-                    $mcp_setup
-                    exec claude --dangerously-skip-permissions ''${CLAUDE_ARGS}
-                "
+                    exec claude --dangerously-skip-permissions '"''${CLAUDE_ARGS}"'
+                '
                 ;;
             auto-detached)
                 info "Starting detached auto session: ''${name}"
                 run_args+=(-d)
-                ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c "
+                ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
-                    $mcp_setup
-                    claude --dangerously-skip-permissions ''${CLAUDE_ARGS}
+                    claude --dangerously-skip-permissions '"''${CLAUDE_ARGS}"'
                     sleep infinity
-                "
+                '
                 ;;
             shell)
                 info "Starting shell: ''${name}"
                 run_args+=(-it --rm)
-                ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c "
+                ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
-                    $mcp_setup
                     exec /bin/zsh
-                "
+                '
                 ;;
         esac
     }
