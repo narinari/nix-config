@@ -19,6 +19,8 @@ let
     #   claude-podman --list              # List running containers
     #   claude-podman --stop              # Stop all claude containers
     #   claude-podman --attach <name>     # Attach to running container
+    #   claude-podman --no-devenv         # Skip nix devenv setup
+    #   claude-podman --refresh-devenv    # Force regenerate devenv cache
 
     set -euo pipefail
 
@@ -47,6 +49,8 @@ let
     FIREWALL=true
     AGENT_NAME=""
     CLAUDE_ARGS=""
+    SKIP_DEVENV=false
+    REFRESH_DEVENV=false
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -54,7 +58,9 @@ let
             --shell)       MODE="shell"; shift ;;
             --agents)      AGENTS="''${2:?'--agents requires a number'}"; shift 2 ;;
             --build)       FORCE_BUILD=true; shift ;;
-            --no-firewall) FIREWALL=false; shift ;;
+            --no-firewall)    FIREWALL=false; shift ;;
+            --no-devenv)      SKIP_DEVENV=true; shift ;;
+            --refresh-devenv) REFRESH_DEVENV=true; shift ;;
             --list)        MODE="list"; shift ;;
             --stop)        MODE="stop"; shift ;;
             --attach)      MODE="attach"; AGENT_NAME="''${2:?'--attach requires a name'}"; shift 2 ;;
@@ -93,6 +99,64 @@ let
             error "Container \"''${name}\" not found. Use --list to see running containers."
             exit 1
         fi
+    }
+
+    # Setup nix devenv: parse .envrc, run nix print-dev-env, cache result
+    DEVENV_FILE=""
+    setup_devenv() {
+        [[ "$SKIP_DEVENV" == true ]] && return 0
+
+        local envrc="''${WORKSPACE_DIR}/.envrc"
+        [[ -f "$envrc" ]] || return 0
+
+        # Detect "use flake <path> [flags]"
+        local flake_line
+        flake_line=$(${pkgs.gnugrep}/bin/grep -m1 '^use flake ' "$envrc") || return 0
+        local flake_args="''${flake_line#use flake }"
+        [[ -n "$flake_args" ]] || return 0
+
+        # Split: first word = path, rest = flags (e.g. --impure)
+        local flake_path="''${flake_args%% *}"
+        local flake_flags=""
+        if [[ "$flake_args" == *" "* ]]; then
+            flake_flags="''${flake_args#* }"
+        fi
+
+        # Resolve path: expand ~ and relative paths
+        flake_path="''${flake_path/#\~/$HOME}"
+        [[ "$flake_path" = /* ]] || flake_path="''${WORKSPACE_DIR}/''${flake_path}"
+
+        # Verify flake.lock exists
+        local flake_lock="''${flake_path}/flake.lock"
+        if [[ ! -f "$flake_lock" ]]; then
+            warn "devenv: flake.lock not found: ''${flake_lock}"
+            return 0
+        fi
+
+        # Cache directory
+        local cache_dir="''${HOME}/.cache/claude-podman/devenv"
+        mkdir -p "$cache_dir"
+
+        # Cache key: workspace path + flake.lock content hash
+        local cache_key
+        cache_key=$(echo "''${WORKSPACE_DIR}:$(${pkgs.coreutils}/bin/sha256sum "$flake_lock" | cut -d' ' -f1)" | ${pkgs.coreutils}/bin/sha256sum | cut -d' ' -f1)
+        local cache_file="''${cache_dir}/''${cache_key}.sh"
+
+        if [[ "$REFRESH_DEVENV" == true ]] || [[ ! -f "$cache_file" ]]; then
+            info "devenv: Generating environment from flake (this may take a moment)..."
+            if ${pkgs.nix}/bin/nix print-dev-env $flake_flags "$flake_path" > "''${cache_file}.tmp" 2>/dev/null; then
+                mv "''${cache_file}.tmp" "$cache_file"
+                info "devenv: Environment cached"
+            else
+                rm -f "''${cache_file}.tmp"
+                warn "devenv: nix print-dev-env failed, continuing without devenv"
+                return 0
+            fi
+        else
+            info "devenv: Using cached environment"
+        fi
+
+        DEVENV_FILE="$cache_file"
     }
 
     build_image() {
@@ -174,6 +238,11 @@ let
             run_args+=(-v "''${SSH_AUTH_SOCK}:/ssh-agent" -e "SSH_AUTH_SOCK=/ssh-agent")
         fi
 
+        # Mount devenv file if available
+        if [[ -n "$DEVENV_FILE" ]]; then
+            run_args+=(-v "''${DEVENV_FILE}:/home/node/.devenv.sh:ro,Z")
+        fi
+
         # Firewall needs NET_ADMIN + NET_RAW
         if [[ "$FIREWALL" == true ]]; then
             run_args+=(--cap-add=NET_ADMIN --cap-add=NET_RAW)
@@ -188,6 +257,7 @@ let
                 run_args+=(-it --rm)
                 ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
+                    [ -f /home/node/.devenv.sh ] && . /home/node/.devenv.sh
                     exec claude '"''${CLAUDE_ARGS}"'
                 '
                 ;;
@@ -196,6 +266,7 @@ let
                 run_args+=(-it --rm)
                 ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
+                    [ -f /home/node/.devenv.sh ] && . /home/node/.devenv.sh
                     exec claude --dangerously-skip-permissions '"''${CLAUDE_ARGS}"'
                 '
                 ;;
@@ -204,6 +275,7 @@ let
                 run_args+=(-d)
                 ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
+                    [ -f /home/node/.devenv.sh ] && . /home/node/.devenv.sh
                     claude --dangerously-skip-permissions '"''${CLAUDE_ARGS}"'
                     sleep infinity
                 '
@@ -213,6 +285,7 @@ let
                 run_args+=(-it --rm)
                 ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
+                    [ -f /home/node/.devenv.sh ] && . /home/node/.devenv.sh
                     exec /bin/zsh
                 '
                 ;;
@@ -240,6 +313,9 @@ let
 
     # Build image
     build_image
+
+    # Setup nix devenv from .envrc (if present)
+    setup_devenv
 
     if [[ "$AGENTS" -gt 1 ]]; then
         # Multi-agent mode
