@@ -67,8 +67,10 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
     chmod 0440 /etc/sudoers.d/firewall
 
 # Create directories (as root, then chown)
-RUN mkdir -p /home/node/.claude /commandhistory && \
-    chown -R node:node /home/node/.claude /commandhistory
+# .cache needs 777 because --userns keep-id maps host UID which may differ from node (1000)
+RUN mkdir -p /home/node/.claude /home/node/.cache /commandhistory && \
+    chown -R node:node /home/node/.claude /commandhistory && \
+    chmod 777 /home/node/.cache
 
 # Setup Python venv (as root, will be accessible to mapped user)
 RUN python3 -m venv /home/node/.venv && \
