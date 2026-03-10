@@ -5,19 +5,13 @@ interface HookData {
   stop_hook_active?: boolean
 }
 
-type NotifyMethod = "macos-local" | "linux-local" | "remote-tcp"
+type NotifyMethod = "macos-local" | "linux-local" | "remote-tcp" | "osc"
 
 function detectNotifyMethod(): NotifyMethod {
-  const os = Deno.build.os
-  const isRemote = !!Deno.env.get("SSH_CONNECTION")
-
-  if (os === "darwin") {
+  if (Deno.build.os === "darwin") {
     return "macos-local"
-  } else if (os === "linux" && isRemote) {
-    return "remote-tcp"
-  } else {
-    return "linux-local"
   }
+  return "osc"
 }
 
 interface NotificationContent {
@@ -59,6 +53,27 @@ async function sendNotification(method: NotifyMethod, content: NotificationConte
           `${content.title}: ${content.subtitle}`,
           content.body,
         ],
+        stdout: "piped",
+        stderr: "piped",
+      })
+      await cmd.output()
+      break
+    }
+
+    case "osc": {
+      const title = `${content.title} ${content.subtitle}`.trim()
+      const body = content.body
+      const wrap = Deno.env.get("TMUX")
+        ? (s: string) => `\x1bPtmux;\x1b${s}\x1b\\`
+        : (s: string) => s
+
+      const sequence =
+        wrap(`\x1b]777;notify;${title};${body}\x07`) +
+        wrap(`\x1b]9;${body}\x07`) +
+        wrap("\x07")
+
+      const cmd = new Deno.Command("sh", {
+        args: ["-c", "printf '%s' \"$1\" > /dev/tty", "--", sequence],
         stdout: "piped",
         stderr: "piped",
       })

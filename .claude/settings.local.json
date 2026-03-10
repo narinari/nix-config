@@ -7,7 +7,13 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:docs.openclaw.ai)",
       "WebFetch(domain:github.com)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Bash(nix flake update:*)",
+      "Bash(ss:*)",
+      "Bash(journalctl:*)",
+      "Bash(git push:*)",
+      "Bash(python3:*)",
+      "Bash(git pull:*)"
     ]
   }
 }
