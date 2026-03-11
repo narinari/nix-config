@@ -237,6 +237,60 @@ let
         GIT_EXTRA_MOUNTS+=(-v "''${git_common_dir}:''${git_common_dir}:z")
     }
 
+    # Setup project-specific mounts from .claude-podman config file
+    # Supports: use go, use ruby, mount <host>:<container>, env KEY=VALUE
+    PROJECT_MOUNTS=()
+    PROJECT_ENVS=()
+    setup_project_mounts() {
+        local config="''${WORKSPACE_DIR}/.claude-podman"
+        [[ -f "$config" ]] || return 0
+
+        info "project: Loading ''${config}"
+
+        # Helper: ensure host dir exists and add mount
+        _add_mount() {
+            local host_path="''${1/#\~/$HOME}"
+            local container_path="$2"
+            mkdir -p "$host_path"
+            PROJECT_MOUNTS+=(-v "''${host_path}:''${container_path}:z")
+        }
+
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Skip comments and empty lines
+            line="''${line%%#*}"
+            line="''${line#"''${line%%[![:space:]]*}"}"
+            line="''${line%"''${line##*[![:space:]]}"}"
+            [[ -n "$line" ]] || continue
+
+            case "$line" in
+                "use go")
+                    info "project: Mounting Go caches"
+                    _add_mount ~/go /home/node/go
+                    _add_mount ~/.cache/go-build /home/node/.cache/go-build
+                    ;;
+                "use ruby")
+                    info "project: Mounting Ruby caches"
+                    _add_mount ~/.gem /home/node/.gem
+                    _add_mount ~/.bundle /home/node/.bundle
+                    ;;
+                mount\ *)
+                    local spec="''${line#mount }"
+                    local host_part="''${spec%%:*}"
+                    local container_part="''${spec#*:}"
+                    _add_mount "$host_part" "$container_part"
+                    info "project: Mounting ''${host_part} -> ''${container_part}"
+                    ;;
+                env\ *)
+                    local envspec="''${line#env }"
+                    PROJECT_ENVS+=(-e "$envspec")
+                    ;;
+                *)
+                    warn "project: Unknown directive: ''${line}"
+                    ;;
+            esac
+        done < "$config"
+    }
+
     build_image() {
         if [[ "$FORCE_BUILD" == true ]] || ! ${pkgs.podman}/bin/podman image exists "$IMAGE_NAME"; then
             info "Building image: ''${IMAGE_NAME}..."
@@ -326,6 +380,14 @@ let
             run_args+=("''${GIT_EXTRA_MOUNTS[@]}")
         fi
 
+        # Project-specific mounts and env vars (from .claude-podman)
+        if [[ ''${#PROJECT_MOUNTS[@]} -gt 0 ]]; then
+            run_args+=("''${PROJECT_MOUNTS[@]}")
+        fi
+        if [[ ''${#PROJECT_ENVS[@]} -gt 0 ]]; then
+            run_args+=("''${PROJECT_ENVS[@]}")
+        fi
+
         # Firewall needs NET_ADMIN + NET_RAW
         if [[ "$FIREWALL" == true ]]; then
             run_args+=(--cap-add=NET_ADMIN --cap-add=NET_RAW)
@@ -409,12 +471,15 @@ let
         for i in $(seq 1 "$AGENTS"); do
             WORKSPACE_DIR="$base_workspace"
             GIT_EXTRA_MOUNTS=()
+            PROJECT_MOUNTS=()
+            PROJECT_ENVS=()
             DEVENV_FILE=""
             if [[ "$WORKTREE" == true ]]; then
                 setup_worktree "''${base_branch}-agent-''${i}"
             fi
             setup_devenv
             setup_git_mounts
+            setup_project_mounts
             agent_name="''${CONTAINER_PREFIX}-agent-''${i}"
             launch_container "$agent_name" "auto-detached" "$WORKSPACE_DIR"
         done
@@ -429,6 +494,7 @@ let
         setup_worktree
         setup_devenv
         setup_git_mounts
+        setup_project_mounts
         name="''${CONTAINER_PREFIX}-''${AGENT_NAME:-main}"
         launch_container "$name" "$MODE" "$WORKSPACE_DIR"
     fi
