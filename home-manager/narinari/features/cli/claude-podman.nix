@@ -198,6 +198,8 @@ let
         if [[ -d "$wtpath" ]] && ${pkgs.git}/bin/git -C "$wtpath" rev-parse --is-inside-work-tree &>/dev/null; then
             abs_wtpath=$(cd "$wtpath" && pwd)
             info "worktree: Reusing ''${abs_wtpath}"
+            # Sync project config from main repo (may have been added/updated)
+            [[ ! -f "''${root}/.claude-podman" ]] || cp "''${root}/.claude-podman" "$wtpath/"
         elif [[ -d "$wtpath" ]]; then
             error "worktree: ''${wtpath} exists but is not a valid git worktree"
             exit 1
@@ -208,8 +210,9 @@ let
             else
                 ${pkgs.git}/bin/git -C "$WORKSPACE_DIR" worktree add -b "$branch" "$wtpath" HEAD
             fi
-            # Copy .envrc for devenv (same as git nwt)
+            # Copy untracked config files to worktree
             [[ ! -f "''${root}/.envrc" ]] || cp "''${root}/.envrc" "$wtpath/"
+            [[ ! -f "''${root}/.claude-podman" ]] || cp "''${root}/.claude-podman" "$wtpath/"
             abs_wtpath=$(cd "$wtpath" && pwd)
             info "worktree: Created ''${abs_wtpath}"
         fi
@@ -282,7 +285,18 @@ let
                     ;;
                 env\ *)
                     local envspec="''${line#env }"
-                    PROJECT_ENVS+=(-e "$envspec")
+                    if [[ "$envspec" == *=* ]]; then
+                        # Explicit value: env KEY=VALUE
+                        PROJECT_ENVS+=(-e "$envspec")
+                    else
+                        # Pass through host env: resolve value (like ANTHROPIC_API_KEY)
+                        local envval="''${!envspec:-}"
+                        if [[ -n "$envval" ]]; then
+                            PROJECT_ENVS+=(-e "''${envspec}=''${envval}")
+                        else
+                            warn "project: ''${envspec} is not set"
+                        fi
+                    fi
                     ;;
                 *)
                     warn "project: Unknown directive: ''${line}"
