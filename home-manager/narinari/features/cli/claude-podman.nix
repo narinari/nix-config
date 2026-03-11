@@ -19,6 +19,8 @@ let
     #   claude-podman --list              # List running containers
     #   claude-podman --stop              # Stop all claude containers
     #   claude-podman --attach <name>     # Attach to running container
+    #   claude-podman --worktree          # Create worktree and run in it
+    #   claude-podman --worktree <branch> # Use/create specific worktree branch
     #   claude-podman --no-devenv         # Skip nix devenv setup
     #   claude-podman --refresh-devenv    # Force regenerate devenv cache
 
@@ -51,6 +53,8 @@ let
     CLAUDE_ARGS=""
     SKIP_DEVENV=false
     REFRESH_DEVENV=false
+    WORKTREE=false
+    WORKTREE_BRANCH=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -61,6 +65,14 @@ let
             --no-firewall)    FIREWALL=false; shift ;;
             --no-devenv)      SKIP_DEVENV=true; shift ;;
             --refresh-devenv) REFRESH_DEVENV=true; shift ;;
+            --worktree)
+                WORKTREE=true
+                if [[ -n "''${2:-}" ]] && [[ "$2" != --* ]]; then
+                    WORKTREE_BRANCH="$2"; shift 2
+                else
+                    shift
+                fi
+                ;;
             --list)        MODE="list"; shift ;;
             --stop)        MODE="stop"; shift ;;
             --attach)      MODE="attach"; AGENT_NAME="''${2:?'--attach requires a name'}"; shift 2 ;;
@@ -139,7 +151,7 @@ let
 
         # Cache key: workspace path + flake.lock content hash
         local cache_key
-        cache_key=$(echo "''${WORKSPACE_DIR}:$(${pkgs.coreutils}/bin/sha256sum "$flake_lock" | cut -d' ' -f1)" | ${pkgs.coreutils}/bin/sha256sum | cut -d' ' -f1)
+        cache_key=$(echo "''${flake_path}:$(${pkgs.coreutils}/bin/sha256sum "$flake_lock" | cut -d' ' -f1)" | ${pkgs.coreutils}/bin/sha256sum | cut -d' ' -f1)
         local cache_file="''${cache_dir}/''${cache_key}.sh"
 
         if [[ "$REFRESH_DEVENV" == true ]] || [[ ! -f "$cache_file" ]]; then
@@ -157,6 +169,72 @@ let
         fi
 
         DEVENV_FILE="$cache_file"
+    }
+
+    # Setup git worktree: create or reuse a worktree, update WORKSPACE_DIR
+    setup_worktree() {
+        [[ "$WORKTREE" == true ]] || return 0
+
+        local branch="''${1:-$WORKTREE_BRANCH}"
+
+        # Must be in a git repo
+        ${pkgs.git}/bin/git -C "$WORKSPACE_DIR" rev-parse --is-inside-work-tree &>/dev/null || {
+            error "Not in a git repository"; exit 1
+        }
+
+        local repo root
+        root=$(${pkgs.git}/bin/git -C "$WORKSPACE_DIR" rev-parse --show-toplevel)
+        repo=$(basename "$root")
+
+        # Auto-generate branch name if not specified
+        if [[ -z "$branch" ]]; then
+            branch="claude-wt-$(date +%m%d-%H%M%S)-$$"
+        fi
+
+        local wtpath="''${root}/../''${repo}-''${branch}"
+        local abs_wtpath
+
+        # Reuse existing worktree if it exists
+        if [[ -d "$wtpath" ]] && ${pkgs.git}/bin/git -C "$wtpath" rev-parse --is-inside-work-tree &>/dev/null; then
+            abs_wtpath=$(cd "$wtpath" && pwd)
+            info "worktree: Reusing ''${abs_wtpath}"
+        elif [[ -d "$wtpath" ]]; then
+            error "worktree: ''${wtpath} exists but is not a valid git worktree"
+            exit 1
+        else
+            # Create new worktree
+            if ${pkgs.git}/bin/git -C "$WORKSPACE_DIR" show-ref --verify --quiet "refs/heads/''${branch}"; then
+                ${pkgs.git}/bin/git -C "$WORKSPACE_DIR" worktree add "$wtpath" "$branch"
+            else
+                ${pkgs.git}/bin/git -C "$WORKSPACE_DIR" worktree add -b "$branch" "$wtpath" HEAD
+            fi
+            # Copy .envrc for devenv (same as git nwt)
+            [[ ! -f "''${root}/.envrc" ]] || cp "''${root}/.envrc" "$wtpath/"
+            abs_wtpath=$(cd "$wtpath" && pwd)
+            info "worktree: Created ''${abs_wtpath}"
+        fi
+
+        WORKSPACE_DIR="$abs_wtpath"
+    }
+
+    # Detect git worktree and mount main .git for container access
+    GIT_EXTRA_MOUNTS=()
+    setup_git_mounts() {
+        local git_dir git_common_dir
+
+        git_dir=$(${pkgs.git}/bin/git -C "$WORKSPACE_DIR" rev-parse --git-dir 2>/dev/null) || return 0
+        git_common_dir=$(${pkgs.git}/bin/git -C "$WORKSPACE_DIR" rev-parse --git-common-dir 2>/dev/null) || return 0
+
+        # Resolve to absolute paths
+        git_dir=$(cd "$WORKSPACE_DIR" && cd "$git_dir" && pwd)
+        git_common_dir=$(cd "$WORKSPACE_DIR" && cd "$git_common_dir" && pwd)
+
+        # Not a worktree if both point to the same directory
+        [[ "$git_dir" != "$git_common_dir" ]] || return 0
+
+        # Mount main .git at its host-absolute path so gitdir references resolve
+        info "git: Mounting ''${git_common_dir} for worktree support"
+        GIT_EXTRA_MOUNTS+=(-v "''${git_common_dir}:''${git_common_dir}:z")
     }
 
     build_image() {
@@ -243,6 +321,11 @@ let
             run_args+=(-v "''${DEVENV_FILE}:/home/node/.devenv.sh:ro,Z")
         fi
 
+        # Git worktree mounts (main .git directory)
+        if [[ ''${#GIT_EXTRA_MOUNTS[@]} -gt 0 ]]; then
+            run_args+=("''${GIT_EXTRA_MOUNTS[@]}")
+        fi
+
         # Firewall needs NET_ADMIN + NET_RAW
         if [[ "$FIREWALL" == true ]]; then
             run_args+=(--cap-add=NET_ADMIN --cap-add=NET_RAW)
@@ -314,15 +397,24 @@ let
     # Build image
     build_image
 
-    # Setup nix devenv from .envrc (if present)
-    setup_devenv
-
     if [[ "$AGENTS" -gt 1 ]]; then
         # Multi-agent mode
         info "Launching ''${AGENTS} agents in parallel..."
         echo ""
 
+        base_branch="$WORKTREE_BRANCH"
+        [[ -n "$base_branch" ]] || base_branch="claude-wt-$(date +%m%d-%H%M%S)"
+        base_workspace="$WORKSPACE_DIR"
+
         for i in $(seq 1 "$AGENTS"); do
+            WORKSPACE_DIR="$base_workspace"
+            GIT_EXTRA_MOUNTS=()
+            DEVENV_FILE=""
+            if [[ "$WORKTREE" == true ]]; then
+                setup_worktree "''${base_branch}-agent-''${i}"
+            fi
+            setup_devenv
+            setup_git_mounts
             agent_name="''${CONTAINER_PREFIX}-agent-''${i}"
             launch_container "$agent_name" "auto-detached" "$WORKSPACE_DIR"
         done
@@ -334,6 +426,9 @@ let
         echo "  claude-podman --stop              # Stop all agents"
     else
         # Single agent mode
+        setup_worktree
+        setup_devenv
+        setup_git_mounts
         name="''${CONTAINER_PREFIX}-''${AGENT_NAME:-main}"
         launch_container "$name" "$MODE" "$WORKSPACE_DIR"
     fi
