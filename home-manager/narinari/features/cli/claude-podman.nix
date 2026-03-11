@@ -19,6 +19,7 @@ let
     #   claude-podman --list              # List running containers
     #   claude-podman --stop              # Stop all claude containers
     #   claude-podman --attach <name>     # Attach to running container
+    #   claude-podman --resume [name]     # Resume stopped container
     #   claude-podman --worktree          # Create worktree and run in it
     #   claude-podman --worktree <branch> # Use/create specific worktree branch
     #   claude-podman --no-devenv         # Skip nix devenv setup
@@ -76,6 +77,14 @@ let
             --list)        MODE="list"; shift ;;
             --stop)        MODE="stop"; shift ;;
             --attach)      MODE="attach"; AGENT_NAME="''${2:?'--attach requires a name'}"; shift 2 ;;
+            --resume)
+                MODE="resume"
+                if [[ -n "''${2:-}" ]] && [[ "$2" != --* ]]; then
+                    AGENT_NAME="$2"; shift 2
+                else
+                    AGENT_NAME="main"; shift
+                fi
+                ;;
             --name)        AGENT_NAME="''${2:?'--name requires a name'}"; shift 2 ;;
             --)            shift; CLAUDE_ARGS="$*"; break ;;
             -*)            error "Unknown option: $1"; exit 1 ;;
@@ -85,20 +94,45 @@ let
 
     # Commands
     cmd_list() {
-        info "Running Claude containers:"
-        ${pkgs.podman}/bin/podman ps --filter "label=app=claude-code" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+        info "Claude containers:"
+        ${pkgs.podman}/bin/podman ps -a --filter "label=app=claude-code" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
     }
 
     cmd_stop() {
         info "Stopping all Claude containers..."
-        local containers
-        containers=$(${pkgs.podman}/bin/podman ps -q --filter "label=app=claude-code")
-        if [[ -n "$containers" ]]; then
-            echo "$containers" | xargs ${pkgs.podman}/bin/podman stop
-            echo "$containers" | xargs ${pkgs.podman}/bin/podman rm -f 2>/dev/null || true
-            info "All Claude containers stopped"
+        # Stop running containers
+        local running
+        running=$(${pkgs.podman}/bin/podman ps -q --filter "label=app=claude-code")
+        if [[ -n "$running" ]]; then
+            echo "$running" | xargs ${pkgs.podman}/bin/podman stop
+        fi
+        # Remove all (running + stopped) containers
+        local all_containers
+        all_containers=$(${pkgs.podman}/bin/podman ps -aq --filter "label=app=claude-code")
+        if [[ -n "$all_containers" ]]; then
+            echo "$all_containers" | xargs ${pkgs.podman}/bin/podman rm -f 2>/dev/null || true
+            info "All Claude containers stopped and removed"
         else
-            info "No running Claude containers found"
+            info "No Claude containers found"
+        fi
+    }
+
+    cmd_resume() {
+        local name="''${CONTAINER_PREFIX}-''${AGENT_NAME}"
+        local status
+        status=$(${pkgs.podman}/bin/podman ps -a --filter "name=^''${name}$" --filter "label=app=claude-code" --format '{{.Status}}' 2>/dev/null)
+
+        if [[ -z "$status" ]]; then
+            error "Container \"''${name}\" not found. Use --list to see containers."
+            exit 1
+        elif [[ "$status" == Up* ]]; then
+            # Already running, attach
+            info "Attaching to running ''${name}..."
+            ${pkgs.podman}/bin/podman exec -it "$name" /bin/zsh
+        else
+            # Stopped, restart and attach
+            info "Resuming ''${name}..."
+            ${pkgs.podman}/bin/podman start -a -i "$name"
         fi
     }
 
@@ -413,7 +447,7 @@ let
         case "$mode" in
             interactive)
                 info "Starting interactive session: ''${name}"
-                run_args+=(-it --rm)
+                run_args+=(-it)
                 ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
                     [ -f /home/node/.devenv.sh ] && . /home/node/.devenv.sh
@@ -422,7 +456,7 @@ let
                 ;;
             auto)
                 info "Starting auto session: ''${name} (--dangerously-skip-permissions)"
-                run_args+=(-it --rm)
+                run_args+=(-it)
                 ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
                     [ -f /home/node/.devenv.sh ] && . /home/node/.devenv.sh
@@ -441,7 +475,7 @@ let
                 ;;
             shell)
                 info "Starting shell: ''${name}"
-                run_args+=(-it --rm)
+                run_args+=(-it)
                 ${pkgs.podman}/bin/podman run "''${run_args[@]}" "$IMAGE_NAME" /bin/bash -c '
                     sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true
                     [ -f /home/node/.devenv.sh ] && . /home/node/.devenv.sh
@@ -463,6 +497,10 @@ let
             ;;
         attach)
             cmd_attach
+            exit 0
+            ;;
+        resume)
+            cmd_resume
             exit 0
             ;;
     esac
