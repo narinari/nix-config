@@ -39,6 +39,10 @@ ALLOWED_DOMAINS=(
 	"pypi.org"
 	"files.pythonhosted.org"
 	"api.inhouse-flugel.freee.co.jp"
+	# golang
+	"proxy.golang.org"
+	"storage.googleapis.com"
+	"sum.golang.org"
 )
 
 # Resolve and add IPs
