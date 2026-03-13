@@ -44,7 +44,7 @@
     bottom # System viewer
     # ncdu # build error # disk space info (a better du)
     diffsitter # Better diff
-    neofetch
+    fastfetch
     hexyl
     zenith
     # dust
