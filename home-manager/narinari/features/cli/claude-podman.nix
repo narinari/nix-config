@@ -418,6 +418,14 @@ let
             run_args+=(-v "''${SSH_AUTH_SOCK}:/ssh-agent" -e "SSH_AUTH_SOCK=/ssh-agent")
         fi
 
+        # Mount host git config if available (for git commit user identity)
+        if [[ -d "''${HOME}/.config/git" ]]; then
+            run_args+=(-v "''${HOME}/.config/git:/home/node/.config/git:ro,Z")
+        fi
+        if [[ -f "''${HOME}/.gitconfig" ]]; then
+            run_args+=(-v "''${HOME}/.gitconfig:/home/node/.gitconfig:ro,Z")
+        fi
+
         # Mount devenv file if available
         if [[ -n "$DEVENV_FILE" ]]; then
             run_args+=(-v "''${DEVENV_FILE}:/home/node/.devenv.sh:ro,Z")
