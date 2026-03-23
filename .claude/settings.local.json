@@ -13,7 +13,13 @@
       "Bash(journalctl:*)",
       "Bash(git push:*)",
       "Bash(python3:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "WebFetch(domain:alexop.dev)",
+      "Bash(find:*)",
+      "Bash(git:*)",
+      "Bash(nix-instantiate:*)",
+      "WebFetch(domain:nyosegawa.com)",
+      "Bash(deno run:*)"
     ]
   }
 }

@@ -21,7 +21,6 @@ in
 {
   home.packages = with pkgs; [
     uv # for serena
-    goose-cli
   ];
 
   programs.claude-code = {
