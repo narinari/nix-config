@@ -43,6 +43,7 @@ ALLOWED_DOMAINS=(
 	"proxy.golang.org"
 	"storage.googleapis.com"
 	"sum.golang.org"
+	"rubygems.pkg.github.com"
 )
 
 # Resolve and add IPs
