@@ -25,45 +25,93 @@ in
 
   programs.claude-code = {
     enable = true;
-    settings = {
-      language = "japanese";
-      permissions = {
-        allow = [ ];
-        defaultMode = "plan";
-      };
-      alwaysThinkingEnabled = true;
-      hooks = {
-        Stop = [
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = claude-notify;
-              }
-            ];
-          }
-        ];
-        Notification = [
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = claude-notify;
-              }
-            ];
-          }
-        ];
-      };
-      statusLine = {
-        type = "command";
-        command = claude-statusline;
-      };
-      fileSuggestion = {
-        type = "command";
-        command = file-suggestion;
-      };
+  };
+
+  home.file.".claude/settings.local.json".text = builtins.toJSON {
+    language = "japanese";
+    alwaysThinkingEnabled = true;
+    permissions = {
+      defaultMode = "plan";
+      allow = [
+        "Bash(git add:*)"
+        "Bash(git branch:*)"
+        "Bash(git checkout:*)"
+        "Bash(git commit:*)"
+        "Bash(git fetch:*)"
+        "Bash(git grep:*)"
+        "Bash(git log:*)"
+        "Bash(git pull:*)"
+        "Bash(git push:*)"
+        "Bash(git rebase:*)"
+        "Bash(git reset:*)"
+        "Bash(git restore:*)"
+        "Bash(git stash:*)"
+        "Bash(git worktree:*)"
+        "Bash(go build:*)"
+        "Bash(go fmt:*)"
+        "Bash(go list:*)"
+        "Bash(go mod download:*)"
+        "Bash(*go vet*)"
+        "Bash(*go test*)"
+        "Bash(make:*)"
+        "Bash(gh pr create:*)"
+        "Bash(gh pr edit:*)"
+        "Bash(gh pr view:*)"
+        "Bash(ls:*)"
+        "Bash(find:*)"
+        "Bash(grep:*)"
+        "Bash(mkdir:*)"
+        "Bash(tree:*)"
+        "Read(//home/narinari/.claude/**)"
+        "Read(//home/narinari/dev/src/github.com/C-FO/**)"
+        "Read(//home/narinari/dev/src/github.com/microsoft/amplifier/**)"
+        "Read(//home/narinari/go/pkg/mod/**)"
+        "mcp__fdev-jira__get_issue"
+        "mcp__fdev-circleci__get_build_failure_logs"
+        "mcp__fdev-confluence__get_confluence_content"
+        "mcp__fdev-confluence__search_confluence_contents"
+        "mcp__fdev-github__get_commit"
+        "mcp__fdev-github__get_file_contents"
+        "mcp__fdev-github__list_commits"
+        "mcp__fdev-github__list_tags"
+        "mcp__fdev-github__pull_request_read"
+        "mcp__fdev-github__update_pull_request"
+        "mcp__fdev-github__search_code"
+        "mcp__fdev-slack__get_slack_conversation_replies"
+      ];
+      deny = [ ];
+    };
+    hooks = {
+      Stop = [
+        {
+          matcher = "";
+          hooks = [
+            {
+              type = "command";
+              command = toString claude-notify;
+            }
+          ];
+        }
+      ];
+      Notification = [
+        {
+          matcher = "";
+          hooks = [
+            {
+              type = "command";
+              command = toString claude-notify;
+            }
+          ];
+        }
+      ];
+    };
+    statusLine = {
+      type = "command";
+      command = toString claude-statusline;
+    };
+    fileSuggestion = {
+      type = "command";
+      command = toString file-suggestion;
     };
   };
 }
