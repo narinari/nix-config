@@ -449,8 +449,10 @@ let
             run_args+=(--cap-add=NET_ADMIN --cap-add=NET_RAW)
         fi
 
-        # Remove existing container with same name
-        ${pkgs.podman}/bin/podman rm -f "$name" 2>/dev/null || true
+        # Remove existing container only when name is explicitly specified
+        if [[ -n "''${AGENT_NAME:-}" ]]; then
+            ${pkgs.podman}/bin/podman rm -f "$name" 2>/dev/null || true
+        fi
 
         case "$mode" in
             interactive)
@@ -555,7 +557,11 @@ let
         setup_devenv
         setup_git_mounts
         setup_project_mounts
-        name="''${CONTAINER_PREFIX}-''${AGENT_NAME:-main}"
+        if [[ -n "''${AGENT_NAME:-}" ]]; then
+            name="''${CONTAINER_PREFIX}-''${AGENT_NAME}"
+        else
+            name="''${CONTAINER_PREFIX}-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6 || true)"
+        fi
         launch_container "$name" "$MODE" "$WORKSPACE_DIR"
     fi
   '';
