@@ -19,7 +19,10 @@
       "Bash(git:*)",
       "Bash(nix-instantiate:*)",
       "WebFetch(domain:nyosegawa.com)",
-      "Bash(deno run:*)"
+      "Bash(deno run:*)",
+      "Bash(xargs ls:*)",
+      "Bash(grep -r \"features.*llm\\\\|features.*cli\\\\|claude-code\" /home/narinari/nix-config/hosts --include=*.nix)",
+      "Bash(ls /home/narinari/nix-config/home-manager/narinari/*.nix)"
     ]
   }
 }
