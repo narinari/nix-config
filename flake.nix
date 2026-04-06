@@ -156,6 +156,14 @@
       );
 
       nixosConfigurations = {
+        khali = nixpkgs.lib.nixosSystem {
+          specialArgs = {
+            inherit inputs outputs;
+            baseHostname = "khali";
+          };
+          system = "x86_64-linux";
+          modules = [ ./hosts/khali ];
+        };
         rin = nixpkgs.lib.nixosSystem {
           specialArgs = {
             inherit inputs outputs;
