@@ -5,7 +5,7 @@
 
     # gimp
     # mediainfo
-    # pavucontrol
+    pavucontrol
 
     strace # linux only
 
