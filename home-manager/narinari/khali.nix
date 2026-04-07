@@ -76,12 +76,12 @@ in
             {
               key = "f";
               desc = "Firefox";
-              cmd = "firefox";
+              cmd = "/etc/profiles/per-user/narinari/bin/firefox";
             }
             {
               key = "c";
               desc = "Chrome";
-              cmd = "google-crhome";
+              cmd = "/etc/profiles/per-user/narinari/bin/google-chrome";
             }
           ])
         )
