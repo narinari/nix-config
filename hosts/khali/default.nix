@@ -114,6 +114,10 @@
   ];
   sops.secrets = lib.mkForce { };
 
+  # root ログインを無効化（sudo 経由でのみ管理操作を行う）
+  # users.mutableUsers = false の場合、root も明示的に設定が必要
+  users.users.root.hashedPassword = "!";
+
   nixpkgs.hostPlatform = "x86_64-linux";
   system.stateVersion = "25.05";
 }
