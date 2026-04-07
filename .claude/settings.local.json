@@ -22,7 +22,15 @@
       "Bash(deno run:*)",
       "Bash(xargs ls:*)",
       "Bash(grep -r \"features.*llm\\\\|features.*cli\\\\|claude-code\" /home/narinari/nix-config/hosts --include=*.nix)",
-      "Bash(ls /home/narinari/nix-config/home-manager/narinari/*.nix)"
+      "Bash(ls /home/narinari/nix-config/home-manager/narinari/*.nix)",
+      "Bash(ls:*)",
+      "Bash(/nix/store/ylz1ch62rylq9ml6iq6cnayn97a7yzsi-hyprland-0.54.2/bin/start-hyprland:*)",
+      "Bash(nix flake:*)",
+      "Read(//nix/store/**)",
+      "Bash(nix develop:*)",
+      "Bash(/nix/store/43fcrxyamyhxmkrqjzl5n19h6nsgnfz2-claude-statusline)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(claude --version)"
     ]
   }
 }
