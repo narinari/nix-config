@@ -7,6 +7,22 @@
   ...
 }:
 
+let
+  mkMenu =
+    menu:
+    let
+      configFile = pkgs.writeText "config.yaml" (
+        lib.generators.toYAML { } {
+          anchor = "bottom-right";
+          # ...
+          inherit menu;
+        }
+      );
+    in
+    pkgs.writeShellScriptBin "my-menu" ''
+      exec ${lib.getExe pkgs.wlr-which-key} ${configFile}
+    '';
+in
 {
   imports = [
     ./global
@@ -54,6 +70,36 @@
         "$mod SHIFT, F, togglefloating,"
         # スクリーンショット
         ", Print, exec, grimblast copy area"
+        (
+          "$mod, D, exec, "
+          + lib.getExe (mkMenu [
+            {
+              key = "f";
+              desc = "Firefox";
+              cmd = "firefox";
+            }
+            {
+              key = "c";
+              desc = "Chrome";
+              cmd = "google-crhome";
+            }
+          ])
+        )
+        (
+          "$mod, E, exec, "
+          + lib.getExe (mkMenu [
+            {
+              key = "e";
+              desc = "Emacs";
+              cmd = "emacs";
+            }
+            {
+              key = "d";
+              desc = "Emacs dired";
+              cmd = "emacs";
+            }
+          ])
+        )
       ];
 
       bindm = [

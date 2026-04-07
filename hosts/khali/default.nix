@@ -19,47 +19,51 @@
   networking.hostName = "khali";
 
   # systemd-boot (Arch Linux の ESP を共有)
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.efi.efiSysMountPoint = "/boot";
   # NVIDIA modesetting が Wayland (Hyprland) に必要
-  boot.kernelParams = [ "nvidia-drm.modeset=1" ];
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+      efi.efiSysMountPoint = "/boot";
+    };
+    kernelParams = [ "nvidia-drm.modeset=1" ];
+  };
 
   # Intel iGPU (プライマリ表示) + NVIDIA PRIME オフロード
   # 実機で `lspci | grep -E "VGA|3D"` を実行してBus IDを確認・更新すること
   # 例: "00:02.0 VGA" → "PCI:0:2:0", "01:00.0 3D" → "PCI:1:0:0"
-  hardware.nvidia = {
-    modesetting.enable = true;
-    open = false; # プロプライエタリカーネルモジュールを使用
-    nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
-    prime = {
-      offload = {
-        enable = true;
-        enableOffloadCmd = true; # `nvidia-offload <cmd>` でNVIDIA使用可能
+  hardware = {
+    nvidia = {
+      modesetting.enable = true;
+      open = false; # プロプライエタリカーネルモジュールを使用
+      nvidiaSettings = true;
+      package = config.boot.kernelPackages.nvidiaPackages.stable;
+      prime = {
+        offload = {
+          enable = true;
+          enableOffloadCmd = true; # `nvidia-offload <cmd>` でNVIDIA使用可能
+        };
+        intelBusId = "PCI:0:2:0"; # ★ 要確認: lspci | grep -E "VGA|3D"
+        nvidiaBusId = "PCI:1:0:0"; # ★ 要確認: lspci | grep -E "VGA|3D"
       };
-      intelBusId = "PCI:0:2:0"; # ★ 要確認: lspci | grep -E "VGA|3D"
-      nvidiaBusId = "PCI:1:0:0"; # ★ 要確認: lspci | grep -E "VGA|3D"
     };
+    graphics = {
+      enable = true;
+      enable32Bit = true;
+      extraPackages = with pkgs; [
+        intel-media-driver # Intel VAAPI (Broadwell以降)
+        libva-vdpau-driver
+        libvdpau-va-gl
+      ];
+    };
+    pulseaudio.enable = false;
   };
-
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-    extraPackages = with pkgs; [
-      intel-media-driver # Intel VAAPI (Broadwell以降)
-      libva-vdpau-driver
-      libvdpau-va-gl
-    ];
-  };
-
-  # Intel iGPU をプライマリに設定
-  services.xserver.videoDrivers = [ "modesetting" "nvidia" ];
 
   # Hyprland (Wayland コンポジタ)
   programs.hyprland = {
     enable = true;
     xwayland.enable = true;
+    withUWSM = true; # uwsm 経由で起動 (systemd セッション管理)
   };
 
   # Intel iGPU primary + NVIDIA PRIME offload 用セッション変数
@@ -75,13 +79,38 @@
     SDL_IM_MODULE = "fcitx";
   };
 
-  # ディスプレイマネージャー (greetd + tuigreet)
-  services.greetd = {
-    enable = true;
-    settings.default_session = {
-      command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd Hyprland";
-      user = "greeter";
+  services = {
+    # Intel iGPU をプライマリに設定
+    xserver.videoDrivers = [
+      "modesetting"
+      "nvidia"
+    ];
+
+    # ディスプレイマネージャー (greetd + tuigreet)
+    greetd = {
+      enable = true;
+      settings.default_session = {
+        command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --session hyprland-uwsm";
+        user = "greeter";
+      };
     };
+
+    # サウンド (PipeWire)
+    pipewire = {
+      enable = true;
+      alsa.enable = true;
+      alsa.support32Bit = true;
+      pulse.enable = true;
+    };
+
+    # sops の openssh 設定を上書き (初回インストール時: my-secrets に khali のキーがないため)
+    # インストール後、SSH ホストキーを my-secrets に追加したら下記を削除して openssh.nix の設定を使うこと
+    openssh.hostKeys = lib.mkForce [
+      {
+        path = "/etc/ssh/ssh_host_ed25519_key";
+        type = "ed25519";
+      }
+    ];
   };
 
   # 日本語入力 (fcitx5-mozc)
@@ -94,14 +123,6 @@
     ];
   };
 
-  # サウンド (PipeWire)
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
-  hardware.pulseaudio.enable = false;
   security.rtkit.enable = true;
 
   # ファイアウォール
@@ -109,19 +130,7 @@
     allowedTCPPorts = [ 22 ];
   };
 
-  # sops の openssh 設定を上書き (初回インストール時: my-secrets に khali のキーがないため)
-  # インストール後、SSH ホストキーを my-secrets に追加したら下記を削除して openssh.nix の設定を使うこと
-  services.openssh.hostKeys = lib.mkForce [
-    {
-      path = "/etc/ssh/ssh_host_ed25519_key";
-      type = "ed25519";
-    }
-  ];
   sops.secrets = lib.mkForce { };
-
-  # root ログインを無効化（sudo 経由でのみ管理操作を行う）
-  # users.mutableUsers = false の場合、root も明示的に設定が必要
-  users.users.root.hashedPassword = "!";
 
   nixpkgs.hostPlatform = "x86_64-linux";
   system.stateVersion = "25.05";

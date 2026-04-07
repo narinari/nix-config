@@ -259,6 +259,14 @@
           pkgs = pkgsFor "aarch64-darwin";
           extraSpecialArgs = { inherit inputs outputs; };
         };
+        "narinari@khali" = lib.homeManagerConfiguration {
+          modules = [
+            ./home-manager/narinari/khali.nix
+            inputs.sops-nix.homeManagerModule
+          ];
+          pkgs = pkgsFor "x86_64-linux";
+          extraSpecialArgs = { inherit inputs outputs; };
+        };
       };
 
       deploy = {

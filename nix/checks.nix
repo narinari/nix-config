@@ -31,6 +31,7 @@ with pkgs;
         enable = true;
         settings.ignore = [
           "hosts/common/users/narinari/default.nix" # BUG: Statix throws parsing error if parameter expansion exists in path.
+          "hosts/khali/hardware-configuration.nix"
         ];
       };
       # stylua.enable = true;
@@ -40,6 +41,7 @@ with pkgs;
         description = "git-secrets scans commits, commit messages, and --no-ff merges to prevent adding secrets into your git repositories.";
         entry = "${git-secrets}/bin/git-secrets --pre_commit_hook";
         language = "script";
+        excludes = [ "hardware-configuration.*.nix" ];
       };
     };
 
