@@ -21,6 +21,8 @@ in
   }
   // lib.optionalAttrs pkgs.stdenv.isLinux {
     isNormalUser = true;
+    hashedPassword = "$y$j9T$AbwRaMzay7flkvu/RL/bI.$kk6PmwWypmDMbjWwNDfn3w/0eAdaovAL6c/UnvorReC";
+
     # openssh.authorizedKeys.keys = (../../../keys/secrets.nix).allKeys;
     openssh.authorizedKeys.keys = [
       (builtins.readFile ../../../../home-manager/narinari/id_ed25519.pub)
