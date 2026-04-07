@@ -90,7 +90,7 @@
     greetd = {
       enable = true;
       settings.default_session = {
-        command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --session hyprland-uwsm";
+        command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd hyprland-uwsm";
         user = "greeter";
       };
     };
