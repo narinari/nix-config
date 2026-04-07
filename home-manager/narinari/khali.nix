@@ -80,6 +80,10 @@
         disable_hyprland_logo = true;
         force_default_wallpaper = 0;
       };
+
+      exec-once = [
+        "fcitx5 -d" # 日本語入力デーモン
+      ];
     };
   };
 
