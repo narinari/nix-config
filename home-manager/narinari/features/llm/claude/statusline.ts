@@ -39,7 +39,8 @@ function brailleBar(pct: number, width = 8): string {
 
 function fmt(label: string, pct: number): string {
   const p = Math.round(pct)
-  return `${DIM}${label}${RESET} ${gradient(pct)}${brailleBar(pct)}${RESET} ${p}%`
+  const bonus = pct > 100 ? `${DIM}+bonus${RESET}` : ""
+  return `${DIM}${label}${RESET} ${gradient(pct)}${brailleBar(pct)}${RESET} ${p}%${bonus}`
 }
 
 // Function to calculate tokens from transcript
