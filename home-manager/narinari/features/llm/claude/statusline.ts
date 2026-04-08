@@ -78,12 +78,22 @@ async function calculateTokensFromTranscript(filePath: string): Promise<number> 
 }
 
 // Read JSON input from stdin
+const chunks: Uint8Array[] = []
+for await (const chunk of Deno.stdin.readable) {
+  chunks.push(chunk)
+}
 const decoder = new TextDecoder()
 const input = decoder.decode(
-  await Deno.stdin.readable
-    .getReader()
-    .read()
-    .then((r) => r.value),
+  chunks.length === 1
+    ? chunks[0]
+    : new Uint8Array(
+        chunks.reduce((acc, c) => {
+          const merged = new Uint8Array(acc.length + c.length)
+          merged.set(acc)
+          merged.set(c, acc.length)
+          return merged
+        }, new Uint8Array(0)),
+      ),
 )
 const data = JSON.parse(input)
 
