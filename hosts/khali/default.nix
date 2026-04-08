@@ -72,12 +72,15 @@
     XDG_SESSION_TYPE = "wayland";
     WLR_NO_HARDWARE_CURSORS = "1"; # NVIDIA接続時のカーソル問題を回避
     NIXOS_OZONE_WL = "1"; # Chromium/Electron系アプリのWaylandネイティブ化
+    QT_QPA_PLATFORMTHEME = "qt6ct"; # Qtアプリのテーマ設定
     # fcitx5 日本語入力
     GTK_IM_MODULE = "fcitx";
     QT_IM_MODULE = "fcitx";
     XMODIFIERS = "@im=fcitx";
     SDL_IM_MODULE = "fcitx";
   };
+
+  programs.dconf.enable = true;
 
   services = {
     # Intel iGPU をプライマリに設定

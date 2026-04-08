@@ -22,6 +22,38 @@ let
     pkgs.writeShellScriptBin "my-menu" ''
       exec ${lib.getExe pkgs.wlr-which-key} ${configFile}
     '';
+
+  # 右上ホットコーナー: カーソルが右上隅に0.5秒滞在したらディスプレイオフ
+  hotCornerScript = pkgs.writeShellScript "hypr-hot-corner" ''
+    THRESHOLD=5
+    DWELL_MS=500
+    POLL=0.3
+    in_corner=0
+    corner_start=0
+    while true; do
+      pos=$(hyprctl cursorpos 2>/dev/null)
+      [ -z "$pos" ] && sleep "$POLL" && continue
+      x=''${pos%%,*}
+      y=''${pos##*, }
+      mon=$(hyprctl monitors -j | ${pkgs.jq}/bin/jq -r '.[0] | "\(.width)"')
+      if [ "$x" -ge "$((mon - THRESHOLD))" ] && [ "$y" -le "$THRESHOLD" ]; then
+        if [ "$in_corner" -eq 0 ]; then
+          in_corner=1
+          corner_start=$(($(date +%s%N)/1000000))
+        else
+          now=$(($(date +%s%N)/1000000))
+          if [ "$((now - corner_start))" -ge "$DWELL_MS" ]; then
+            hyprctl dispatch dpms off
+            in_corner=0
+            sleep 2
+          fi
+        fi
+      else
+        in_corner=0
+      fi
+      sleep "$POLL"
+    done
+  '';
 in
 {
   imports = [
@@ -33,6 +65,8 @@ in
     ./features/bitwarden
     ./features/rclone
     ./features/desktop/common
+    ./features/desktop/dark-theme.nix
+    ./features/desktop/hypridle.nix
     ./linux
   ];
 
@@ -129,6 +163,7 @@ in
 
       exec-once = [
         "fcitx5 -d" # 日本語入力デーモン
+        "${hotCornerScript}" # 右上ホットコーナー → ディスプレイオフ
       ];
     };
   };
