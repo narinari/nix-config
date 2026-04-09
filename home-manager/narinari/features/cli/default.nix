@@ -42,7 +42,7 @@
     kalker # calc
     eva # calc
     bottom # System viewer
-    # ncdu # build error # disk space info (a better du)
+    ncdu # disk space info (a better du)
     diffsitter # Better diff
     fastfetch
     hexyl
