@@ -99,6 +99,7 @@
 
   # Intel iGPU primary + NVIDIA PRIME offload 用セッション変数
   environment.sessionVariables = {
+    LD_LIBRARY_PATH = "/run/opengl-driver/lib"; # pip版PyTorch等がlibcuda.soを見つけるために必要
     LIBVA_DRIVER_NAME = "iHD"; # Intel iGPU ハードウェアアクセラレーション
     XDG_SESSION_TYPE = "wayland";
     WLR_NO_HARDWARE_CURSORS = "1"; # NVIDIA接続時のカーソル問題を回避
