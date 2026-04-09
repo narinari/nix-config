@@ -101,6 +101,7 @@ const data = JSON.parse(input)
 // Extract values
 const sessionId = data.session_id
 const transcriptPath = data.transcript_path
+const modelName: string | null = data.model?.display_name ?? null
 
 // Determine context window percentage
 let ctxPct: number | null = null
@@ -155,6 +156,7 @@ const weekPct: number | null = data.rate_limits?.seven_day?.used_percentage ?? n
 
 // Build output parts
 const parts: string[] = []
+if (modelName) parts.push(`${DIM}model${RESET} ${modelName}`)
 if (ctxPct !== null) parts.push(fmt("ctx", ctxPct))
 if (fivePct !== null) parts.push(fmt("5h", fivePct))
 if (weekPct !== null) parts.push(fmt("7d", weekPct))

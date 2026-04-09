@@ -20,6 +20,8 @@ let
   claudeSettingsFile = pkgs.writeText "claude-settings.json" (
     builtins.toJSON {
       model = "opus";
+      effortLevel = "high";
+      showThinkingSummaries = true;
       enabledPlugins = {
         "code-simplifier@claude-plugins-official" = true;
         "code-review@claude-plugins-official" = true;
