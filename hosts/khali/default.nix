@@ -59,11 +59,42 @@
     pulseaudio.enable = false;
   };
 
-  # Hyprland (Wayland コンポジタ)
-  programs.hyprland = {
-    enable = true;
-    xwayland.enable = true;
-    withUWSM = true; # uwsm 経由で起動 (systemd セッション管理)
+  # jarvisのSamba共有をマウント
+  fileSystems."/mnt/tanabe-media" = {
+    device = "//jarvis.local/tanabe-media";
+    fsType = "cifs";
+    options =
+      let
+        automount_opts = "x-systemd.automount,noauto,x-systemd.idle-timeout=60,x-systemd.device-timeout=5s,x-systemd.mount-timeout=5s";
+      in
+      [
+        "${automount_opts},iocharset=utf8,uid=narinari,gid=wheel,guest,nosetuids,noperm,rw"
+      ];
+  };
+
+  # jarvisのNFS共有をマウント
+  fileSystems."/mnt/nas" = {
+    device = "jarvis.local:/fx-trading";
+    fsType = "nfs";
+    options = [
+      "x-systemd.automount"
+      "noauto"
+      "x-systemd.idle-timeout=60"
+      "x-systemd.device-timeout=5s"
+      "x-systemd.mount-timeout=5s"
+      "nfsvers=4"
+    ];
+  };
+
+  programs = {
+    # Hyprland (Wayland コンポジタ)
+    hyprland = {
+      enable = true;
+      xwayland.enable = true;
+      withUWSM = true; # uwsm 経由で起動 (systemd セッション管理)
+    };
+    dconf.enable = true;
+    ssh.startAgent = true;
   };
 
   # Intel iGPU primary + NVIDIA PRIME offload 用セッション変数
@@ -79,8 +110,6 @@
     XMODIFIERS = "@im=fcitx";
     SDL_IM_MODULE = "fcitx";
   };
-
-  programs.dconf.enable = true;
 
   services = {
     # Intel iGPU をプライマリに設定
