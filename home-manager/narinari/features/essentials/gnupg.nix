@@ -19,7 +19,7 @@
     enable = true;
     enableExtraSocket = true;
     enableZshIntegration = true;
-    pinentry.package = pkgs.pinentry-qt;
+    pinentryPackage = pkgs.pinentry-gnome3;
     defaultCacheTtl = 86400; # 1日
     maxCacheTtl = 86400; # 1日
     enableScDaemon = false;
