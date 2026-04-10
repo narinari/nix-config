@@ -8,7 +8,7 @@
   ];
 
   networking = {
-    hostName = "K54TXK9ML7";
+    hostName = "hail-mary";
   };
 
   system.stateVersion = 5;
