@@ -23,7 +23,7 @@ let
       exec ${lib.getExe pkgs.wlr-which-key} ${configFile}
     '';
 
-  # 右上ホットコーナー: カーソルが右上隅に0.5秒滞在したらディスプレイオフ
+  # 右上ホットコーナー: カーソルが右上隅に0.5秒滞在したらロック
   hotCornerScript = pkgs.writeShellScript "hypr-hot-corner" ''
     THRESHOLD=5
     DWELL_MS=500
@@ -43,7 +43,7 @@ let
         else
           now=$(($(date +%s%N)/1000000))
           if [ "$((now - corner_start))" -ge "$DWELL_MS" ]; then
-            hyprctl dispatch dpms off
+            loginctl lock-session
             in_corner=0
             sleep 2
           fi
@@ -66,6 +66,7 @@ in
     ./features/rclone
     ./features/desktop/common
     ./features/desktop/dark-theme.nix
+    ./features/desktop/hyprlock.nix
     ./features/desktop/hypridle.nix
     ./linux
   ];
@@ -163,7 +164,7 @@ in
 
       exec-once = [
         "fcitx5 -d" # 日本語入力デーモン
-        "${hotCornerScript}" # 右上ホットコーナー → ディスプレイオフ
+        "${hotCornerScript}" # 右上ホットコーナー → ロック
       ];
     };
   };
