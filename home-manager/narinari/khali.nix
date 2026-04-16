@@ -165,7 +165,6 @@ in
       };
 
       exec-once = [
-        "fcitx5 -d" # 日本語入力デーモン
         "${hotCornerScript}" # 右上ホットコーナー → ロック
       ];
     };
