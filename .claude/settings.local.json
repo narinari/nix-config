@@ -58,7 +58,17 @@
       "Read(//opt/homebrew/Cellar/ollama/0.20.7/bin/**)",
       "Bash(brew info:*)",
       "Bash(/opt/homebrew/bin/brew info:*)",
-      "WebFetch(domain:developers.openai.com)"
+      "WebFetch(domain:developers.openai.com)",
+      "Bash(/nix/store/i55wprrqql8h6q0hg9x83p3iq55fg7rv-claude-statusline:*)",
+      "Bash(/nix/store/nj8hdb8an3j79nrvb1lf1vi1w3pbs4f8-deno-2.7.9/bin/deno run:*)",
+      "Bash(claude config:*)",
+      "Bash(/nix/store/q9s5k10njjylw343xin817p0nrirqs1f-claude-notify)",
+      "Bash(claude --print-config)",
+      "Bash(claude -p --debug \"settings\" \"echo hi\")",
+      "Bash(claude -p --debug-file /tmp/claude-debug2.log \"say hello\")",
+      "Bash(nix search:*)",
+      "Bash(nix eval:*)",
+      "Bash(nvidia-smi)"
     ]
   }
 }
