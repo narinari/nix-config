@@ -18,17 +18,17 @@
 {
   home.sessionVariables = {
     # AI API リクエストを Aperture 経由でルーティング
-    ANTHROPIC_BASE_URL = "http://ai"; # Claude Code
+    # ANTHROPIC_BASE_URL = "http://ai"; # Claude Code
     OPENAI_BASE_URL = "http://ai/v1"; # Codex CLI / OpenAI SDK
   };
 
   # Claude Code: Aperture 経由では Tailscale identity で認証するためダミーキーを設定
   # features/llm/default.nix が settings.json をデプロイした後に apiKeyHelper をパッチ
-  home.activation.claudeApertureSettings = lib.hm.dag.entryAfter [ "claudeSettings" ] ''
-    settings="$HOME/.claude/settings.json"
-    if [ -f "$settings" ]; then
-      run ${pkgs.jq}/bin/jq --arg helper "echo '-'" '. + {apiKeyHelper: $helper}' "$settings" > "''${settings}.aperture.tmp"
-      run mv "''${settings}.aperture.tmp" "$settings"
-    fi
-  '';
+  # home.activation.claudeApertureSettings = lib.hm.dag.entryAfter [ "claudeSettings" ] ''
+  #   settings="$HOME/.claude/settings.json"
+  #   if [ -f "$settings" ]; then
+  #     run ${pkgs.jq}/bin/jq --arg helper "echo '-'" '. + {apiKeyHelper: $helper}' "$settings" > "''${settings}.aperture.tmp"
+  #     run mv "''${settings}.aperture.tmp" "$settings"
+  #   fi
+  # '';
 }
