@@ -33,6 +33,7 @@
     ];
 
     casks = [
+      "ollama-app"
       "wezterm"
       "keycastr"
       "the-unarchiver"
@@ -40,6 +41,7 @@
       "bestres"
       "licecap"
       "contexts"
+      "mtgto/macskk/macskk"
     ];
   };
 }

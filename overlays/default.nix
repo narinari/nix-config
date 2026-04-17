@@ -45,22 +45,6 @@
   #   };
   # };
 
-  # ollama: macOS で Metal GPU バックエンドを有効化
-  ollama-metal-overlay =
-    final: prev:
-    if prev.stdenv.hostPlatform.isDarwin then
-      {
-        ollama = prev.ollama.overrideAttrs (old: {
-          preBuild =
-            builtins.replaceStrings
-              [ "cmake -B build" ]
-              [ "cmake -B build -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON" ]
-              old.preBuild;
-        });
-      }
-    else
-      { };
-
   # mycli: sqlglot 28.x との依存関係の問題を解消
   mycli-overlay = final: prev: {
     mycli = prev.mycli.overridePythonAttrs (old: {
