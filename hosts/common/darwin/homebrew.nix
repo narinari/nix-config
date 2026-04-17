@@ -11,6 +11,7 @@
     taps = [
       "goldeneggg/lsec2"
       "koekeishiya/formulae"
+      "mtgto/macskk"
     ];
 
     brews = [
