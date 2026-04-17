@@ -21,8 +21,6 @@
     outputs.packages."${pkgs.system}".sf-mono-nerdfonts
     outputs.packages."${pkgs.system}".ibm-plex-sans
     outputs.packages."${pkgs.system}".moralerspace-hw-nerdfonts
-
-    vlc
   ];
 
   home.sessionVariables = {

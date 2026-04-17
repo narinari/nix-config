@@ -62,6 +62,8 @@ in
     ./features/emacs
     ./features/cli
     ./features/llm
+    ./features/llm/aperture.nix
+    ./features/llm/codex.nix
     ./features/bitwarden
     ./features/rclone
     ./features/desktop/common

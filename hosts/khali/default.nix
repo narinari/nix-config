@@ -116,6 +116,9 @@
   };
 
   services = {
+    # Tailscale VPN
+    tailscale.enable = true;
+
     # Intel iGPU をプライマリに設定
     xserver.videoDrivers = [
       "modesetting"
@@ -164,6 +167,8 @@
   # ファイアウォール
   networking.firewall = {
     allowedTCPPorts = [ 22 ];
+    allowedUDPPorts = [ config.services.tailscale.port ]; # Tailscale WireGuard
+    trustedInterfaces = [ "tailscale0" ]; # tailnet 内トラフィックを許可
   };
 
   sops.secrets = lib.mkForce { };

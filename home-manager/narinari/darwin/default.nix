@@ -24,6 +24,7 @@ in
     ./ui.nix
     ./dock.nix
     ./karabiner-elements.nix
+    ./ollama.nix
   ];
 
   home.packages = with pkgs; [

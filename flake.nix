@@ -83,6 +83,10 @@
         flake-compat.follows = "deploy-rs/flake-compat";
       };
     };
+
+    codex-cli-nix = {
+      url = "github:sadjow/codex-cli-nix";
+    };
   };
 
   outputs =
@@ -230,6 +234,14 @@
             specialArgs = {
               inherit inputs outputs;
               baseHostname = "K54TXK9ML7";
+            };
+          };
+          hail-mary = darwin.lib.darwinSystem {
+            inherit system;
+            modules = [ ./hosts/hail-mary ];
+            specialArgs = {
+              inherit inputs outputs;
+              baseHostname = "hail-mary";
             };
           };
         };

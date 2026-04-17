@@ -11,6 +11,12 @@
     hostName = "hail-mary";
   };
 
+  # Tailscale (GUI アプリ) + Codex CLI (OpenAI コーディングエージェント)
+  homebrew.casks = [
+    "tailscale"
+    "codex"
+  ];
+
   system.stateVersion = 5;
 
   system.primaryUser = "narinari";
