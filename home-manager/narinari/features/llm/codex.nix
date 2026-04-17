@@ -19,13 +19,14 @@ let
 
   codexConfigFile = pkgs.writeText "codex-config.toml" ''
     # Codex CLI 設定 (Tailscale Aperture 経由)
-    model = "o3-mini"
+    model = "gemma4:26b-a4b-it-q8_0"
     model_provider = "tailscale-aperture"
 
     # Tailscale Aperture AIゲートウェイ
     [model_providers.tailscale-aperture]
     name = "Tailscale Aperture"
     base_url = "http://ai/v1"
+    wire_api = "responses"
 
     # ローカル Ollama (Aperture 未経由で直接接続する場合)
     [model_providers.local-ollama]
@@ -36,7 +37,8 @@ let
 
     # ローカルモデルプロファイル (Aperture 経由)
     [profiles.local]
-    model = "qwen3.5:35b-a3b"
+    # model = "gemma4:26b-a4b-it-q8_0"
+    model = "qwen3.5:35b-a3b-coding-nvfp4"
     model_provider = "tailscale-aperture"
     model_context_window = 131072
   '';
