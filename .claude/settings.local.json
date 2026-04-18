@@ -68,7 +68,23 @@
       "Bash(claude -p --debug-file /tmp/claude-debug2.log \"say hello\")",
       "Bash(nix search:*)",
       "Bash(nix eval:*)",
-      "Bash(nvidia-smi)"
+      "Bash(nvidia-smi)",
+      "Bash(fcitx5-diagnose)",
+      "Read(//home/narinari/.config/fcitx5/**)",
+      "Read(//home/narinari/.config/fcitx5/conf/**)",
+      "Bash(hyprctl binds:*)",
+      "Bash(hyprctl clients:*)",
+      "Bash(systemctl --user status fcitx5-daemon.service)",
+      "Bash(systemctl --user list-unit-files)",
+      "Bash(systemctl --user cat fcitx5-daemon.service)",
+      "Bash(systemctl --user status 'app-org.fcitx.Fcitx5@autostart.service')",
+      "Bash(systemctl --user cat 'app-org.fcitx.Fcitx5@autostart.service')",
+      "Bash(systemctl --user is-active graphical-session.target)",
+      "Bash(systemctl --user show graphical-session.target --property=ActiveState,SubState)",
+      "WebFetch(domain:tailscale.com)",
+      "Bash(curl:*)",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+      "Bash(CHROME_PATH=/etc/profiles/per-user/narinari/bin/google-chrome google-chrome:*)"
     ]
   }
 }

@@ -36,8 +36,13 @@ let
     env_key_instructions = "Ollama does not require an API key"
 
     # ローカルモデルプロファイル (Aperture 経由)
-    [profiles.local]
-    # model = "gemma4:26b-a4b-it-q8_0"
+    [profiles.local_gemma4]
+    model = "gemma4:26b-a4b-it-q8_0"
+    model_provider = "tailscale-aperture"
+    model_context_window = 131072
+
+    # ローカルモデルプロファイル (Aperture 経由)
+    [profiles.local_qwen3.5]
     model = "qwen3.5:35b-a3b-coding-nvfp4"
     model_provider = "tailscale-aperture"
     model_context_window = 131072
