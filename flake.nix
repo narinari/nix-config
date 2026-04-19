@@ -87,6 +87,11 @@
     codex-cli-nix = {
       url = "github:sadjow/codex-cli-nix";
     };
+
+    hyprpanel = {
+      url = "github:Jas-SinghFSU/HyprPanel";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

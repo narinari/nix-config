@@ -70,6 +70,7 @@ in
     ./features/desktop/dark-theme.nix
     ./features/desktop/hyprlock.nix
     ./features/desktop/hypridle.nix
+    ./features/desktop/hyprpanel.nix
     ./linux
   ];
 
@@ -176,7 +177,6 @@ in
     wl-clipboard # Wayland クリップボード
     hyprpaper # 壁紙
     wofi # アプリランチャー
-    waybar # ステータスバー
   ];
 
   systemd.user.startServices = "sd-switch";
