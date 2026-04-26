@@ -68,6 +68,7 @@ in
     ./features/rclone
     ./features/desktop/common
     ./features/desktop/dark-theme.nix
+    ./features/desktop/fcitx5.nix
     ./features/desktop/hyprlock.nix
     ./features/desktop/hypridle.nix
     ./features/desktop/hyprpanel.nix
@@ -77,6 +78,7 @@ in
   # Hyprland ウィンドウマネージャー設定
   wayland.windowManager.hyprland = {
     enable = true;
+    systemd.enable = false; # UWSM がセッション管理するため HM 側は無効化
     settings = {
       monitor = [ ",preferred,auto,1" ];
 
@@ -167,6 +169,7 @@ in
 
       exec-once = [
         "${hotCornerScript}" # 右上ホットコーナー → ロック
+        "${pkgs.tailscale-systray}/bin/tailscale-systray" # Tailscale トレイ
       ];
     };
   };
@@ -177,6 +180,7 @@ in
     wl-clipboard # Wayland クリップボード
     hyprpaper # 壁紙
     wofi # アプリランチャー
+    tailscale-systray # Tailscale トレイアイコン
   ];
 
   systemd.user.startServices = "sd-switch";

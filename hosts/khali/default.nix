@@ -96,6 +96,7 @@
       xwayland.enable = true;
       withUWSM = true; # uwsm 経由で起動 (systemd セッション管理)
     };
+    uwsm.enable = true; # UWSM の systemd 統合 (xdg-desktop-autostart.target を有効化)
     dconf.enable = true;
     ssh.startAgent = true;
   };
@@ -108,11 +109,6 @@
     WLR_NO_HARDWARE_CURSORS = "1"; # NVIDIA接続時のカーソル問題を回避
     NIXOS_OZONE_WL = "1"; # Chromium/Electron系アプリのWaylandネイティブ化
     QT_QPA_PLATFORMTHEME = "qt6ct"; # Qtアプリのテーマ設定
-    # fcitx5 日本語入力
-    GTK_IM_MODULE = "fcitx";
-    QT_IM_MODULE = "fcitx";
-    XMODIFIERS = "@im=fcitx";
-    SDL_IM_MODULE = "fcitx";
   };
 
   services = {
@@ -152,14 +148,17 @@
     ];
   };
 
-  # 日本語入力 (fcitx5-mozc)
+  # 日本語入力 (fcitx5 + SKK)
   i18n.inputMethod = {
     enable = true;
     type = "fcitx5";
-    fcitx5.addons = with pkgs; [
-      fcitx5-skk
-      fcitx5-gtk
-    ];
+    fcitx5 = {
+      waylandFrontend = true; # Wayland ネイティブ入力プロトコル
+      addons = with pkgs; [
+        fcitx5-skk
+        fcitx5-gtk
+      ];
+    };
   };
 
   security.rtkit.enable = true;

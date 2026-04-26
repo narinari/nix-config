@@ -11,13 +11,18 @@ _:
       };
 
       listener = [
+        #   {
+        #     timeout = 300; # 5分アイドル → ロック
+        #     on-timeout = "loginctl lock-session";
+        #     on-resume = "";
+        #   }
+        #   {
+        #     timeout = 330; # ロック後30秒 → ディスプレイオフ
+        #     on-timeout = "hyprctl dispatch dpms off";
+        #     on-resume = "hyprctl dispatch dpms on";
+        #   }
         {
-          timeout = 300; # 5分アイドル → ロック
-          on-timeout = "loginctl lock-session";
-          on-resume = "";
-        }
-        {
-          timeout = 330; # ロック後30秒 → ディスプレイオフ
+          timeout = 300; # 5分アイドル  → ディスプレイオフ
           on-timeout = "hyprctl dispatch dpms off";
           on-resume = "hyprctl dispatch dpms on";
         }
