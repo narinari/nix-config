@@ -46,9 +46,9 @@
     # nix.package = pkgs.nixUnstable;
 
     # macOS のみリモートビルダーを有効化
-    distributedBuilds = lib.mkIf (pkgs.system == "aarch64-darwin") true;
+    distributedBuilds = true;
 
-    buildMachines = lib.optionals (pkgs.system == "aarch64-darwin") [
+    buildMachines = [
       # macOS 付属の Linux VM (aarch64-linux クロスコンパイル用)
       {
         hostName = "linux-builder";
@@ -79,10 +79,34 @@
         ];
         publicHostKey = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU5LbUp6VHJ0UWNNOVVoT2NjV1pGbVRVQjFkTkRQekVuYjlZN2dNMW93V0sgbmFyaW5hcmlAa2hhbGk=";
       }
+      # jarvis RPi4 (aarch64-linux ビルド用)
+      {
+        hostName = "jarvis.local";
+        system = "aarch64-linux";
+        protocol = "ssh-ng";
+        sshUser = "builder";
+        sshKey = "/etc/nix/rin_builder_ed25519";
+        maxJobs = 2;
+        speedFactor = 1;
+        supportedFeatures = [ "benchmark" ];
+        publicHostKey = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUswVW9PcXRYRzdjMHZGTzBJR2tIYnV0RDR4cDlQYU9ISklvaldKbmxPUnUgamFydmlz";
+      }
+      # friday RPi4 (aarch64-linux ビルド用)
+      {
+        hostName = "friday.local";
+        system = "aarch64-linux";
+        protocol = "ssh-ng";
+        sshUser = "builder";
+        sshKey = "/etc/nix/rin_builder_ed25519";
+        maxJobs = 2;
+        speedFactor = 1;
+        supportedFeatures = [ "benchmark" ];
+        publicHostKey = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUdIczRGc0R6blplQ2Y0V0orV2hNNENEK3l2aVA4YVphcVgvZitibUhXYy8gZnJpZGF5";
+      }
     ];
 
-    extraOptions = lib.optionalString (pkgs.system == "aarch64-darwin") ''
-      extra-platforms = aarch64-darwin
+    extraOptions = ''
+      extra-platforms = aarch64-linux aarch64-darwin
       builders-use-substitutes = true
     '';
   };

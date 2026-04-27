@@ -15,6 +15,7 @@ in
   imports = [
     ../rpi4-base
     ../common/home-server
+    ../common/linux/nix-builder.nix
   ];
 
   networking = {

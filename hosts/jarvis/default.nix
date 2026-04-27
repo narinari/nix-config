@@ -11,6 +11,7 @@
   imports = [
     ../rpi4-base
     ../common/home-server
+    ../common/linux/nix-builder.nix
   ];
 
   networking = {
@@ -22,7 +23,7 @@
   systemd.services.nix-daemon.environment.TMPDIR = "/nix/tmp";
 
   systemd.tmpfiles.rules = [
-    "d /nix/tmp 0755 root root 1d"
+    "d /nix/tmp 1777 root root 1d"
     "d /mnt/data/tanabe-media/fx-trading 0755 narinari users -"
   ];
 
@@ -40,6 +41,7 @@
     };
     "/export/xxx" = {
       device = "/mnt/data/xxx";
+      fsType = "none";
       options = [
         "bind"
         "nofail"
@@ -47,6 +49,7 @@
     };
     "/export/fx-trading" = {
       device = "/mnt/data/tanabe-media/fx-trading";
+      fsType = "none";
       options = [
         "bind"
         "nofail"
