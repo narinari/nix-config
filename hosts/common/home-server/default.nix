@@ -12,6 +12,4 @@
     openFirewall = true;
   };
 
-  # IPv6無効化（RTX810がEDNS非対応のため）
-  networking.enableIPv6 = false;
 }

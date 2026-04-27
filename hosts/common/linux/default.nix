@@ -1,4 +1,9 @@
-{ pkgs, inputs, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 {
   imports = [
@@ -23,6 +28,9 @@
   };
 
   hardware.enableRedistributableFirmware = true;
+
+  # IPv6無効化（RTX810がEDNS非対応のため）
+  networking.enableIPv6 = lib.mkDefault false;
 
   # Increase open file limit for sudoers
   security.pam.loginLimits = [

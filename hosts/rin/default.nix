@@ -30,7 +30,7 @@
       matchConfig.Name = "eth0";
       networkConfig = {
         DHCP = "yes";
-        IPv6AcceptRA = true;
+        IPv6AcceptRA = false;
       };
       linkConfig.RequiredForOnline = "routable";
     };
