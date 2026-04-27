@@ -14,6 +14,176 @@
     extraConfig = ''
       local act = wezterm.action
 
+      -- mainワークスペースのeditorタブに切り替え
+      wezterm.on('switch-to-main-editor', function(window, pane)
+        window:perform_action(act.SwitchToWorkspace{ name = 'main' }, pane)
+        local mux_window = window:mux_window()
+        for _, tab in ipairs(mux_window:tabs()) do
+          if tab:get_title() == 'editor' then
+            tab:activate()
+            break
+          end
+        end
+      end)
+
+      -- SSH接続 (hostname入力 → ssh実行)
+      wezterm.on('ssh-session', function(window, pane)
+        window:perform_action(act.PromptInputLine{
+          description = 'SSH hostname:',
+          action = wezterm.action_callback(function(inner_window, inner_pane, hostname)
+            if hostname and #hostname > 0 then
+              inner_window:perform_action(act.SpawnCommandInNewTab{
+                args = {'ssh', '-tt', '-q', hostname},
+              }, inner_pane)
+            end
+          end),
+        }, pane)
+      end)
+
+      -- Tokyo Night カラーパレット
+      local TN = {
+        bg       = '#1A1B26',
+        fg       = '#a9b1d6',
+        blue     = '#7aa2f7',
+        cyan     = '#7dcfff',
+        green    = '#73daca',
+        magenta  = '#bb9af7',
+        red      = '#f7768e',
+        white    = '#c0caf5',
+        yellow   = '#e0af68',
+        black    = '#414868',
+        bblack   = '#2A2F41',
+      }
+
+      -- dsquare数字 (Nerd Font double-square digits)
+      local dsquare = {
+        [0] = '\u{f0e22}',
+        [1] = '\u{f0e25}',
+        [2] = '\u{f0e28}',
+        [3] = '\u{f0e2b}',
+        [4] = '\u{f0e32}',
+        [5] = '\u{f0e2f}',
+        [6] = '\u{f0e34}',
+        [7] = '\u{f0e37}',
+        [8] = '\u{f0e3a}',
+        [9] = '\u{f0e3d}',
+      }
+
+      local function dsquare_number(n)
+        local result = ""
+        local s = tostring(n)
+        for i = 1, #s do
+          local digit = tonumber(s:sub(i, i))
+          result = result .. (dsquare[digit] or s:sub(i, i)) .. ' '
+        end
+        return result
+      end
+
+      -- ステータスバー (tmux tokyo-night status line 移植)
+      wezterm.on('update-status', function(window, pane)
+        -- 左: ワークスペース名 + leader indicator
+        local prefix_icon = '\u{f0942} '
+        if window:leader_is_active() then
+          prefix_icon = '\u{f00a0} '
+        end
+
+        local workspace = window:active_workspace()
+
+        local left = wezterm.format {
+          { Background = { Color = TN.blue } },
+          { Foreground = { Color = TN.bblack } },
+          { Attribute = { Intensity = 'Bold' } },
+          { Text = ' ' .. prefix_icon .. workspace .. ' ' },
+          { Background = { Color = TN.bg } },
+          { Foreground = { Color = TN.blue } },
+          { Text = "\u{e0b0}" },
+          { Attribute = { Intensity = 'Normal' } },
+          { Text = ' ' },
+        }
+        window:set_left_status(left)
+
+        -- 右: key table indicator + 相対パス
+        local right_elements = {}
+
+        local key_table = window:active_key_table()
+        if key_table then
+          table.insert(right_elements, { Foreground = { Color = TN.yellow } })
+          table.insert(right_elements, { Background = { Color = TN.bg } })
+          table.insert(right_elements, { Text = "\u{e0b2}" })
+          table.insert(right_elements, { Background = { Color = TN.yellow } })
+          table.insert(right_elements, { Foreground = { Color = TN.bg } })
+          table.insert(right_elements, { Attribute = { Intensity = 'Bold' } })
+          table.insert(right_elements, { Text = ' ' .. key_table .. ' ' })
+          table.insert(right_elements, { Attribute = { Intensity = 'Normal' } })
+        end
+
+        if window:leader_is_active() then
+          table.insert(right_elements, { Foreground = { Color = TN.green } })
+          table.insert(right_elements, { Background = { Color = TN.bg } })
+          table.insert(right_elements, { Text = "\u{e0b2}" })
+          table.insert(right_elements, { Background = { Color = TN.green } })
+          table.insert(right_elements, { Foreground = { Color = TN.bg } })
+          table.insert(right_elements, { Attribute = { Intensity = 'Bold' } })
+          table.insert(right_elements, { Text = ' LEADER ' })
+          table.insert(right_elements, { Attribute = { Intensity = 'Normal' } })
+        end
+
+        local cwd_uri = pane:get_current_working_dir()
+        if cwd_uri then
+          local cwd = cwd_uri.file_path or ""
+          local home = os.getenv('HOME') or ""
+          if home ~= "" and cwd:sub(1, #home) == home then
+            cwd = '~' .. cwd:sub(#home + 1)
+          end
+          table.insert(right_elements, { Foreground = { Color = TN.blue } })
+          table.insert(right_elements, { Background = { Color = TN.bg } })
+          table.insert(right_elements, { Text = ' ' })
+          table.insert(right_elements, { Text = "\u{e0b2}" })
+          table.insert(right_elements, { Background = { Color = TN.blue } })
+          table.insert(right_elements, { Foreground = { Color = TN.bblack } })
+          table.insert(right_elements, { Attribute = { Intensity = 'Bold' } })
+          table.insert(right_elements, { Text = '  ' .. cwd .. ' ' })
+          table.insert(right_elements, { Attribute = { Intensity = 'Normal' } })
+        end
+
+        window:set_right_status(wezterm.format(right_elements))
+      end)
+
+      -- タブタイトル (tmux dsquare window ID style 移植)
+      wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_width)
+        local index = tab.tab_index + 1
+        local title = tab.active_pane.title
+        if #title > 20 then
+          title = title:sub(1, 20) .. '\u{2026}'
+        end
+
+        local num = dsquare_number(index)
+        local process = tab.active_pane.foreground_process_name or ""
+        local is_ssh = process:find('ssh') ~= nil
+        local icon = is_ssh and '\u{f0ce0} ' or (tab.is_active and ' ' or ' ')
+
+        if tab.is_active then
+          return {
+            { Background = { Color = TN.bblack } },
+            { Foreground = { Color = TN.green } },
+            { Text = ' ' .. icon },
+            { Foreground = { Color = TN.white } },
+            { Attribute = { Intensity = 'Bold' } },
+            { Text = num .. title },
+            { Attribute = { Intensity = 'Normal' } },
+            { Text = ' ' },
+          }
+        else
+          return {
+            { Background = { Color = TN.bg } },
+            { Foreground = { Color = TN.fg } },
+            { Text = ' ' .. icon },
+            { Text = num .. title },
+            { Text = ' ' },
+          }
+        end
+      end)
+
       return {
         font = wezterm.font_with_fallback {
           { family = 'SF Mono', assume_emoji_presentation = false},
@@ -32,13 +202,34 @@
         enable_wayland = false,
 
         color_scheme = "Tokyo Night",
+        use_fancy_tab_bar = false,
+        tab_bar_at_bottom = false,
+        tab_max_width = 50,
         colors = {
           tab_bar = {
+            background = '#1A1B26',
             active_tab = {
-              fg_color = "#2E3440",
-              bg_color = "#5E81AC"
-            }
-          }
+              fg_color = '#c0caf5',
+              bg_color = '#2A2F41',
+              intensity = 'Bold',
+            },
+            inactive_tab = {
+              fg_color = '#a9b1d6',
+              bg_color = '#1A1B26',
+            },
+            inactive_tab_hover = {
+              fg_color = '#c0caf5',
+              bg_color = '#2A2F41',
+            },
+            new_tab = {
+              fg_color = '#a9b1d6',
+              bg_color = '#1A1B26',
+            },
+            new_tab_hover = {
+              fg_color = '#c0caf5',
+              bg_color = '#2A2F41',
+            },
+          },
         },
 
         allow_square_glyphs_to_overflow_width = "Always",
@@ -55,7 +246,9 @@
         notification_handling = "AlwaysShow",
 
         disable_default_key_bindings = true,
+        leader = { key = 'q', mods = 'CTRL', timeout_milliseconds = 1000 },
         keys = {
+          -- OPT key passthrough for terminal applications
           { key="0", mods="OPT", action=wezterm.action.SendKey { key="0", mods="OPT" } },
           { key="1", mods="OPT", action=wezterm.action.SendKey { key="1", mods="OPT" } },
           { key="2", mods="OPT", action=wezterm.action.SendKey { key="2", mods="OPT" } },
@@ -101,38 +294,59 @@
           { key="Space", mods="OPT", action=wezterm.action.SendKey { key="Space", mods="OPT" } },
           { key=";", mods="CTRL", action=wezterm.action.SendString "\x18@;" }, -- for emacs in terminal
 
-          -- for default
+          -- === tmux移植: Leader バインド (prefix: Ctrl+Q) ===
+          -- ペイン分割
+          { key = '|', mods = 'LEADER|SHIFT', action = act.SplitHorizontal{ domain = 'CurrentPaneDomain' } },
+          { key = '-', mods = 'LEADER', action = act.SplitVertical{ domain = 'CurrentPaneDomain' } },
+          -- ペイン移動 (vim style)
+          { key = 'h', mods = 'LEADER', action = act.ActivatePaneDirection 'Left' },
+          { key = 'j', mods = 'LEADER', action = act.ActivatePaneDirection 'Down' },
+          { key = 'k', mods = 'LEADER', action = act.ActivatePaneDirection 'Up' },
+          { key = 'l', mods = 'LEADER', action = act.ActivatePaneDirection 'Right' },
+          -- タブ移動
+          { key = 'h', mods = 'LEADER|CTRL', action = act.ActivateTabRelative(-1) },
+          { key = 'l', mods = 'LEADER|CTRL', action = act.ActivateTabRelative(1) },
+          -- ペインリサイズ
+          { key = 'H', mods = 'LEADER|SHIFT', action = act.AdjustPaneSize{ 'Left', 5 } },
+          { key = 'J', mods = 'LEADER|SHIFT', action = act.AdjustPaneSize{ 'Down', 5 } },
+          { key = 'K', mods = 'LEADER|SHIFT', action = act.AdjustPaneSize{ 'Up', 5 } },
+          { key = 'L', mods = 'LEADER|SHIFT', action = act.AdjustPaneSize{ 'Right', 5 } },
+          -- ワークスペース操作テーブルに入る (one_shot=false で連打可能)
+          { key = 'e', mods = 'LEADER', action = act.ActivateKeyTable{ name = 'workspace_nav', one_shot = false, timeout_milliseconds = 3000 } },
+          -- 新規ワークスペース
+          { key = 'C', mods = 'LEADER|SHIFT', action = act.SwitchToWorkspace{} },
+          -- fzfセッションジャンプ
+          { key = 's', mods = 'LEADER', action = act.ShowLauncherArgs{ flags = 'FUZZY|WORKSPACES' } },
+          -- ペインズーム
+          { key = 'z', mods = 'LEADER', action = act.TogglePaneZoomState },
+          -- 設定リロード
+          { key = 'r', mods = 'LEADER', action = act.ReloadConfiguration },
+          -- 外部コマンド (スタブ)
+          { key = 'g', mods = 'LEADER', action = act.SpawnCommandInNewTab{ args = {'zsh', '-c', 'go_dev'} } },
+          { key = 'm', mods = 'LEADER', action = act.SpawnCommandInNewTab{ args = {'zsh', '-ic', '~/bin/menu-fzf.zsh'} } },
+          { key = 'G', mods = 'LEADER|SHIFT', action = act.EmitEvent 'ssh-session' },
+          -- Ctrl+Q をターミナルに送信 (emacs用エスケープハッチ)
+          { key = 'q', mods = 'LEADER', action = act.SendString '\x11' },
+
+          -- === wezterm固有: タブ操作 ===
           { key = 'Tab', mods = 'CTRL', action = act.ActivateTabRelative(1) },
           { key = 'Tab', mods = 'SHIFT|CTRL', action = act.ActivateTabRelative(-1) },
           { key = 'Enter', mods = 'SUPER', action = act.ToggleFullScreen },
+          -- タブ番号選択
           { key = '!', mods = 'SUPER', action = act.ActivateTab(0) },
           { key = '!', mods = 'SHIFT|SUPER', action = act.ActivateTab(0) },
-          { key = '\"', mods = 'ALT|SUPER', action = act.SplitVertical{ domain =  'CurrentPaneDomain' } },
-          { key = '\"', mods = 'SHIFT|ALT|SUPER', action = act.SplitVertical{ domain =  'CurrentPaneDomain' } },
           { key = '#', mods = 'SUPER', action = act.ActivateTab(2) },
           { key = '#', mods = 'SHIFT|SUPER', action = act.ActivateTab(2) },
           { key = '$', mods = 'SUPER', action = act.ActivateTab(3) },
           { key = '$', mods = 'SHIFT|SUPER', action = act.ActivateTab(3) },
           { key = '%', mods = 'SUPER', action = act.ActivateTab(4) },
           { key = '%', mods = 'SHIFT|SUPER', action = act.ActivateTab(4) },
-          { key = '%', mods = 'ALT|SUPER', action = act.SplitHorizontal{ domain =  'CurrentPaneDomain' } },
-          { key = '%', mods = 'SHIFT|ALT|SUPER', action = act.SplitHorizontal{ domain =  'CurrentPaneDomain' } },
           { key = '&', mods = 'SUPER', action = act.ActivateTab(6) },
           { key = '&', mods = 'SHIFT|SUPER', action = act.ActivateTab(6) },
-          { key = '\''', mods = 'SHIFT|ALT|SUPER', action = act.SplitVertical{ domain =  'CurrentPaneDomain' } },
           { key = '(', mods = 'SUPER', action = act.ActivateTab(-1) },
           { key = '(', mods = 'SHIFT|SUPER', action = act.ActivateTab(-1) },
-          { key = ')', mods = 'SUPER', action = act.ResetFontSize },
-          { key = ')', mods = 'SHIFT|SUPER', action = act.ResetFontSize },
           { key = '*', mods = 'SUPER', action = act.ActivateTab(7) },
           { key = '*', mods = 'SHIFT|SUPER', action = act.ActivateTab(7) },
-          { key = '+', mods = 'SUPER', action = act.IncreaseFontSize },
-          { key = '+', mods = 'SHIFT|SUPER', action = act.IncreaseFontSize },
-          { key = '-', mods = 'SUPER', action = act.DecreaseFontSize },
-          { key = '-', mods = 'SHIFT|SUPER', action = act.DecreaseFontSize },
-          { key = '-', mods = 'SUPER', action = act.DecreaseFontSize },
-          { key = '0', mods = 'SUPER', action = act.ResetFontSize },
-          { key = '0', mods = 'SHIFT|SUPER', action = act.ResetFontSize },
           { key = '1', mods = 'SHIFT|SUPER', action = act.ActivateTab(0) },
           { key = '1', mods = 'SUPER', action = act.ActivateTab(0) },
           { key = '2', mods = 'SHIFT|SUPER', action = act.ActivateTab(1) },
@@ -142,7 +356,6 @@
           { key = '4', mods = 'SHIFT|SUPER', action = act.ActivateTab(3) },
           { key = '4', mods = 'SUPER', action = act.ActivateTab(3) },
           { key = '5', mods = 'SHIFT|SUPER', action = act.ActivateTab(4) },
-          { key = '5', mods = 'SHIFT|ALT|SUPER', action = act.SplitHorizontal{ domain =  'CurrentPaneDomain' } },
           { key = '5', mods = 'SUPER', action = act.ActivateTab(4) },
           { key = '6', mods = 'SHIFT|SUPER', action = act.ActivateTab(5) },
           { key = '6', mods = 'SUPER', action = act.ActivateTab(5) },
@@ -152,13 +365,35 @@
           { key = '8', mods = 'SUPER', action = act.ActivateTab(7) },
           { key = '9', mods = 'SHIFT|SUPER', action = act.ActivateTab(-1) },
           { key = '9', mods = 'SUPER', action = act.ActivateTab(-1) },
-          { key = '=', mods = 'SUPER', action = act.IncreaseFontSize },
-          { key = '=', mods = 'SHIFT|SUPER', action = act.IncreaseFontSize },
-          { key = '=', mods = 'SUPER', action = act.IncreaseFontSize },
           { key = '@', mods = 'SUPER', action = act.ActivateTab(1) },
           { key = '@', mods = 'SHIFT|SUPER', action = act.ActivateTab(1) },
+          { key = '^', mods = 'SUPER', action = act.ActivateTab(5) },
+          { key = '^', mods = 'SHIFT|SUPER', action = act.ActivateTab(5) },
+          -- フォントサイズ
+          { key = ')', mods = 'SUPER', action = act.ResetFontSize },
+          { key = ')', mods = 'SHIFT|SUPER', action = act.ResetFontSize },
+          { key = '+', mods = 'SUPER', action = act.IncreaseFontSize },
+          { key = '+', mods = 'SHIFT|SUPER', action = act.IncreaseFontSize },
+          { key = '-', mods = 'SUPER', action = act.DecreaseFontSize },
+          { key = '-', mods = 'SHIFT|SUPER', action = act.DecreaseFontSize },
+          { key = '0', mods = 'SUPER', action = act.ResetFontSize },
+          { key = '0', mods = 'SHIFT|SUPER', action = act.ResetFontSize },
+          { key = '=', mods = 'SUPER', action = act.IncreaseFontSize },
+          { key = '=', mods = 'SHIFT|SUPER', action = act.IncreaseFontSize },
+          { key = '_', mods = 'SUPER', action = act.DecreaseFontSize },
+          { key = '_', mods = 'SHIFT|SUPER', action = act.DecreaseFontSize },
+          -- コピー/ペースト
           { key = 'C', mods = 'SUPER', action = act.CopyTo 'Clipboard' },
           { key = 'C', mods = 'SHIFT|SUPER', action = act.CopyTo 'Clipboard' },
+          { key = 'V', mods = 'SUPER', action = act.PasteFrom 'Clipboard' },
+          { key = 'V', mods = 'SHIFT|SUPER', action = act.PasteFrom 'Clipboard' },
+          { key = 'c', mods = 'SHIFT|SUPER', action = act.CopyTo 'Clipboard' },
+          { key = 'c', mods = 'SUPER', action = act.CopyTo 'Clipboard' },
+          { key = 'v', mods = 'SHIFT|SUPER', action = act.PasteFrom 'Clipboard' },
+          { key = 'v', mods = 'SUPER', action = act.PasteFrom 'Clipboard' },
+          { key = 'Copy', mods = 'NONE', action = act.CopyTo 'Clipboard' },
+          { key = 'Paste', mods = 'NONE', action = act.PasteFrom 'Clipboard' },
+          -- アプリケーション操作
           { key = 'F', mods = 'SUPER', action = act.Search 'CurrentSelectionOrEmptyString' },
           { key = 'F', mods = 'SHIFT|SUPER', action = act.Search 'CurrentSelectionOrEmptyString' },
           { key = 'H', mods = 'SUPER', action = act.HideApplication },
@@ -175,28 +410,14 @@
           { key = 'P', mods = 'SHIFT|SUPER', action = act.ActivateCommandPalette },
           { key = 'Q', mods = 'SUPER', action = act.QuitApplication },
           { key = 'Q', mods = 'SHIFT|SUPER', action = act.QuitApplication },
-          { key = 'R', mods = 'SUPER', action = act.ReloadConfiguration },
-          { key = 'R', mods = 'SHIFT|SUPER', action = act.ReloadConfiguration },
           { key = 'T', mods = 'SUPER', action = act.SpawnTab 'CurrentPaneDomain' },
           { key = 'T', mods = 'SHIFT|SUPER', action = act.SpawnTab 'CurrentPaneDomain' },
           { key = 'U', mods = 'SUPER', action = act.CharSelect{ copy_on_select = true, copy_to =  'ClipboardAndPrimarySelection' } },
           { key = 'U', mods = 'SHIFT|SUPER', action = act.CharSelect{ copy_on_select = true, copy_to =  'ClipboardAndPrimarySelection' } },
-          { key = 'V', mods = 'SUPER', action = act.PasteFrom 'Clipboard' },
-          { key = 'V', mods = 'SHIFT|SUPER', action = act.PasteFrom 'Clipboard' },
           { key = 'W', mods = 'SUPER', action = act.CloseCurrentTab{ confirm = true } },
           { key = 'W', mods = 'SHIFT|SUPER', action = act.CloseCurrentTab{ confirm = true } },
           { key = 'X', mods = 'SUPER', action = act.ActivateCopyMode },
           { key = 'X', mods = 'SHIFT|SUPER', action = act.ActivateCopyMode },
-          { key = 'Z', mods = 'SUPER', action = act.TogglePaneZoomState },
-          { key = 'Z', mods = 'SHIFT|SUPER', action = act.TogglePaneZoomState },
-          { key = '[', mods = 'SHIFT|SUPER', action = act.ActivateTabRelative(-1) },
-          { key = ']', mods = 'SHIFT|SUPER', action = act.ActivateTabRelative(1) },
-          { key = '^', mods = 'SUPER', action = act.ActivateTab(5) },
-          { key = '^', mods = 'SHIFT|SUPER', action = act.ActivateTab(5) },
-          { key = '_', mods = 'SUPER', action = act.DecreaseFontSize },
-          { key = '_', mods = 'SHIFT|SUPER', action = act.DecreaseFontSize },
-          { key = 'c', mods = 'SHIFT|SUPER', action = act.CopyTo 'Clipboard' },
-          { key = 'c', mods = 'SUPER', action = act.CopyTo 'Clipboard' },
           { key = 'f', mods = 'SHIFT|SUPER', action = act.Search 'CurrentSelectionOrEmptyString' },
           { key = 'f', mods = 'SUPER', action = act.Search 'CurrentSelectionOrEmptyString' },
           { key = 'h', mods = 'SHIFT|SUPER', action = act.HideApplication },
@@ -211,267 +432,33 @@
           { key = 'p', mods = 'SHIFT|SUPER', action = act.ActivateCommandPalette },
           { key = 'q', mods = 'SHIFT|SUPER', action = act.QuitApplication },
           { key = 'q', mods = 'SUPER', action = act.QuitApplication },
-          { key = 'r', mods = 'SHIFT|SUPER', action = act.ReloadConfiguration },
-          { key = 'r', mods = 'SUPER', action = act.ReloadConfiguration },
           { key = 't', mods = 'SHIFT|SUPER', action = act.SpawnTab 'CurrentPaneDomain' },
           { key = 't', mods = 'SUPER', action = act.SpawnTab 'CurrentPaneDomain' },
           { key = 'u', mods = 'SHIFT|SUPER', action = act.CharSelect{ copy_on_select = true, copy_to =  'ClipboardAndPrimarySelection' } },
-          { key = 'v', mods = 'SHIFT|SUPER', action = act.PasteFrom 'Clipboard' },
-          { key = 'v', mods = 'SUPER', action = act.PasteFrom 'Clipboard' },
           { key = 'w', mods = 'SHIFT|SUPER', action = act.CloseCurrentTab{ confirm = true } },
           { key = 'w', mods = 'SUPER', action = act.CloseCurrentTab{ confirm = true } },
           { key = 'x', mods = 'SHIFT|SUPER', action = act.ActivateCopyMode },
-          { key = 'z', mods = 'SHIFT|SUPER', action = act.TogglePaneZoomState },
-          { key = '{', mods = 'SUPER', action = act.ActivateTabRelative(-1) },
-          { key = '{', mods = 'SHIFT|SUPER', action = act.ActivateTabRelative(-1) },
-          { key = '}', mods = 'SUPER', action = act.ActivateTabRelative(1) },
-          { key = '}', mods = 'SHIFT|SUPER', action = act.ActivateTabRelative(1) },
+          -- その他
           { key = 'phys:Space', mods = 'SHIFT|SUPER', action = act.QuickSelect },
           { key = 'PageUp', mods = 'SHIFT', action = act.ScrollByPage(-1) },
-          { key = 'PageUp', mods = 'SUPER', action = act.ActivateTabRelative(-1) },
           { key = 'PageUp', mods = 'SHIFT|SUPER', action = act.MoveTabRelative(-1) },
           { key = 'PageDown', mods = 'SHIFT', action = act.ScrollByPage(1) },
-          { key = 'PageDown', mods = 'SUPER', action = act.ActivateTabRelative(1) },
           { key = 'PageDown', mods = 'SHIFT|SUPER', action = act.MoveTabRelative(1) },
-          { key = 'LeftArrow', mods = 'SHIFT|SUPER', action = act.ActivatePaneDirection 'Left' },
-          { key = 'LeftArrow', mods = 'SHIFT|ALT|SUPER', action = act.AdjustPaneSize{ 'Left', 1 } },
-          { key = 'RightArrow', mods = 'SHIFT|SUPER', action = act.ActivatePaneDirection 'Right' },
-          { key = 'RightArrow', mods = 'SHIFT|ALT|SUPER', action = act.AdjustPaneSize{ 'Right', 1 } },
-          { key = 'UpArrow', mods = 'SHIFT|SUPER', action = act.ActivatePaneDirection 'Up' },
-          { key = 'UpArrow', mods = 'SHIFT|ALT|SUPER', action = act.AdjustPaneSize{ 'Up', 1 } },
-          { key = 'DownArrow', mods = 'SHIFT|SUPER', action = act.ActivatePaneDirection 'Down' },
-          { key = 'DownArrow', mods = 'SHIFT|ALT|SUPER', action = act.AdjustPaneSize{ 'Down', 1 } },
-          { key = 'Copy', mods = 'NONE', action = act.CopyTo 'Clipboard' },
-          { key = 'Paste', mods = 'NONE', action = act.PasteFrom 'Clipboard' },
-          -- https://github.com/wez/wezterm/issues/2630
-          { key = 'q', mods = 'CTRL', action = wezterm.action { SendString = '\x11' } },
-        },
-      }
-        --[[ default key map
-        keys = {
-          { key = 'Tab', mods = 'CTRL', action = act.ActivateTabRelative(1) },
-          { key = 'Tab', mods = 'SHIFT|CTRL', action = act.ActivateTabRelative(-1) },
-          { key = 'Enter', mods = 'ALT', action = act.ToggleFullScreen },
-          { key = '!', mods = 'CTRL', action = act.ActivateTab(0) },
-          { key = '!', mods = 'SHIFT|CTRL', action = act.ActivateTab(0) },
-          { key = '\"', mods = 'ALT|CTRL', action = act.SplitVertical{ domain =  'CurrentPaneDomain' } },
-          { key = '\"', mods = 'SHIFT|ALT|CTRL', action = act.SplitVertical{ domain =  'CurrentPaneDomain' } },
-          { key = '#', mods = 'CTRL', action = act.ActivateTab(2) },
-          { key = '#', mods = 'SHIFT|CTRL', action = act.ActivateTab(2) },
-          { key = '$', mods = 'CTRL', action = act.ActivateTab(3) },
-          { key = '$', mods = 'SHIFT|CTRL', action = act.ActivateTab(3) },
-          { key = '%', mods = 'CTRL', action = act.ActivateTab(4) },
-          { key = '%', mods = 'SHIFT|CTRL', action = act.ActivateTab(4) },
-          { key = '%', mods = 'ALT|CTRL', action = act.SplitHorizontal{ domain =  'CurrentPaneDomain' } },
-          { key = '%', mods = 'SHIFT|ALT|CTRL', action = act.SplitHorizontal{ domain =  'CurrentPaneDomain' } },
-          { key = '&', mods = 'CTRL', action = act.ActivateTab(6) },
-          { key = '&', mods = 'SHIFT|CTRL', action = act.ActivateTab(6) },
-          { key = '\''', mods = 'SHIFT|ALT|CTRL', action = act.SplitVertical{ domain =  'CurrentPaneDomain' } }, -- NOTE: replace triple-quotes to double-quotes at uncomment
-          { key = '(', mods = 'CTRL', action = act.ActivateTab(-1) },
-          { key = '(', mods = 'SHIFT|CTRL', action = act.ActivateTab(-1) },
-          { key = ')', mods = 'CTRL', action = act.ResetFontSize },
-          { key = ')', mods = 'SHIFT|CTRL', action = act.ResetFontSize },
-          { key = '*', mods = 'CTRL', action = act.ActivateTab(7) },
-          { key = '*', mods = 'SHIFT|CTRL', action = act.ActivateTab(7) },
-          { key = '+', mods = 'CTRL', action = act.IncreaseFontSize },
-          { key = '+', mods = 'SHIFT|CTRL', action = act.IncreaseFontSize },
-          { key = '-', mods = 'CTRL', action = act.DecreaseFontSize },
-          { key = '-', mods = 'SHIFT|CTRL', action = act.DecreaseFontSize },
-          { key = '-', mods = 'SUPER', action = act.DecreaseFontSize },
-          { key = '0', mods = 'CTRL', action = act.ResetFontSize },
-          { key = '0', mods = 'SHIFT|CTRL', action = act.ResetFontSize },
-          { key = '0', mods = 'SUPER', action = act.ResetFontSize },
-          { key = '1', mods = 'SHIFT|CTRL', action = act.ActivateTab(0) },
-          { key = '1', mods = 'SUPER', action = act.ActivateTab(0) },
-          { key = '2', mods = 'SHIFT|CTRL', action = act.ActivateTab(1) },
-          { key = '2', mods = 'SUPER', action = act.ActivateTab(1) },
-          { key = '3', mods = 'SHIFT|CTRL', action = act.ActivateTab(2) },
-          { key = '3', mods = 'SUPER', action = act.ActivateTab(2) },
-          { key = '4', mods = 'SHIFT|CTRL', action = act.ActivateTab(3) },
-          { key = '4', mods = 'SUPER', action = act.ActivateTab(3) },
-          { key = '5', mods = 'SHIFT|CTRL', action = act.ActivateTab(4) },
-          { key = '5', mods = 'SHIFT|ALT|CTRL', action = act.SplitHorizontal{ domain =  'CurrentPaneDomain' } },
-          { key = '5', mods = 'SUPER', action = act.ActivateTab(4) },
-          { key = '6', mods = 'SHIFT|CTRL', action = act.ActivateTab(5) },
-          { key = '6', mods = 'SUPER', action = act.ActivateTab(5) },
-          { key = '7', mods = 'SHIFT|CTRL', action = act.ActivateTab(6) },
-          { key = '7', mods = 'SUPER', action = act.ActivateTab(6) },
-          { key = '8', mods = 'SHIFT|CTRL', action = act.ActivateTab(7) },
-          { key = '8', mods = 'SUPER', action = act.ActivateTab(7) },
-          { key = '9', mods = 'SHIFT|CTRL', action = act.ActivateTab(-1) },
-          { key = '9', mods = 'SUPER', action = act.ActivateTab(-1) },
-          { key = '=', mods = 'CTRL', action = act.IncreaseFontSize },
-          { key = '=', mods = 'SHIFT|CTRL', action = act.IncreaseFontSize },
-          { key = '=', mods = 'SUPER', action = act.IncreaseFontSize },
-          { key = '@', mods = 'CTRL', action = act.ActivateTab(1) },
-          { key = '@', mods = 'SHIFT|CTRL', action = act.ActivateTab(1) },
-          { key = 'C', mods = 'CTRL', action = act.CopyTo 'Clipboard' },
-          { key = 'C', mods = 'SHIFT|CTRL', action = act.CopyTo 'Clipboard' },
-          { key = 'F', mods = 'CTRL', action = act.Search 'CurrentSelectionOrEmptyString' },
-          { key = 'F', mods = 'SHIFT|CTRL', action = act.Search 'CurrentSelectionOrEmptyString' },
-          { key = 'H', mods = 'CTRL', action = act.HideApplication },
-          { key = 'H', mods = 'SHIFT|CTRL', action = act.HideApplication },
-          { key = 'K', mods = 'CTRL', action = act.ClearScrollback 'ScrollbackOnly' },
-          { key = 'K', mods = 'SHIFT|CTRL', action = act.ClearScrollback 'ScrollbackOnly' },
-          { key = 'L', mods = 'CTRL', action = act.ShowDebugOverlay },
-          { key = 'L', mods = 'SHIFT|CTRL', action = act.ShowDebugOverlay },
-          { key = 'M', mods = 'CTRL', action = act.Hide },
-          { key = 'M', mods = 'SHIFT|CTRL', action = act.Hide },
-          { key = 'N', mods = 'CTRL', action = act.SpawnWindow },
-          { key = 'N', mods = 'SHIFT|CTRL', action = act.SpawnWindow },
-          { key = 'P', mods = 'CTRL', action = act.ActivateCommandPalette },
-          { key = 'P', mods = 'SHIFT|CTRL', action = act.ActivateCommandPalette },
-          { key = 'Q', mods = 'CTRL', action = act.QuitApplication },
-          { key = 'Q', mods = 'SHIFT|CTRL', action = act.QuitApplication },
-          { key = 'R', mods = 'CTRL', action = act.ReloadConfiguration },
-          { key = 'R', mods = 'SHIFT|CTRL', action = act.ReloadConfiguration },
-          { key = 'T', mods = 'CTRL', action = act.SpawnTab 'CurrentPaneDomain' },
-          { key = 'T', mods = 'SHIFT|CTRL', action = act.SpawnTab 'CurrentPaneDomain' },
-          { key = 'U', mods = 'CTRL', action = act.CharSelect{ copy_on_select = true, copy_to =  'ClipboardAndPrimarySelection' } },
-          { key = 'U', mods = 'SHIFT|CTRL', action = act.CharSelect{ copy_on_select = true, copy_to =  'ClipboardAndPrimarySelection' } },
-          { key = 'V', mods = 'CTRL', action = act.PasteFrom 'Clipboard' },
-          { key = 'V', mods = 'SHIFT|CTRL', action = act.PasteFrom 'Clipboard' },
-          { key = 'W', mods = 'CTRL', action = act.CloseCurrentTab{ confirm = true } },
-          { key = 'W', mods = 'SHIFT|CTRL', action = act.CloseCurrentTab{ confirm = true } },
-          { key = 'X', mods = 'CTRL', action = act.ActivateCopyMode },
-          { key = 'X', mods = 'SHIFT|CTRL', action = act.ActivateCopyMode },
-          { key = 'Z', mods = 'CTRL', action = act.TogglePaneZoomState },
-          { key = 'Z', mods = 'SHIFT|CTRL', action = act.TogglePaneZoomState },
-          { key = '[', mods = 'SHIFT|SUPER', action = act.ActivateTabRelative(-1) },
-          { key = ']', mods = 'SHIFT|SUPER', action = act.ActivateTabRelative(1) },
-          { key = '^', mods = 'CTRL', action = act.ActivateTab(5) },
-          { key = '^', mods = 'SHIFT|CTRL', action = act.ActivateTab(5) },
-          { key = '_', mods = 'CTRL', action = act.DecreaseFontSize },
-          { key = '_', mods = 'SHIFT|CTRL', action = act.DecreaseFontSize },
-          { key = 'c', mods = 'SHIFT|CTRL', action = act.CopyTo 'Clipboard' },
-          { key = 'c', mods = 'SUPER', action = act.CopyTo 'Clipboard' },
-          { key = 'f', mods = 'SHIFT|CTRL', action = act.Search 'CurrentSelectionOrEmptyString' },
-          { key = 'f', mods = 'SUPER', action = act.Search 'CurrentSelectionOrEmptyString' },
-          { key = 'h', mods = 'SHIFT|CTRL', action = act.HideApplication },
-          { key = 'h', mods = 'SUPER', action = act.HideApplication },
-          { key = 'k', mods = 'SHIFT|CTRL', action = act.ClearScrollback 'ScrollbackOnly' },
-          { key = 'k', mods = 'SUPER', action = act.ClearScrollback 'ScrollbackOnly' },
-          { key = 'l', mods = 'SHIFT|CTRL', action = act.ShowDebugOverlay },
-          { key = 'm', mods = 'SHIFT|CTRL', action = act.Hide },
-          { key = 'm', mods = 'SUPER', action = act.Hide },
-          { key = 'n', mods = 'SHIFT|CTRL', action = act.SpawnWindow },
-          { key = 'n', mods = 'SUPER', action = act.SpawnWindow },
-          { key = 'p', mods = 'SHIFT|CTRL', action = act.ActivateCommandPalette },
-          { key = 'q', mods = 'SHIFT|CTRL', action = act.QuitApplication },
-          { key = 'q', mods = 'SUPER', action = act.QuitApplication },
-          { key = 'r', mods = 'SHIFT|CTRL', action = act.ReloadConfiguration },
-          { key = 'r', mods = 'SUPER', action = act.ReloadConfiguration },
-          { key = 't', mods = 'SHIFT|CTRL', action = act.SpawnTab 'CurrentPaneDomain' },
-          { key = 't', mods = 'SUPER', action = act.SpawnTab 'CurrentPaneDomain' },
-          { key = 'u', mods = 'SHIFT|CTRL', action = act.CharSelect{ copy_on_select = true, copy_to =  'ClipboardAndPrimarySelection' } },
-          { key = 'v', mods = 'SHIFT|CTRL', action = act.PasteFrom 'Clipboard' },
-          { key = 'v', mods = 'SUPER', action = act.PasteFrom 'Clipboard' },
-          { key = 'w', mods = 'SHIFT|CTRL', action = act.CloseCurrentTab{ confirm = true } },
-          { key = 'w', mods = 'SUPER', action = act.CloseCurrentTab{ confirm = true } },
-          { key = 'x', mods = 'SHIFT|CTRL', action = act.ActivateCopyMode },
-          { key = 'z', mods = 'SHIFT|CTRL', action = act.TogglePaneZoomState },
-          { key = '{', mods = 'SUPER', action = act.ActivateTabRelative(-1) },
-          { key = '{', mods = 'SHIFT|SUPER', action = act.ActivateTabRelative(-1) },
-          { key = '}', mods = 'SUPER', action = act.ActivateTabRelative(1) },
-          { key = '}', mods = 'SHIFT|SUPER', action = act.ActivateTabRelative(1) },
-          { key = 'phys:Space', mods = 'SHIFT|CTRL', action = act.QuickSelect },
-          { key = 'PageUp', mods = 'SHIFT', action = act.ScrollByPage(-1) },
-          { key = 'PageUp', mods = 'CTRL', action = act.ActivateTabRelative(-1) },
-          { key = 'PageUp', mods = 'SHIFT|CTRL', action = act.MoveTabRelative(-1) },
-          { key = 'PageDown', mods = 'SHIFT', action = act.ScrollByPage(1) },
-          { key = 'PageDown', mods = 'CTRL', action = act.ActivateTabRelative(1) },
-          { key = 'PageDown', mods = 'SHIFT|CTRL', action = act.MoveTabRelative(1) },
-          { key = 'LeftArrow', mods = 'SHIFT|CTRL', action = act.ActivatePaneDirection 'Left' },
-          { key = 'LeftArrow', mods = 'SHIFT|ALT|CTRL', action = act.AdjustPaneSize{ 'Left', 1 } },
-          { key = 'RightArrow', mods = 'SHIFT|CTRL', action = act.ActivatePaneDirection 'Right' },
-          { key = 'RightArrow', mods = 'SHIFT|ALT|CTRL', action = act.AdjustPaneSize{ 'Right', 1 } },
-          { key = 'UpArrow', mods = 'SHIFT|CTRL', action = act.ActivatePaneDirection 'Up' },
-          { key = 'UpArrow', mods = 'SHIFT|ALT|CTRL', action = act.AdjustPaneSize{ 'Up', 1 } },
-          { key = 'DownArrow', mods = 'SHIFT|CTRL', action = act.ActivatePaneDirection 'Down' },
-          { key = 'DownArrow', mods = 'SHIFT|ALT|CTRL', action = act.AdjustPaneSize{ 'Down', 1 } },
-          { key = 'Copy', mods = 'NONE', action = act.CopyTo 'Clipboard' },
-          { key = 'Paste', mods = 'NONE', action = act.PasteFrom 'Clipboard' },
         },
 
         key_tables = {
-          copy_mode = {
-            { key = 'Tab', mods = 'NONE', action = act.CopyMode 'MoveForwardWord' },
-            { key = 'Tab', mods = 'SHIFT', action = act.CopyMode 'MoveBackwardWord' },
-            { key = 'Enter', mods = 'NONE', action = act.CopyMode 'MoveToStartOfNextLine' },
-            { key = 'Escape', mods = 'NONE', action = act.CopyMode 'Close' },
-            { key = 'Space', mods = 'NONE', action = act.CopyMode{ SetSelectionMode =  'Cell' } },
-            { key = '$', mods = 'NONE', action = act.CopyMode 'MoveToEndOfLineContent' },
-            { key = '$', mods = 'SHIFT', action = act.CopyMode 'MoveToEndOfLineContent' },
-            { key = ',', mods = 'NONE', action = act.CopyMode 'JumpReverse' },
-            { key = '0', mods = 'NONE', action = act.CopyMode 'MoveToStartOfLine' },
-            { key = ';', mods = 'NONE', action = act.CopyMode 'JumpAgain' },
-            { key = 'F', mods = 'NONE', action = act.CopyMode{ JumpBackward = { prev_char = false } } },
-            { key = 'F', mods = 'SHIFT', action = act.CopyMode{ JumpBackward = { prev_char = false } } },
-            { key = 'G', mods = 'NONE', action = act.CopyMode 'MoveToScrollbackBottom' },
-            { key = 'G', mods = 'SHIFT', action = act.CopyMode 'MoveToScrollbackBottom' },
-            { key = 'H', mods = 'NONE', action = act.CopyMode 'MoveToViewportTop' },
-            { key = 'H', mods = 'SHIFT', action = act.CopyMode 'MoveToViewportTop' },
-            { key = 'L', mods = 'NONE', action = act.CopyMode 'MoveToViewportBottom' },
-            { key = 'L', mods = 'SHIFT', action = act.CopyMode 'MoveToViewportBottom' },
-            { key = 'M', mods = 'NONE', action = act.CopyMode 'MoveToViewportMiddle' },
-            { key = 'M', mods = 'SHIFT', action = act.CopyMode 'MoveToViewportMiddle' },
-            { key = 'O', mods = 'NONE', action = act.CopyMode 'MoveToSelectionOtherEndHoriz' },
-            { key = 'O', mods = 'SHIFT', action = act.CopyMode 'MoveToSelectionOtherEndHoriz' },
-            { key = 'T', mods = 'NONE', action = act.CopyMode{ JumpBackward = { prev_char = true } } },
-            { key = 'T', mods = 'SHIFT', action = act.CopyMode{ JumpBackward = { prev_char = true } } },
-            { key = 'V', mods = 'NONE', action = act.CopyMode{ SetSelectionMode =  'Line' } },
-            { key = 'V', mods = 'SHIFT', action = act.CopyMode{ SetSelectionMode =  'Line' } },
-            { key = '^', mods = 'NONE', action = act.CopyMode 'MoveToStartOfLineContent' },
-            { key = '^', mods = 'SHIFT', action = act.CopyMode 'MoveToStartOfLineContent' },
-            { key = 'b', mods = 'NONE', action = act.CopyMode 'MoveBackwardWord' },
-            { key = 'b', mods = 'ALT', action = act.CopyMode 'MoveBackwardWord' },
-            { key = 'b', mods = 'CTRL', action = act.CopyMode 'PageUp' },
-            { key = 'c', mods = 'CTRL', action = act.CopyMode 'Close' },
-            { key = 'd', mods = 'CTRL', action = act.CopyMode{ MoveByPage = (0.5) } },
-            { key = 'e', mods = 'NONE', action = act.CopyMode 'MoveForwardWordEnd' },
-            { key = 'f', mods = 'NONE', action = act.CopyMode{ JumpForward = { prev_char = false } } },
-            { key = 'f', mods = 'ALT', action = act.CopyMode 'MoveForwardWord' },
-            { key = 'f', mods = 'CTRL', action = act.CopyMode 'PageDown' },
-            { key = 'g', mods = 'NONE', action = act.CopyMode 'MoveToScrollbackTop' },
-            { key = 'g', mods = 'CTRL', action = act.CopyMode 'Close' },
-            { key = 'h', mods = 'NONE', action = act.CopyMode 'MoveLeft' },
-            { key = 'j', mods = 'NONE', action = act.CopyMode 'MoveDown' },
-            { key = 'k', mods = 'NONE', action = act.CopyMode 'MoveUp' },
-            { key = 'l', mods = 'NONE', action = act.CopyMode 'MoveRight' },
-            { key = 'm', mods = 'ALT', action = act.CopyMode 'MoveToStartOfLineContent' },
-            { key = 'o', mods = 'NONE', action = act.CopyMode 'MoveToSelectionOtherEnd' },
-            { key = 'q', mods = 'NONE', action = act.CopyMode 'Close' },
-            { key = 't', mods = 'NONE', action = act.CopyMode{ JumpForward = { prev_char = true } } },
-            { key = 'u', mods = 'CTRL', action = act.CopyMode{ MoveByPage = (-0.5) } },
-            { key = 'v', mods = 'NONE', action = act.CopyMode{ SetSelectionMode =  'Cell' } },
-            { key = 'v', mods = 'CTRL', action = act.CopyMode{ SetSelectionMode =  'Block' } },
-            { key = 'w', mods = 'NONE', action = act.CopyMode 'MoveForwardWord' },
-            { key = 'y', mods = 'NONE', action = act.Multiple{ { CopyTo =  'ClipboardAndPrimarySelection' }, { CopyMode =  'Close' } } },
-            { key = 'PageUp', mods = 'NONE', action = act.CopyMode 'PageUp' },
-            { key = 'PageDown', mods = 'NONE', action = act.CopyMode 'PageDown' },
-            { key = 'End', mods = 'NONE', action = act.CopyMode 'MoveToEndOfLineContent' },
-            { key = 'Home', mods = 'NONE', action = act.CopyMode 'MoveToStartOfLine' },
-            { key = 'LeftArrow', mods = 'NONE', action = act.CopyMode 'MoveLeft' },
-            { key = 'LeftArrow', mods = 'ALT', action = act.CopyMode 'MoveBackwardWord' },
-            { key = 'RightArrow', mods = 'NONE', action = act.CopyMode 'MoveRight' },
-            { key = 'RightArrow', mods = 'ALT', action = act.CopyMode 'MoveForwardWord' },
-            { key = 'UpArrow', mods = 'NONE', action = act.CopyMode 'MoveUp' },
-            { key = 'DownArrow', mods = 'NONE', action = act.CopyMode 'MoveDown' },
+          workspace_nav = {
+            { key = 'l', action = act.SwitchWorkspaceRelative(1) },
+            { key = 'u', action = act.SwitchWorkspaceRelative(-1) },
+            { key = 'a', action = act.ShowLauncherArgs{ flags = 'FUZZY|TABS|WORKSPACES' } },
+            { key = 'e', action = act.EmitEvent 'switch-to-main-editor' },
+            { key = 'r', action = act.ShowLauncherArgs{ flags = 'FUZZY|WORKSPACES' } },
+            { key = 's', action = act.ShowLauncherArgs{ flags = 'FUZZY|WORKSPACES' } },
+            { key = 'w', action = act.ShowLauncherArgs{ flags = 'FUZZY|TABS' } },
+            { key = 'Escape', action = 'PopKeyTable' },
           },
-
-          search_mode = {
-            { key = 'Enter', mods = 'NONE', action = act.CopyMode 'PriorMatch' },
-            { key = 'Escape', mods = 'NONE', action = act.CopyMode 'Close' },
-            { key = 'n', mods = 'CTRL', action = act.CopyMode 'NextMatch' },
-            { key = 'p', mods = 'CTRL', action = act.CopyMode 'PriorMatch' },
-            { key = 'r', mods = 'CTRL', action = act.CopyMode 'CycleMatchType' },
-            { key = 'u', mods = 'CTRL', action = act.CopyMode 'ClearPattern' },
-            { key = 'PageUp', mods = 'NONE', action = act.CopyMode 'PriorMatchPage' },
-            { key = 'PageDown', mods = 'NONE', action = act.CopyMode 'NextMatchPage' },
-            { key = 'UpArrow', mods = 'NONE', action = act.CopyMode 'PriorMatch' },
-            { key = 'DownArrow', mods = 'NONE', action = act.CopyMode 'NextMatch' },
-          },
-      ]]
+        },
+      }
     '';
   };
 }
