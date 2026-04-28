@@ -41,9 +41,40 @@
     };
   };
 
-  system.stateVersion = 5;
+  # SmolVM 用ローカル OCI レジストリ (crane registry serve)
+  # nix build した monitoring-ops イメージを SmolVM に配信するために常駐
+  launchd.daemons.crane-registry = {
+    script = ''
+      ${pkgs.crane}/bin/crane registry serve --address=:1338
+    '';
+    serviceConfig = {
+      RunAtLoad = true;
+      KeepAlive = true;
+      StandardErrorPath = "/var/log/crane-registry.log";
+      StandardOutPath = "/var/log/crane-registry.log";
+    };
+  };
 
-  system.primaryUser = "narinari";
+  # SmolVM 監視 ops 用: スリープ無効化
+  power = {
+    sleep = {
+      computer = "never";
+      display = 30;
+      harddisk = "never";
+    };
+    restartAfterFreeze = true;
+  };
+
+  system = {
+    # pmset で管理できない設定は activation script で
+    activationScripts.postActivation.text = ''
+      pmset -c powernap 0
+      pmset -c tcpkeepalive 1
+    '';
+    defaults.SoftwareUpdate.AutomaticallyInstallMacOSUpdates = false;
+    stateVersion = 5;
+    primaryUser = "narinari";
+  };
 
   # Add ability to used TouchID for sudo authentication
   security.pam.services.sudo_local.touchIdAuth = true;

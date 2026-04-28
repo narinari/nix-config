@@ -54,6 +54,19 @@ in
       trusted-users = @admin root narinari
     '';
     nixPath = mkForce nixPath;
+
+    # Apple Virtualization.framework 上の NixOS VM (aarch64-linux ビルド用)
+    linux-builder = {
+      enable = true;
+      maxJobs = 4;
+      config = {
+        virtualisation = {
+          darwin-builder.diskSize = lib.mkForce (40 * 1024);
+          cores = lib.mkForce 4;
+          memorySize = lib.mkForce 4096;
+        };
+      };
+    };
   };
 
   # Too many packages try to spawn a server during their tests and connect to it,
