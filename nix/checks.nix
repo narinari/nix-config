@@ -1,5 +1,6 @@
 {
   pkgs,
+  self,
   pre-commit-hooks,
   deploy-rs,
   ...
@@ -23,7 +24,6 @@ with pkgs;
       shfmt = {
         enable = true;
         excludes = [
-          "hosts/FL4N2RD4TD/core/p10k-config/p10k.zsh"
           "home-manager/narinari/work/work-config/aws.zsh"
         ];
       };

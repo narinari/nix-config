@@ -5,6 +5,44 @@
 - [[https://github.com/nix-community/home-manager][home-manager]]
 - Encrypt secret resources with sops-nix and age
 - Multi-platform(Linux & Darwin(MacOS)), Multi-architecture(x86_64 & aarch64)
+- Sub-flakes for independent lock files (infra / workstations)
+
+* Architecture
+
+#+begin_example
+nix-config/
+  flake.nix              # Orchestrator: deploy-rs, devShell, re-exports
+  flake.lock             # deploy-rs, pre-commit-hooks, path: refs only
+
+  infra/
+    flake.nix            # Home servers (nixpkgs = nixos-unstable)
+    flake.lock           # Independent lock file
+
+  workstations/
+    flake.nix            # Desktop + Darwin (nixpkgs = master)
+    flake.lock           # Independent lock file
+
+  hosts/                 # Shared host configurations (plain .nix)
+  home-manager/          # Shared home-manager configurations
+  modules/               # Custom NixOS/Darwin modules
+  lib/                   # Helper functions
+  overlays/              # Package overlays
+  pkgs/                  # Custom packages
+#+end_example
+
+** Host Mapping
+
+| Sub-flake    | Host      | Arch           | Role                  |
+|--------------+-----------+----------------+-----------------------|
+| infra        | jarvis    | aarch64-linux  | RPi4 server           |
+| infra        | friday    | aarch64-linux  | RPi4 server           |
+| infra        | silk      | aarch64-linux  | RPi4 server           |
+| infra        | rpi4-base | aarch64-linux  | RPi4 base image       |
+| infra        | jellyfin  | x86_64-linux   | Media server (LXC)    |
+| infra        | rin       | x86_64-linux   | Proxmox LXC           |
+| infra        | openclaw  | x86_64-linux   | OpenClaw (LXC only)   |
+| workstations | khali     | x86_64-linux   | Desktop (Hyprland)    |
+| workstations | hail-mary | aarch64-darwin | MacBook               |
 
 * Commands
 ** Install nix
@@ -20,32 +58,48 @@ sh <(curl -L https://nixos.org/nix/install) \
     --no-channel-add \
     --nix-extra-conf-file <(<<< "${CONFIGURATION}")
 #+end_src
+
+** Update dependencies
+
+#+begin_src shell
+# Update server nixpkgs independently
+cd infra && nix flake update nixpkgs
+
+# Update workstation nixpkgs independently
+cd workstations && nix flake update nixpkgs
+
+# Update all inputs for a sub-flake
+cd infra && nix flake update
+cd workstations && nix flake update
+#+end_src
+
 ** Setup on machine
 #+begin_src shell
 # On MacOS machine
 # - first time
 git clone git@github.com:narinari/nix-config.git
-nix nix run nix-darwin -- switch --flake ~/nix-config
+nix run nix-darwin -- switch --flake ~/nix-config
 # - second and more
 darwin-rebuild switch --flake ~/nix-config
 
 # On Linux machine
-nix build .#nixosConfigurations.khali.system && nixos-rebuild switch --flake .
+nixos-rebuild switch --flake .#khali
 #+end_src
 
-*** on Nixos
+*** on NixOS
 #+begin_src shell
-# checkout nix-config
-## on remote
-
-# build
+# build and switch (from repo root)
 sudo nixos-rebuild switch --flake ~/nix-config#rin
 
-# build disk image
-cd ~/nix-config
-nix build .#nixosConfigurations.rin.config.formats.proxmox
+# or build directly from sub-flake
+nix build ./infra#nixosConfigurations.rin.config.system.build.toplevel
 
+# build LXC images
+nix build ./infra#packages.x86_64-linux.rin-lxc
+nix build ./infra#packages.x86_64-linux.jellyfin-lxc
+nix build ./infra#packages.x86_64-linux.openclaw-lxc
 #+end_src
+
 *** Nix on Ubuntu
 
 #+begin_src shell
@@ -66,13 +120,24 @@ scp ~/.config/sops/age/keys.txt <remote>:.config/sops/age # upload age secret ke
 ## on remote
 
 # build
-home-manager switch --flake ~/nix-config"#narinari@work-dev"
+home-manager switch --flake ~/nix-config"#narinari@work-ec2"
 #+end_src
 
 *** Nix on Darwin
 #+begin_src shell
 # build and switch
-nix build ~/nix-config#darwinConfigurations.FL4N2RD4TD.system && darwin-rebuild switch --flake ~/nix-config
+darwin-rebuild switch --flake ~/nix-config#hail-mary
+#+end_src
+
+** Deploy (remote servers)
+#+begin_src shell
+# Deploy a single server
+deploy .#jarvis
+
+# Dry-run
+deploy .#jarvis --dry-activate
+
+# Available deploy targets: jarvis, friday, jellyfin, rin, silk
 #+end_src
 
 ** Edit secrets
@@ -84,7 +149,10 @@ sops work/xxx.yaml
 git ci -m "Update secrets" && git pu
 
 cd nix-config
-nix flake update --input-update my-secrets
+# update secrets for servers
+cd infra && nix flake update my-secrets
+# update secrets for workstations
+cd workstations && nix flake update my-secrets
 #+end_src
 
 * See
