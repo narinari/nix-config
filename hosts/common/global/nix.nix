@@ -77,7 +77,7 @@
           "benchmark"
           "big-parallel"
         ];
-        publicHostKey = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU5LbUp6VHJ0UWNNOVVoT2NjV1pGbVRVQjFkTkRQekVuYjlZN2dNMW93V0sgbmFyaW5hcmlAa2hhbGk=";
+        publicHostKey = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUo1YVU5SC9DRjhRdmZ6UGVDOUZpbkI1WEJiNXUxRk1VbzMrcjM2Z1JrMWwgcmluLWhvc3QK";
       }
       # jarvis RPi4 (aarch64-linux ビルド用)
       {
@@ -106,7 +106,7 @@
     ];
 
     extraOptions = ''
-      extra-platforms = aarch64-linux aarch64-darwin
+      extra-platforms = aarch64-linux aarch64-darwin i686-linux
       builders-use-substitutes = true
     '';
   };
