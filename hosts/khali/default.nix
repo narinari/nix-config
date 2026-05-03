@@ -10,6 +10,7 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ./hermes-agent.nix
     ../common/global
     ../common/linux
     ../common/linux/home-network.nix
