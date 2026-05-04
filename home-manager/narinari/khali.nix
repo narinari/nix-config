@@ -80,7 +80,10 @@ in
     enable = true;
     systemd.enable = false; # UWSM がセッション管理するため HM 側は無効化
     settings = {
-      monitor = [ ",preferred,auto,1" ];
+      monitor = [
+        ",preferred,auto,1"
+        "DP-3, disable"
+      ];
 
       "$mod" = "SUPER";
 

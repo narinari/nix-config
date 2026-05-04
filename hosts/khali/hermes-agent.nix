@@ -13,6 +13,7 @@
 {
   pkgs,
   inputs,
+  config,
   ...
 }:
 
@@ -21,10 +22,18 @@ let
   # hermes-agent モジュールが environmentFiles を要求するためダミーを供給する。
   hermesEnvFile = pkgs.writeText "hermes-env" ''
     OPENAI_API_KEY=aperture-tailscale-identity
+    GATEWAY_ALLOW_ALL_USERS=true
+
+    DISCORD_ALLOWED_ROLES=1028883038228189185
+    DISCORD_HOME_CHANNEL=1500767462637961246
   '';
 in
 {
   imports = [ inputs.hermes-agent.nixosModules.default ];
+
+  age.secrets."friday-hermes-env" = {
+    file = "${inputs.my-secrets}/private/friday-hermes-env.age";
+  };
 
   services.hermes-agent = {
     enable = true;
@@ -50,10 +59,21 @@ in
         backend = "local";
         timeout = 180;
       };
+
+      # 応答言語の強制 (qwen3.6 は default 英語応答するため)
+      agent = {
+        personality = "kawaii";
+        system_prompt_prefix = "常に日本語で応答すること。英語で書かれたファイル・コード・エラーメッセージについても、説明・解説は必ず日本語で行う。技術用語や型名・コマンド名などの固有名詞は英語のままでもよいが、文脈説明・コードの解説・エラー分析などは全部日本語で書くこと。";
+      };
+
+      group_sessions_per_user = false;
     };
 
     # listOf str 型のため toString で /nix/store パスに変換
-    environmentFiles = [ (toString hermesEnvFile) ];
+    environmentFiles = [
+      (toString hermesEnvFile)
+      config.age.secrets."friday-hermes-env".path
+    ];
   };
 
   # narinari ユーザーが /var/lib/hermes/.hermes/.env を読めるようにする

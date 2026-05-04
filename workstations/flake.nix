@@ -102,7 +102,10 @@
             baseHostname = "khali";
           };
           system = "x86_64-linux";
-          modules = [ ../hosts/khali ];
+          modules = [
+            ../hosts/khali
+            inputs.agenix.nixosModules.default
+          ];
         };
       };
 
@@ -122,6 +125,7 @@
           modules = [
             ../home-manager/narinari/khali.nix
             inputs.sops-nix.homeManagerModule
+            inputs.agenix.homeManagerModule.default
           ];
           pkgs = pkgsFor "x86_64-linux";
           extraSpecialArgs = { inherit inputs outputs; };

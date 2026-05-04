@@ -575,11 +575,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1772359435,
-        "narHash": "sha256-82rG+CGfyRQcHXizBof7bzFsU+U5TI5qXYaVFUiNBHE=",
+        "lastModified": 1777906219,
+        "narHash": "sha256-MYhrxSwUsfOpGM2cxyBoffxbGtnvv0A/wqKD8L/OAbQ=",
         "ref": "main",
-        "rev": "47ac001f836dc9559a7bfcea873e6eeec349a864",
-        "revCount": 44,
+        "rev": "24072a82d6ccd4e2bb1683e1b6fe52ec88d3723b",
+        "revCount": 46,
         "type": "git",
         "url": "ssh://git@github.com/narinari/nix-secrets"
       },
@@ -601,11 +601,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1772359435,
-        "narHash": "sha256-82rG+CGfyRQcHXizBof7bzFsU+U5TI5qXYaVFUiNBHE=",
+        "lastModified": 1777906219,
+        "narHash": "sha256-MYhrxSwUsfOpGM2cxyBoffxbGtnvv0A/wqKD8L/OAbQ=",
         "ref": "main",
-        "rev": "47ac001f836dc9559a7bfcea873e6eeec349a864",
-        "revCount": 44,
+        "rev": "24072a82d6ccd4e2bb1683e1b6fe52ec88d3723b",
+        "revCount": 46,
         "type": "git",
         "url": "ssh://git@github.com/narinari/nix-secrets"
       },
@@ -894,11 +894,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1775036584,
-        "narHash": "sha256-zW0lyy7ZNNT/x8JhzFHBsP2IPx7ATZIPai4FJj12BgU=",
+        "lastModified": 1776796298,
+        "narHash": "sha256-PcRvlWayisPSjd0UcRQbhG8Oqw78AcPE6x872cPRHN8=",
         "owner": "cachix",
         "repo": "pre-commit-hooks.nix",
-        "rev": "4e0eb042b67d863b1b34b3f64d52ceb9cd926735",
+        "rev": "3cfd774b0a530725a077e17354fbdb87ea1c4aad",
         "type": "github"
       },
       "original": {

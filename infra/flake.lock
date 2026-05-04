@@ -198,11 +198,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1772359435,
-        "narHash": "sha256-82rG+CGfyRQcHXizBof7bzFsU+U5TI5qXYaVFUiNBHE=",
+        "lastModified": 1777906219,
+        "narHash": "sha256-MYhrxSwUsfOpGM2cxyBoffxbGtnvv0A/wqKD8L/OAbQ=",
         "ref": "main",
-        "rev": "47ac001f836dc9559a7bfcea873e6eeec349a864",
-        "revCount": 44,
+        "rev": "24072a82d6ccd4e2bb1683e1b6fe52ec88d3723b",
+        "revCount": 46,
         "type": "git",
         "url": "ssh://git@github.com/narinari/nix-secrets"
       },
