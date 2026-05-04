@@ -8,3 +8,9 @@ tmp/
 
 .direnv
 /.pre-commit-config.yaml
+
+# SSH host keys / builder keys (private - never commit)
+ssh_host_*_key
+ssh_host_*_key.pub
+builder_*
+
