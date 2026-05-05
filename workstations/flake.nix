@@ -56,6 +56,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    noctalia = {
+      url = "github:noctalia-dev/noctalia-shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     codex-cli-nix.url = "github:sadjow/codex-cli-nix";
 
     # tarball download (github: type) は repo サイズ (~173MB) で truncate するため
@@ -126,6 +131,7 @@
             ../home-manager/narinari/khali.nix
             inputs.sops-nix.homeManagerModule
             inputs.agenix.homeManagerModule.default
+            inputs.noctalia.homeModules.default
           ];
           pkgs = pkgsFor "x86_64-linux";
           extraSpecialArgs = { inherit inputs outputs; };

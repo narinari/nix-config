@@ -72,6 +72,8 @@ in
     ./features/desktop/hyprlock.nix
     ./features/desktop/hypridle.nix
     ./features/desktop/hyprpanel.nix
+    ./features/desktop/niri.nix
+    ./features/desktop/noctalia.nix
     ./linux
   ];
 

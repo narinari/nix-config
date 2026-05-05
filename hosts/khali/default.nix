@@ -97,10 +97,33 @@
       xwayland.enable = true;
       withUWSM = true; # uwsm 経由で起動 (systemd セッション管理)
     };
+    # niri (Wayland scrollable-tiling コンポジタ) — Hyprland と併存。
+    # tuigreet のセッション選択でどちらかを起動する。
+    niri.enable = true;
     uwsm.enable = true; # UWSM の systemd 統合 (xdg-desktop-autostart.target を有効化)
     dconf.enable = true;
     ssh.startAgent = true;
   };
+
+  # programs.niri が xdg.portal に gnome portal を、また gnome-keyring も
+  # 自動で有効化する。gnome-keyring は gcr-ssh-agent を引き入れ、これが
+  # programs.ssh.startAgent と衝突する。SSH agent は openssh 側を維持したい
+  # ため、gcr-ssh-agent だけ明示 off にする。
+  services.gnome.gcr-ssh-agent.enable = false;
+
+  # noctalia (Quickshell ベースのデスクトップシェル) の binary cache。
+  # Quickshell のローカルビルドを回避するため。
+  nix.settings = {
+    substituters = [ "https://noctalia.cachix.org" ];
+    trusted-public-keys = [ "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4=" ];
+  };
+
+  # NixOS 統合の home-manager にも noctalia の HM module を渡す
+  # (hosts/common/users/narinari で home-manager.users.narinari に
+  #  khali.nix を import しているため、ここで sharedModules を渡す必要がある)。
+  home-manager.sharedModules = [
+    inputs.noctalia.homeModules.default
+  ];
 
   # Intel iGPU primary + NVIDIA PRIME offload 用セッション変数
   environment.sessionVariables = {

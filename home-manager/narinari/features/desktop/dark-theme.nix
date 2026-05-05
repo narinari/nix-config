@@ -1,20 +1,31 @@
 { pkgs, ... }:
 
 {
-  # GTK テーマ (GTK3 + GTK4/libadwaita)
+  # GTK テーマ (GTK3 + GTK4/libadwaita) とアイコン
   gtk = {
     enable = true;
     theme = {
       name = "adw-gtk3-dark";
       package = pkgs.adw-gtk3;
     };
+    iconTheme = {
+      name = "Papirus-Dark";
+      package = pkgs.papirus-icon-theme;
+    };
+    cursorTheme = {
+      name = "Adwaita";
+      package = pkgs.adwaita-icon-theme;
+    };
   };
 
-  # libadwaita (GTK4) ダークモード
+  # libadwaita (GTK4) ダークモード + Qt/Quickshell から見える icon-theme
+  # Quickshell (Qt6 QIconLoader) は GSettings の icon-theme を参照する
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
       gtk-theme = "adw-gtk3-dark";
+      icon-theme = "Papirus-Dark";
+      cursor-theme = "Adwaita";
     };
   };
 
