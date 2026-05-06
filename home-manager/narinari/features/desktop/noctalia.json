@@ -1,7 +1,7 @@
 {
   "settingsVersion": 59,
   "bar": {
-    "barType": "simple",
+    "barType": "floating",
     "position": "left",
     "monitors": [],
     "density": "comfortable",
@@ -638,7 +638,7 @@
     "enabled": true,
     "screenOffTimeout": 600,
     "lockTimeout": 0,
-    "suspendTimeout": 1800,
+    "suspendTimeout": 0,
     "fadeDuration": 5,
     "screenOffCommand": "",
     "lockCommand": "",

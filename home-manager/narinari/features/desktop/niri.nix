@@ -60,18 +60,18 @@
 
     binds {
         Mod+Return       { spawn "wezterm"; }
-        Mod+D            { spawn "fuzzel"; }
+        Mod+D            { spawn "noctalia-shell ipc call launcher toggle"; }
         Mod+Q            { close-window; }
-        Mod+Shift+E      { quit; }
+        Mod+Shift+Q      { quit; }
 
-        Mod+H            { focus-column-left; }
-        Mod+L            { focus-column-right; }
-        Mod+J            { focus-window-down; }
-        Mod+K            { focus-window-up; }
-        Mod+Shift+H      { move-column-left; }
-        Mod+Shift+L      { move-column-right; }
-        Mod+Shift+J      { move-window-down; }
-        Mod+Shift+K      { move-window-up; }
+        Mod+M            { focus-column-left; }
+        Mod+I            { focus-column-right; }
+        Mod+N            { focus-window-down; }
+        Mod+E            { focus-window-up; }
+        Mod+Shift+M      { move-column-left; }
+        Mod+Shift+I      { move-column-right; }
+        Mod+Shift+N      { move-window-down; }
+        Mod+Shift+E      { move-window-up; }
 
         Mod+1            { focus-workspace 1; }
         Mod+2            { focus-workspace 2; }
