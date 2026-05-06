@@ -51,7 +51,7 @@ in
 {
   # Linux: nix パッケージからインストール (macOS: Homebrew cask で管理)
   home.packages = lib.optionals isLinux [
-    inputs.codex-cli-nix.packages.${pkgs.system}.default
+    inputs.codex-cli-nix.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 
   home.activation.codexConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

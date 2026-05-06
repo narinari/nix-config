@@ -60,7 +60,6 @@
         libvdpau-va-gl
       ];
     };
-    pulseaudio.enable = false;
   };
 
   # jarvisのSamba共有をマウント
@@ -104,12 +103,6 @@
     dconf.enable = true;
     ssh.startAgent = true;
   };
-
-  # programs.niri が xdg.portal に gnome portal を、また gnome-keyring も
-  # 自動で有効化する。gnome-keyring は gcr-ssh-agent を引き入れ、これが
-  # programs.ssh.startAgent と衝突する。SSH agent は openssh 側を維持したい
-  # ため、gcr-ssh-agent だけ明示 off にする。
-  services.gnome.gcr-ssh-agent.enable = false;
 
   # noctalia (Quickshell ベースのデスクトップシェル) の binary cache。
   # Quickshell のローカルビルドを回避するため。
@@ -155,6 +148,15 @@
     # Tailscale VPN
     tailscale.enable = true;
 
+    # PulseAudio を無効化 (PipeWire を使うため)
+    pulseaudio.enable = false;
+
+    # programs.niri が xdg.portal に gnome portal を、また gnome-keyring も
+    # 自動で有効化する。gnome-keyring は gcr-ssh-agent を引き入れ、これが
+    # programs.ssh.startAgent と衝突する。SSH agent は openssh 側を維持したい
+    # ため、gcr-ssh-agent だけ明示 off にする。
+    gnome.gcr-ssh-agent.enable = false;
+
     # Intel iGPU をプライマリに設定
     xserver.videoDrivers = [
       "modesetting"
@@ -165,7 +167,7 @@
     greetd = {
       enable = true;
       settings.default_session = {
-        command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --remember --sessions ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions";
+        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --sessions ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions";
         user = "greeter";
       };
     };

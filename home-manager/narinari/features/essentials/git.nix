@@ -24,6 +24,7 @@
   programs = {
     git = {
       enable = true;
+      signing.format = "openpgp"; # legacy default の明示 (home.stateVersion < "25.05" の警告抑止)
       settings = {
         alias = {
           alias = "!git config --list | grep 'alias\\.' | sed 's/alias\\.\\([^=]*\\)=\\(.*\\)/\\1\\	 => \\2/' | sort";

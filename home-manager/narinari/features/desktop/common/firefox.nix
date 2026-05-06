@@ -11,7 +11,7 @@
     enable = false;
     package = pkgs.firefox-bin;
     profiles.narinari = {
-      extensions = with inputs.firefox-addons.packages.${pkgs.system}; [
+      extensions = with inputs.firefox-addons.packages.${pkgs.stdenv.hostPlatform.system}; [
         bitwarden
         tridactyl
       ];

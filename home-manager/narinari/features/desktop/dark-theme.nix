@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   # GTK テーマ (GTK3 + GTK4/libadwaita) とアイコン
@@ -8,6 +8,8 @@
       name = "adw-gtk3-dark";
       package = pkgs.adw-gtk3;
     };
+    # GTK4 にも GTK3 と同じテーマを当てる (home-manager の legacy default を明示)
+    gtk4.theme = config.gtk.theme;
     iconTheme = {
       name = "Papirus-Dark";
       package = pkgs.papirus-icon-theme;

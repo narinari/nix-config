@@ -15,12 +15,12 @@
     feh # light-weight image viewer
     xdg-utils
     noto-fonts-cjk-sans
-    outputs.packages."${pkgs.system}".berkeley-mono
-    outputs.packages."${pkgs.system}".berkeley-mono-nerdfonts
-    outputs.packages."${pkgs.system}".sf-mono
-    outputs.packages."${pkgs.system}".sf-mono-nerdfonts
-    outputs.packages."${pkgs.system}".ibm-plex-sans
-    outputs.packages."${pkgs.system}".moralerspace-hw-nerdfonts
+    outputs.packages."${pkgs.stdenv.hostPlatform.system}".berkeley-mono
+    outputs.packages."${pkgs.stdenv.hostPlatform.system}".berkeley-mono-nerdfonts
+    outputs.packages."${pkgs.stdenv.hostPlatform.system}".sf-mono
+    outputs.packages."${pkgs.stdenv.hostPlatform.system}".sf-mono-nerdfonts
+    outputs.packages."${pkgs.stdenv.hostPlatform.system}".ibm-plex-sans
+    outputs.packages."${pkgs.stdenv.hostPlatform.system}".moralerspace-hw-nerdfonts
   ];
 
   home.sessionVariables = {

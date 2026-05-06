@@ -65,7 +65,7 @@
           checks = import ./nix/checks.nix {
             inherit pkgs self;
             inherit (inputs) pre-commit-hooks deploy-rs;
-          } pkgs.system;
+          } pkgs.stdenv.hostPlatform.system;
         }
       );
 

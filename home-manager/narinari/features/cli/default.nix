@@ -26,7 +26,7 @@
     nixos-shell
     manix
     nil # Nix LSP
-    nixfmt-rfc-style # Nix formatter
+    nixfmt # Nix formatter (RFC style; `nixfmt-rfc-style` is now an alias for this)
 
     # espeak
     socat
