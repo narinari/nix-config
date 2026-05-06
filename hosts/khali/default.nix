@@ -136,6 +136,20 @@
   };
 
   services = {
+    # systemd-resolved を有効化
+    # tailscaled が /etc/resolv.conf を 100.100.100.100 で書き潰す問題を回避するため。
+    # resolved があると tailscaled は D-Bus 経由で tailscale0 link に MagicDNS を
+    # split DNS で登録し、DHCP 由来の DNS (RTX810 = 192.168.100.1) と共存できる。
+    # 参考: https://wiki.nixos.org/wiki/Tailscale, Tailscale FAQ "dns-resolv-conf"
+    resolved = {
+      enable = true;
+      dnssec = "false"; # RTX810 が EDNS 非対応のため
+      fallbackDns = [
+        "1.1.1.1"
+        "8.8.8.8"
+      ];
+    };
+
     # Tailscale VPN
     tailscale.enable = true;
 
