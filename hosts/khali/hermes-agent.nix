@@ -57,7 +57,7 @@ in
       # 端末コマンド実行はホスト直接実行 (SmolVM サンドボックス連携は Phase 2)
       terminal = {
         backend = "local";
-        timeout = 180;
+        timeout = 600;
       };
 
       # 応答言語の強制 (qwen3.6 は default 英語応答するため)
@@ -68,6 +68,12 @@ in
 
       group_sessions_per_user = false;
     };
+
+    extraPackages = [
+      pkgs.curl
+      pkgs.pandoc
+      pkgs.imagemagick
+    ];
 
     # listOf str 型のため toString で /nix/store パスに変換
     environmentFiles = [
