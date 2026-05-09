@@ -5,6 +5,9 @@
 #   - 直接接続ではなく Tailscale Aperture (http://ai/v1) を経由
 #     → 認証は Aperture が Tailscale identity で代行 (実 API キー不要)
 #   - 既存 Codex CLI 構成 (home-manager/narinari/features/llm/codex.nix) と同経路
+#   - browser ツールは agent-browser CLI が local Chromium を直接 spawn する
+#     (browser.cdp_url を設定しない = local mode、AGENT_BROWSER_EXECUTABLE_PATH で
+#      Nix の chromium を指定)
 #
 # テスト:
 #   systemctl status hermes-agent
@@ -18,6 +21,11 @@
 }:
 
 let
+  # agent-browser が spawn する local Chromium。
+  # Playwright が DL する Chromium は Nix sandbox 下で動かないため、Nix store の
+  # chromium バイナリを AGENT_BROWSER_EXECUTABLE_PATH 経由で渡す。
+  inherit (pkgs) chromium;
+
   # Aperture は Tailscale identity で認証するため実 API キーは不要だが、
   # hermes-agent モジュールが environmentFiles を要求するためダミーを供給する。
   hermesEnvFile = pkgs.writeText "hermes-env" ''
@@ -26,6 +34,8 @@ let
 
     DISCORD_ALLOWED_ROLES=1028883038228189185
     DISCORD_HOME_CHANNEL=1500767462637961246
+
+    AGENT_BROWSER_EXECUTABLE_PATH=${chromium}/bin/chromium
   '';
 in
 {
@@ -66,13 +76,25 @@ in
         system_prompt_prefix = "常に日本語で応答すること。英語で書かれたファイル・コード・エラーメッセージについても、説明・解説は必ず日本語で行う。技術用語や型名・コマンド名などの固有名詞は英語のままでもよいが、文脈説明・コードの解説・エラー分析などは全部日本語で書くこと。";
       };
 
+      toolsets = [ "browser" ];
+
       group_sessions_per_user = false;
+
+      # web_search のバックエンドとして localhost の SearXNG (services.searx) を使う。
+      # SearXNG は search-only なので web_extract / web_crawl は無効のまま。
+      # 詳細: https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search#searxng-free-self-hosted
+      web.search_backend = "searxng";
     };
 
     extraPackages = [
       pkgs.curl
       pkgs.pandoc
       pkgs.imagemagick
+      # browser ツール (browser_tool.py) は agent-browser CLI を subprocess で起動する
+      # browser.cdp_url 未設定 = local mode → agent-browser が --session <uuid> で
+      # AGENT_BROWSER_EXECUTABLE_PATH の Chromium を spawn する
+      pkgs.agent-browser
+      chromium
     ];
 
     # listOf str 型のため toString で /nix/store パスに変換
@@ -80,6 +102,12 @@ in
       (toString hermesEnvFile)
       config.age.secrets."friday-hermes-env".path
     ];
+
+    # 非機密 env (HERMES_HOME/.env にマージされる)
+    # SEARXNG_URL は services.searx 側のエンドポイントを直接参照する。
+    environment = {
+      SEARXNG_URL = "http://127.0.0.1:8888";
+    };
   };
 
   # narinari ユーザーが /var/lib/hermes/.hermes/.env を読めるようにする

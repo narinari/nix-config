@@ -388,16 +388,17 @@
         "uv2nix": "uv2nix_2"
       },
       "locked": {
-        "lastModified": 1777718281,
-        "narHash": "sha256-pOzw01NOHyl1VW+uJ/Uk/Tp0/Vk/YMh/gODHwfE/DJ0=",
-        "ref": "refs/heads/main",
-        "rev": "5d3be898a8671eb9fb99cf18f43165502f54e7f4",
-        "revCount": 6945,
+        "lastModified": 1778170968,
+        "narHash": "sha256-PxNRoKE80RpurGH6supHqfH28L4O27i0wCdD7Qhr0pI=",
+        "ref": "refs/tags/v2026.5.7",
+        "rev": "498bfc7bc12a937621b4215312049b1000726df3",
+        "revCount": 7638,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/NousResearch/hermes-agent"
       },
       "original": {
+        "ref": "refs/tags/v2026.5.7",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/NousResearch/hermes-agent"

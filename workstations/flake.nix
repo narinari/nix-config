@@ -66,7 +66,7 @@
     # tarball download (github: type) は repo サイズ (~173MB) で truncate するため
     # git+https を使用して shallow clone を許可する
     hermes-agent = {
-      url = "git+https://github.com/NousResearch/hermes-agent?submodules=1";
+      url = "git+https://github.com/NousResearch/hermes-agent?ref=refs/tags/v2026.5.7&submodules=1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
