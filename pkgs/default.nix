@@ -7,6 +7,7 @@ let
 in
 {
   fosi = pkgs.callPackage ./fosi { };
+  hermes-claude-code-plugin = pkgs.callPackage ./hermes-claude-code-plugin { };
   lsec2 = pkgs.callPackage ./lsec2 { };
   berkeley-mono = pkgs.callPackage ./font-berkeley-mono { };
   berkeley-mono-nerdfonts = pkgs.callPackage ./font-berkeley-mono-nerdfonts { };

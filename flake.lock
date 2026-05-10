@@ -576,11 +576,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1777906219,
-        "narHash": "sha256-MYhrxSwUsfOpGM2cxyBoffxbGtnvv0A/wqKD8L/OAbQ=",
+        "lastModified": 1778376568,
+        "narHash": "sha256-8jLdGAwPYXI9ONzClcWcCoMdsiUU5XQF50WDvKgqlJE=",
         "ref": "main",
-        "rev": "24072a82d6ccd4e2bb1683e1b6fe52ec88d3723b",
-        "revCount": 46,
+        "rev": "83a861c77c47ff0b330f1e6172bd1792d9dbec9d",
+        "revCount": 47,
         "type": "git",
         "url": "ssh://git@github.com/narinari/nix-secrets"
       },
@@ -602,11 +602,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1777906219,
-        "narHash": "sha256-MYhrxSwUsfOpGM2cxyBoffxbGtnvv0A/wqKD8L/OAbQ=",
+        "lastModified": 1778376568,
+        "narHash": "sha256-8jLdGAwPYXI9ONzClcWcCoMdsiUU5XQF50WDvKgqlJE=",
         "ref": "main",
-        "rev": "24072a82d6ccd4e2bb1683e1b6fe52ec88d3723b",
-        "revCount": 46,
+        "rev": "83a861c77c47ff0b330f1e6172bd1792d9dbec9d",
+        "revCount": 47,
         "type": "git",
         "url": "ssh://git@github.com/narinari/nix-secrets"
       },
