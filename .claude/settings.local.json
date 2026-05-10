@@ -152,7 +152,14 @@
       "Bash(ssh-keyscan -t ed25519 rin.local)",
       "Bash(ssh-keygen -lf -)",
       "WebFetch(domain:hermes-agent.nousresearch.com)",
-      "WebFetch(domain:docs.noctalia.dev)"
+      "WebFetch(domain:docs.noctalia.dev)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:note.com)",
+      "Bash(xargs basename *)",
+      "Bash(xargs -I {} sh -c 'test -f \"{}/flake.nix\" && grep -l \"hermes-agent\\\\|hermes_cli\" \"{}/flake.nix\" 2>/dev/null && echo \"{}\"')",
+      "Bash(gh api *)",
+      "Bash(gh repo *)",
+      "Bash(xargs -I {} find {} -name \"__init__.py\" -o -name \"register*\")"
     ]
   }
 }
