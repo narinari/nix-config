@@ -222,9 +222,18 @@ def claude_code_handler(args: dict[str, Any], **_kwargs: Any) -> str:
         except subprocess.TimeoutExpired:
             _kill_safe(proc)
             proc.wait(timeout=5)
-    except Exception:
+    except Exception as exc:  # pragma: no cover - defensive
+        # Per the Hermes plugin guide, tool handlers must never raise — they
+        # should return a JSON-encoded error so the agent can recover gracefully.
         _kill_safe(proc)
-        raise
+        logger.exception("claude_code: handler aborted unexpectedly")
+        return json.dumps(
+            {
+                "error": f"claude_code internal error: {type(exc).__name__}: {exc}",
+                "elapsed_ms": int((time.monotonic() - started) * 1000),
+            },
+            ensure_ascii=False,
+        )
 
     stderr_tail = ""
     if proc.stderr is not None:

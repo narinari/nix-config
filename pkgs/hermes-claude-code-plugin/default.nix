@@ -17,7 +17,7 @@
 runCommand "hermes-claude-code-plugin"
   {
     pname = "hermes-claude-code-plugin";
-    version = "0.1.0";
+    version = "0.1.1";
 
     meta = with lib; {
       description = "Hermes plugin that delegates design tasks to Claude Code";
