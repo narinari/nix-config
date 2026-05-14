@@ -11,6 +11,7 @@
   imports = [
     ./hardware-configuration.nix
     ./hermes-agent.nix
+    ./libvirt.nix
     ./searxng.nix
     ../common/global
     ../common/linux
