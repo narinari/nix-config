@@ -168,10 +168,12 @@
     ];
 
     # ディスプレイマネージャー (greetd + tuigreet)
+    # --cmd niri-session: 初回・無選択時のデフォルトを niri に固定
+    # --remember-user-session: ユーザーが切り替えた場合は記憶 (次回以降は記憶優先)
     greetd = {
       enable = true;
       settings.default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --sessions ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions";
+        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-user-session --sessions ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions --cmd niri-session";
         user = "greeter";
       };
     };
