@@ -32,6 +32,9 @@
       efi.efiSysMountPoint = "/boot";
     };
     kernelParams = [ "nvidia-drm.modeset=1" ];
+    # / は xfs (nvme0n1p5)。initrd でも xfs を mount できるよう必須。
+    supportedFilesystems.xfs = true;
+    initrd.supportedFilesystems.xfs = true;
   };
 
   # Intel iGPU (プライマリ表示) + NVIDIA PRIME オフロード

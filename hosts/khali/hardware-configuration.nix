@@ -14,8 +14,8 @@
   boot.extraModulePackages = [ ];
 
   fileSystems."/" =
-    { device = "/dev/disk/by-uuid/7e3ebb87-ba79-4e24-84cc-f98614eb2eaf";
-      fsType = "ext4";
+    { device = "/dev/disk/by-uuid/17aa61a1-40f7-4e40-8811-81a722b90347";
+      fsType = "xfs";
     };
 
   fileSystems."/boot" =
@@ -24,7 +24,9 @@
       options = [ "fmask=0022" "dmask=0022" ];
     };
 
-  swapDevices = [ ];
+  swapDevices = [
+    { device = "/dev/disk/by-uuid/f782c4aa-1e4b-4a50-8c1f-8352023763d4"; }
+  ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
