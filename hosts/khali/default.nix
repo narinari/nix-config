@@ -191,6 +191,55 @@
     ];
   };
 
+  # tailscaled は admin DNS panel から push される split DNS (ts.net → 199.247.155.53)
+  # を systemd-resolved に登録するが、199.247.155.53 は Tailscale 公開 anycast resolver で
+  # 本 tailnet の MagicDNS レコードを持たない (SOA のみ返す)。
+  # その結果 `ai` や他の tailnet ホストの名前解決が NXDOMAIN になり、Hermes が
+  # http://ai/v1 にアクセスできなくなる。
+  #
+  # 対処: tailscaled がローカルで bind している stub (100.100.100.100) に向け直す。
+  #   - oneshot service が tailscaled 起動後に resolvectl で link 単位の DNS を上書き
+  #   - path watcher が resolv.conf 変化を契機に再適用 (tailscaled は netmap 更新で
+  #     D-Bus 経由の push を再送するため)
+  systemd.services.tailscale-dns-override = {
+    description = "Override tailscale0 DNS to use local Tailscale stub (100.100.100.100)";
+    after = [
+      "tailscaled.service"
+      "systemd-resolved.service"
+    ];
+    bindsTo = [ "tailscaled.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = false;
+    };
+    path = [
+      pkgs.systemd
+      pkgs.iproute2
+    ];
+    script = ''
+      set -eu
+      # tailscale0 link が現れるまで待つ
+      for _ in $(seq 1 30); do
+        if ip link show tailscale0 >/dev/null 2>&1; then
+          break
+        fi
+        sleep 1
+      done
+      resolvectl dns tailscale0 100.100.100.100
+      resolvectl domain tailscale0 '~ts.net' 'taild10c60.ts.net'
+    '';
+  };
+
+  systemd.paths.tailscale-dns-override = {
+    description = "Re-apply tailscale DNS override when resolved config changes";
+    wantedBy = [ "multi-user.target" ];
+    pathConfig = {
+      PathChanged = "/run/systemd/resolve/resolv.conf";
+      Unit = "tailscale-dns-override.service";
+    };
+  };
+
   # 日本語入力 (fcitx5 + SKK)
   i18n.inputMethod = {
     enable = true;
