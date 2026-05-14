@@ -1,0 +1,6 @@
+disabled = []
+ignore = [
+  ".direnv",
+  "hosts/common/users/narinari/default.nix",
+  "hosts/khali/hardware-configuration.nix",
+]

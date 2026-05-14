@@ -29,10 +29,9 @@ with pkgs;
       };
       statix = {
         enable = true;
-        settings.ignore = [
-          "hosts/common/users/narinari/default.nix" # BUG: Statix throws parsing error if parameter expansion exists in path.
-          "hosts/khali/hardware-configuration.nix"
-        ];
+        # NOTE: settings.ignore は pre-commit-hooks.nix が複数要素を 1 つの
+        # `--ignore` 引数に空白連結してしまい、2 つ目以降が positional path
+        # 扱いになって逆効果。ignore は repo 直下の statix.toml に集約する。
       };
       # stylua.enable = true;
       git-secrets = {
