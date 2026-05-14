@@ -1,6 +1,11 @@
-_:
+{ lib, ... }:
 
 {
+  # graphical-session.target は niri でも発火するが、hypridle は hyprland-lock-notify-v1
+  # を要求する Hyprland 専用デーモン。niri セッションで起動しないよう env で gating。
+  systemd.user.services.hypridle.Unit.ConditionEnvironment =
+    lib.mkForce "HYPRLAND_INSTANCE_SIGNATURE";
+
   services.hypridle = {
     enable = true;
     settings = {
