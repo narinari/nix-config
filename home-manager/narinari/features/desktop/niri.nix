@@ -60,7 +60,7 @@
 
     binds {
         Mod+Return       { spawn "wezterm"; }
-        Mod+D            { spawn "noctalia-shell ipc call launcher toggle"; }
+        Mod+D            { spawn "noctalia-shell" "ipc" "call" "launcher" "toggle"; }
         Mod+Q            { close-window; }
         Mod+Shift+Q      { quit; }
 
