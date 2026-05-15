@@ -159,7 +159,16 @@
       "Bash(xargs -I {} sh -c 'test -f \"{}/flake.nix\" && grep -l \"hermes-agent\\\\|hermes_cli\" \"{}/flake.nix\" 2>/dev/null && echo \"{}\"')",
       "Bash(gh api *)",
       "Bash(gh repo *)",
-      "Bash(xargs -I {} find {} -name \"__init__.py\" -o -name \"register*\")"
+      "Bash(xargs -I {} find {} -name \"__init__.py\" -o -name \"register*\")",
+      "Bash(/etc/profiles/per-user/narinari/bin/noctalia-shell ipc *)",
+      "Bash(noctalia-shell --help)",
+      "Bash(noctalia-shell ipc *)",
+      "Bash(swapon --show)",
+      "Read(//etc/nixos/**)",
+      "Bash(sudo du -sh --exclude=var/lib/libvirt /tmp/old-archlinux/)",
+      "Bash(lscpu)",
+      "Bash(findmnt --source /dev/nvme1n1p1)",
+      "Bash(sudo fuser *)"
     ]
   }
 }
