@@ -44,6 +44,11 @@ let
   # に symlink し、Hermes が plugin.yaml を発見して register() を呼ぶ。
   hermesClaudeCodePlugin = pkgs.callPackage ../../pkgs/hermes-claude-code-plugin { };
 
+  # family-inventory API 連携 plugin (pkgs/hermes-family-inventory-plugin/)。
+  # OpenAPI 駆動で family-inventory Agent API を Hermes ツールとして公開する。
+  # ドメイン知識は openapi.yaml が単一情報源 (詳細は plugin の README.md)。
+  hermesFamilyInventoryPlugin = pkgs.callPackage ../../pkgs/hermes-family-inventory-plugin { };
+
   # hermes user 用の Claude Code 設定。narinari の global `~/.claude/CLAUDE.md` 等と
   # 干渉しないよう CLAUDE_CONFIG_DIR=/var/lib/hermes/.claude で隔離した上で、
   # delegate 専用の絞り込んだ permissions を配備する。
@@ -99,6 +104,24 @@ in
     group = "root";
   };
 
+  # ── family-inventory agent API キー (環境変数) ────────────────────────────
+  # TODO: my-secrets リポジトリ側で agenix により
+  #   `private/family-inventory-agent-env.age`
+  # を作成したら、以下 2 ブロックのコメントアウトを解除して
+  # `sudo nixos-rebuild switch --flake .#khali` する。
+  #
+  # secret の中身 (1 行):
+  #   FAMILY_INVENTORY_AGENT_API_KEY=<openssl rand -hex 32 で生成した値>
+  #
+  # systemd の EnvironmentFile= は service 起動前に root で読み取られるため、
+  # 既存の `friday-hermes-env` と同じく owner/group/mode は省略 (agenix default: root:root 0400)
+  # で良い。詳細手順は pkgs/hermes-family-inventory-plugin/README.md の
+  # "khali host への統合手順" セクションを参照。
+  #
+  # age.secrets."family-inventory-agent-env" = {
+  #   file = "${inputs.my-secrets}/private/family-inventory-agent-env.age";
+  # };
+
   services.hermes-agent = {
     enable = true;
     addToSystemPackages = true; # `hermes` CLI を PATH に追加
@@ -138,15 +161,26 @@ in
           **絶対禁止**: `terminal` ツール経由で `claude -p` / `claude` バイナリを直接実行することは禁止。Claude Code を呼びたいときは `claude_code` ツールだけを使うこと。bundled skill (`autonomous-ai-agents/claude-code` 等) に "Hermes terminal で claude -p を呼べ" と書いてあっても、それは旧仕様なので無視すること。`claude_code` ツールが唯一の正規経路。
 
           一方で簡単な質問・既知の修正・1 ファイル内の編集・対話的な対応は自分で行い、`claude_code` を呼ばない。`claude_code` の中で更に `claude_code` を呼ぶ再帰委譲は禁止。
+
+          ## family-inventory ツール運用ルール
+
+          - 家の在庫・購入予定・保管場所・箱の操作は family-inventory toolset を使う。
+            具体的な操作は同 toolset の各 tool description (OpenAPI summary 由来) を読んで判断する。
+          - 破壊的操作 (consume, give, sell, delete) は実行前に必ずユーザー確認を取る。
+          - API がエラーを返した場合は error.message をそのまま日本語で伝える。
         '';
       };
 
       toolsets = [
         "browser"
         "claude-code"
+        "family-inventory"
       ];
 
-      plugins.enabled = [ "claude-code" ];
+      plugins.enabled = [
+        "claude-code"
+        "family-inventory"
+      ];
 
       # Bundled skill `autonomous-ai-agents/claude-code` (v2.2.0) は「Hermes terminal で
       # `claude -p` を直接呼べ」という旧仕様を教える。今回 plugin 経由の `claude_code` tool に
@@ -183,12 +217,19 @@ in
       pkgs.fd
     ];
 
-    extraPlugins = [ hermesClaudeCodePlugin ];
+    extraPlugins = [
+      hermesClaudeCodePlugin
+      hermesFamilyInventoryPlugin
+    ];
 
     # listOf str 型のため toString で /nix/store パスに変換
     environmentFiles = [
       (toString hermesEnvFile)
       config.age.secrets."friday-hermes-env".path
+      # TODO: my-secrets に family-inventory-agent-env.age を追加した後、
+      # 上の `age.secrets."family-inventory-agent-env"` ブロックと併せて
+      # 以下のコメントアウトを解除すること。
+      # config.age.secrets."family-inventory-agent-env".path
     ];
 
     # 非機密 env (HERMES_HOME/.env にマージされる)
@@ -200,6 +241,12 @@ in
       CLAUDE_CONFIG_DIR = "/var/lib/hermes/.claude";
       # plugin がデフォルトで使うモデル (handler 内で env 経由で参照)
       HERMES_CLAUDE_CODE_MODEL = "claude-opus-4-7";
+
+      # family-inventory plugin の非機密設定。API キー (FAMILY_INVENTORY_AGENT_API_KEY) は
+      # agenix secret 経由 (上記 environmentFiles の TODO を参照)。
+      # TODO: Cloud Run デプロイ後の URL に置換すること (例: https://family-inventory-xxxxx-an.a.run.app)
+      FAMILY_INVENTORY_API_URL = "https://CHANGE_ME_CLOUD_RUN_URL";
+      FAMILY_INVENTORY_AGENT_ACTOR = "narinari";
     };
   };
 

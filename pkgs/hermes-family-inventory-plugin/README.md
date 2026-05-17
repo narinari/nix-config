@@ -58,6 +58,92 @@ hermes tools list | grep -i family
 hermes -p 'listItems を status=owned で呼んで結果を要約して'
 ```
 
+## khali host への統合手順
+
+`hosts/khali/hermes-agent.nix` には plugin の宣言・toolset への追加・非機密 env
+(`FAMILY_INVENTORY_API_URL`, `FAMILY_INVENTORY_AGENT_ACTOR`) が既に組み込まれている
+が、`FAMILY_INVENTORY_AGENT_API_KEY` を渡すための agenix secret 関連はコメントアウト
+状態。以下の順序でユーザーが対話的に作業すること。
+
+### 1. Agent API キーを生成
+
+```bash
+openssl rand -hex 32
+```
+
+生成した値を安全な場所 (1Password 等) に控える。
+
+### 2. Cloud Run 側に同じ値を投入
+
+family-inventory リポジトリの `docs/AGENT_DEPLOYMENT.md` に従い、Cloud Run の
+`AGENT_API_KEY` (Secret Manager) として上記の値を登録する。
+
+### 3. agenix で secret ファイルを作成
+
+このリポジトリ (nix-config) ではなく、`inputs.my-secrets` の実体である
+`nix-secrets` リポジトリ側で agenix を実行する。
+
+```bash
+# my-secrets リポジトリの clone (場所はユーザー環境による)
+cd /path/to/nix-secrets
+agenix -e private/family-inventory-agent-env.age
+# エディタが開いたら以下を 1 行で書いて保存:
+# FAMILY_INVENTORY_AGENT_API_KEY=<手順 1 で生成した値>
+
+git add private/family-inventory-agent-env.age
+git commit -m "feat: add family-inventory agent API key"
+git push
+```
+
+その後、nix-config 側で flake input を更新:
+
+```bash
+cd /home/narinari/nix-config
+nix flake lock --update-input infra/my-secrets --update-input workstations/my-secrets
+# ↑ 入力名は flake.lock の構造による。`nix flake metadata` で確認できる。
+# 単純化するなら `nix flake update` でも良いが影響範囲が広がる。
+```
+
+### 4. `hosts/khali/hermes-agent.nix` のコメントアウト解除
+
+以下 2 箇所の `#` を外す:
+
+- `age.secrets."family-inventory-agent-env" = { ... };` ブロック
+- `services.hermes-agent.environmentFiles` 内の
+  `config.age.secrets."family-inventory-agent-env".path`
+
+### 5. `FAMILY_INVENTORY_API_URL` を実 URL に置換
+
+`environment.FAMILY_INVENTORY_API_URL` の placeholder
+(`https://CHANGE_ME_CLOUD_RUN_URL`) を実際の Cloud Run URL に置換する。
+
+### 6. rebuild
+
+```bash
+cd /home/narinari/nix-config
+
+# まず評価エラーがないかドライラン
+sudo nixos-rebuild build --flake .#khali
+
+# 問題なければ反映
+sudo nixos-rebuild switch --flake .#khali
+
+# Plugin がロードできたか確認
+journalctl -u hermes-agent -f | grep -i family-inventory
+```
+
+### 7. 動作確認
+
+hermes CLI から自然言語で呼び出し、`listItems` 等の tool が叩かれることを
+確認する。
+
+```bash
+hermes -p '家の持ち物を見せて (listItems を status=owned で呼んで)'
+```
+
+`401 Unauthorized` が返る場合は API キーが Cloud Run 側と一致していない。
+`missing env vars` エラーが出る場合は手順 4 のコメントアウト解除を漏らしている。
+
 ## ファイルレイアウト
 
 ```
