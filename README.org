@@ -28,6 +28,11 @@ nix-config/
   lib/                   # Helper functions
   overlays/              # Package overlays
   pkgs/                  # Custom packages
+                         #   - hermes-claude-code-plugin
+                         #   - hermes-family-inventory-plugin
+                         #     (Hermes Agent から family-inventory の
+                         #      /agent API を OpenAPI 駆動で叩く薄い plugin。
+                         #      詳細は pkgs/hermes-family-inventory-plugin/README.md)
 #+end_example
 
 ** Host Mapping

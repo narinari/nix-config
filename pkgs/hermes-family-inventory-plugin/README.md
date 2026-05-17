@@ -160,9 +160,40 @@ hermes-family-inventory-plugin/
 
 ## トラブルシューティング
 
-| 症状 | 確認ポイント |
+### ログの見方
+
+正常時、Hermes Agent 起動直後に以下のような行が出る:
+
+```
+family-inventory: registering tools (api_url=https://..., actor=narinari)
+family-inventory: registered 23 tools (0 skipped)
+```
+
+`registered 0 tools` や `plugin disabled` が出ている場合は下表を参照。
+
+### 症状別チェックポイント
+
+| 症状 | ログ抜粋 (`journalctl -u hermes-agent`) | 確認ポイント |
+| --- | --- | --- |
+| Plugin が一切動かない | `family-inventory: failed to load openapi.yaml; plugin disabled` | `src/openapi.yaml` の YAML 構文。後述の依存欠落も参照。 |
+| Tool が一つも登録されない | `family-inventory: registered 0 tools (N skipped)` | `paths` が空でないか / 全 operation に `operationId` があるか。`./update-openapi.sh` で再同期。 |
+| 一部 operation が登録されない | `family-inventory: skipping <op> — missing operationId` / `schema build failed` | family-inventory 側 `pnpm openapi:generate` の出力を見直し、`$ref` ループや `requestBody` の異常を疑う。 |
+| 全ツールが `missing env vars` エラー | tool 呼び出し時に `family-inventory plugin: missing env vars: FAMILY_INVENTORY_AGENT_API_KEY` 等 | systemd unit / `environmentFiles` で env を渡せているか。`systemctl show hermes-agent -p Environment` で実際に展開された値を確認可能 (機密値はマスクされる)。`hosts/khali/hermes-agent.nix` のコメントアウト解除漏れ (手順 4) もここに該当。 |
+| 401 Unauthorized | tool レスポンスに `"error": "http 401"` | API キーが Cloud Run 側 (Secret Manager `agent-api-key`) と一致しているか。改行混入も疑う (`echo -n` 必須)。 |
+| 403 Forbidden | `"error": "http 403"` (詳細 `AGENT_ACTOR_NOT_MAPPED`) | `FAMILY_INVENTORY_AGENT_ACTOR` が family-inventory 側 `agentMappings` に登録済みか。未登録なら `seed-agent-mapping.ts` で投入する (family-inventory 側 `docs/AGENT_DEPLOYMENT.md` §6)。 |
+| Timeout | `"error": "request timeout: ..."` | Cloud Run の cold start。`DEFAULT_TIMEOUT_SECONDS=30` を超えていないか / 一度 web から叩いて warm up するか確認。 |
+
+### 依存ライブラリのフォールバック挙動
+
+| 依存 | 不在時の挙動 |
 | --- | --- |
-| Hermes 起動時に `family-inventory: failed to load openapi.yaml` | `src/openapi.yaml` の YAML 構文。Hermes Python env に PyYAML が無ければ JSON フォールバックは効くが、family-inventory の生成出力は YAML 形式。 |
-| Tool が一つも登録されない | `journalctl -u hermes-agent` で `registered 0 tools` を確認。`paths` が空でないか / `operationId` が全 operation に付いているかをチェック。 |
-| 全ツールが `missing env vars` エラー | systemd unit / `environmentFiles` で env を渡せているか確認。`systemctl show hermes-agent -p Environment` で実際の値を見られる。 |
-| 401 / 403 が返る | API キーの失効 / Actor ID と family の紐付け (`agentMappings`) を family-inventory 側で確認。 |
+| `PyYAML` | warning `PyYAML not available; attempting JSON fallback` を出して JSON パースを試みる。family-inventory が出力するのは YAML 形式なので、PyYAML が無いと plugin はロード失敗扱いになる。Hermes 同梱の Python env に PyYAML を含めること。 |
+| `httpx` | 警告なしで `urllib.request` ベースの実装にフォールバック。動作は同等だが connection pool が効かず性能はやや落ちる。 |
+
+両方とも plugin ロード自体は止めないため、tool 側で動作不良が出た場合は `journalctl -u hermes-agent` を最初に確認する。
+
+### 関連ドキュメント
+
+- family-inventory 側 `docs/AGENT_DEPLOYMENT.md` — Cloud Run `AGENT_API_KEY` の生成 / `agentMappings` seed / smoke test
+- family-inventory 側 `apps/api/openapi.yaml` — tool スキーマの単一情報源
+- `hosts/khali/hermes-agent.nix` — systemd unit / agenix secret の組み込み
