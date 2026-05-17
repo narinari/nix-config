@@ -1,0 +1,8 @@
+name: family-inventory
+version: 0.1.0
+description: "家族在庫管理 (Family Inventory) のエージェント API を OpenAPI 駆動で公開する薄い HTTP プラグイン。アイテム / 箱 / 保管場所 / 購入予定 (Wishlist) の検索・登録・状態遷移ができる。詳細な仕様 (アイテム種別、業務ルール、ステータス遷移) は同梱の openapi.yaml が単一情報源。tool 一覧は register() が openapi.yaml をパースして動的に生成するため、ここでは列挙しない。"
+author: narinari
+# Tools are registered dynamically from the bundled OpenAPI spec at load time
+# (see src/__init__.py:register). Hermes treats `provides_tools` as metadata
+# only — registration is authoritative — so an empty list is fine.
+provides_tools: []

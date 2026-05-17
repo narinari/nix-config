@@ -1,0 +1,1566 @@
+# Auto-generated. Do not edit by hand. Run: pnpm openapi:generate
+openapi: 3.1.0
+info:
+  title: Family Inventory Agent API
+  version: 0.1.0
+  description: |
+    Hermes Agent / 他 LLM エージェントから家族向け在庫管理を操作するための REST API。
+
+    - 認証: `X-API-Key` (発行済みエージェント API キー) + `X-Agent-Actor` (Actor ID) の 2 ヘッダ必須。
+    - Actor ID はサーバ側 `agentMappings` で family / user に紐付けられる。
+    - レスポンスは `{ success: true, data: ... }` または `{ success: false, error: ... }` のエンベロープ形式。
+servers:
+  - url: "{baseUrl}"
+    description: Family Inventory API base URL
+    variables:
+      baseUrl:
+        default: http://localhost:8080
+        description: API server base URL (e.g. https://api.example.com)
+components:
+  securitySchemes:
+    agentApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Family Inventory が発行するエージェント用 API キー
+    agentActor:
+      type: apiKey
+      in: header
+      name: X-Agent-Actor
+      description: エージェント Actor ID。family と user に紐付く agentMappings レコードを特定するために使用する。
+  schemas:
+    ItemStatus:
+      type: string
+      enum:
+        - owned
+        - consumed
+        - given
+        - sold
+      description: 持ち物のステータス。owned = 所有中, consumed = 消費済み, given = 譲渡済み, sold = 売却済み
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+        familyId:
+          type: string
+        itemTypeId:
+          type: string
+        itemTypeName:
+          type: string
+        ownerId:
+          type: string
+        status:
+          $ref: "#/components/schemas/ItemStatus"
+        boxId:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        memo:
+          type: string
+        purchasedAt:
+          type: string
+          format: date-time
+        consumedAt:
+          type: string
+          format: date-time
+        givenAt:
+          type: string
+          format: date-time
+        soldAt:
+          type: string
+          format: date-time
+        givenTo:
+          type: string
+        soldTo:
+          type: string
+        soldPrice:
+          type: number
+        lastVerifiedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - familyId
+        - itemTypeId
+        - ownerId
+        - status
+        - tags
+        - createdAt
+        - updatedAt
+      description: 家族の持ち物 1 件。itemTypeId は ItemType の参照。status により所有・消費・譲渡・売却が表現される。
+    ItemsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Item"
+          required:
+            - items
+      required:
+        - success
+        - data
+      description: 持ち物一覧レスポンス
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+          example: ITEM_NOT_FOUND
+        message:
+          type: string
+          example: 持ち物が見つかりません
+        details: {}
+      required:
+        - code
+        - message
+      description: API 共通エラーオブジェクト。
+    ApiErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - false
+        error:
+          $ref: "#/components/schemas/ApiError"
+      required:
+        - success
+        - error
+      description: API エラーレスポンス
+    ItemType:
+      type: object
+      properties:
+        id:
+          type: string
+        familyId:
+          type: string
+        name:
+          type: string
+        manufacturer:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - familyId
+        - name
+        - tags
+        - createdAt
+        - updatedAt
+      description: アイテム種別 (マスタ)。同じ製品を複数所有する場合に Item 同士を束ねる軸となる。
+    Box:
+      type: object
+      properties:
+        id:
+          type: string
+        familyId:
+          type: string
+        name:
+          type: string
+        locationId:
+          type: string
+        locationName:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - familyId
+        - name
+        - tags
+        - createdAt
+        - updatedAt
+      description: 持ち物をまとめる収納箱。locationId により保管場所 (Location) と紐付く。
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+        familyId:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - familyId
+        - name
+        - tags
+        - createdAt
+        - updatedAt
+      description: 物理的な保管場所 (家・倉庫・部屋など)。複数の Box をまとめる単位として使う。
+    ItemLocationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            item:
+              $ref: "#/components/schemas/Item"
+            itemType:
+              $ref: "#/components/schemas/ItemType"
+            box:
+              $ref: "#/components/schemas/Box"
+            location:
+              $ref: "#/components/schemas/Location"
+          required:
+            - item
+            - itemType
+      required:
+        - success
+        - data
+      description: 持ち物の所在 (box / location) を含む詳細レスポンス
+    ItemResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            item:
+              $ref: "#/components/schemas/Item"
+          required:
+            - item
+      required:
+        - success
+        - data
+      description: 単一持ち物レスポンス
+    AgentCreateItemRequest:
+      type: object
+      properties:
+        itemTypeId:
+          type: string
+          minLength: 1
+        itemTypeName:
+          type: string
+          minLength: 1
+        boxId:
+          type: string
+        memo:
+          type: string
+          maxLength: 1000
+      description: 持ち物の新規作成リクエスト。itemTypeId が無い場合は itemTypeName を渡すと自動で ItemType を解決/作成する。
+    StatusActionRequest:
+      type: object
+      properties: {}
+      description: 状態遷移系エンドポイント用の空ボディ。
+    AgentGiveItemRequest:
+      type: object
+      properties:
+        givenTo:
+          type: string
+          minLength: 1
+      required:
+        - givenTo
+      description: 譲渡操作のリクエスト。givenTo に譲渡先を文字列で渡す。
+    AgentSellItemRequest:
+      type: object
+      properties:
+        soldTo:
+          type: string
+        soldPrice:
+          type: number
+          minimum: 0
+      description: 売却操作のリクエスト。soldTo / soldPrice は任意。
+    ItemTypesListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            itemTypes:
+              type: array
+              items:
+                $ref: "#/components/schemas/ItemType"
+          required:
+            - itemTypes
+      required:
+        - success
+        - data
+      description: アイテム種別一覧レスポンス
+    BoxesListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            boxes:
+              type: array
+              items:
+                $ref: "#/components/schemas/Box"
+          required:
+            - boxes
+      required:
+        - success
+        - data
+      description: 箱一覧レスポンス
+    BoxItemsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            box:
+              $ref: "#/components/schemas/Box"
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Item"
+          required:
+            - box
+            - items
+      required:
+        - success
+        - data
+      description: 箱の中身レスポンス
+    LocationsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            locations:
+              type: array
+              items:
+                $ref: "#/components/schemas/Location"
+          required:
+            - locations
+      required:
+        - success
+        - data
+      description: 保管場所一覧レスポンス
+    LocationBoxesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            location:
+              $ref: "#/components/schemas/Location"
+            boxes:
+              type: array
+              items:
+                $ref: "#/components/schemas/Box"
+          required:
+            - location
+            - boxes
+      required:
+        - success
+        - data
+      description: 保管場所配下の箱一覧レスポンス
+    SearchResultsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                type: object
+                properties:
+                  item:
+                    $ref: "#/components/schemas/Item"
+                  box:
+                    $ref: "#/components/schemas/Box"
+                  location:
+                    $ref: "#/components/schemas/Location"
+                required:
+                  - item
+          required:
+            - results
+      required:
+        - success
+        - data
+      description: 名前検索結果レスポンス
+    Priority:
+      type: string
+      enum:
+        - high
+        - medium
+        - low
+      description: 優先度。high = 高, medium = 中, low = 低
+    WishlistStatus:
+      type: string
+      enum:
+        - pending
+        - purchased
+        - cancelled
+      description: 購入予定のステータス。pending = 検討中, purchased = 購入完了, cancelled = 見送り
+    Wishlist:
+      type: object
+      properties:
+        id:
+          type: string
+        familyId:
+          type: string
+        name:
+          type: string
+        itemTypeId:
+          type: string
+        requesterId:
+          type: string
+        priority:
+          $ref: "#/components/schemas/Priority"
+        priceRange:
+          type: string
+        deadline:
+          type: string
+          format: date-time
+        url:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        memo:
+          type: string
+        status:
+          $ref: "#/components/schemas/WishlistStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - familyId
+        - name
+        - requesterId
+        - priority
+        - tags
+        - status
+        - createdAt
+        - updatedAt
+      description: 購入予定 (ほしいもの) 1 件。pending → purchased / cancelled に状態遷移する。
+    WishlistListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            wishlist:
+              type: array
+              items:
+                $ref: "#/components/schemas/Wishlist"
+          required:
+            - wishlist
+      required:
+        - success
+        - data
+      description: 購入予定一覧レスポンス
+    WishlistResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            wishlist:
+              $ref: "#/components/schemas/Wishlist"
+          required:
+            - wishlist
+      required:
+        - success
+        - data
+      description: 単一購入予定レスポンス
+    AgentCreateWishlistRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        priority:
+          type: string
+          enum:
+            - high
+            - medium
+            - low
+        priceRange:
+          type: string
+          maxLength: 100
+        url:
+          type: string
+          maxLength: 500
+          format: uri
+        memo:
+          type: string
+          maxLength: 1000
+      required:
+        - name
+      description: 購入予定の新規作成リクエスト。
+    WishlistPurchaseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            wishlist:
+              $ref: "#/components/schemas/Wishlist"
+            item:
+              $ref: "#/components/schemas/Item"
+          required:
+            - wishlist
+      required:
+        - success
+        - data
+      description: 購入完了レスポンス。購入予定の状態と、自動生成された持ち物 (Item) を返す。
+  parameters: {}
+paths:
+  /agent/items:
+    get:
+      operationId: listItems
+      summary: 持ち物の一覧を取得
+      description: 家族に紐付く持ち物 (Item) の一覧を返す。status (owned/consumed/given/sold) や search (アイテム種別名のあいまい一致) で絞り込み可能。所有中のものを聞かれた場合は status=owned を指定する。
+      tags:
+        - Items
+      security: &a1
+        - agentApiKey: []
+          agentActor: []
+      parameters:
+        - schema:
+            allOf:
+              - $ref: "#/components/schemas/ItemStatus"
+              - description: 指定したステータスのみ返す。未指定は全件。
+          required: false
+          name: status
+          in: query
+        - schema:
+            type: string
+            description: アイテム種別名/メモへのあいまい検索キーワード
+          required: false
+          name: search
+          in: query
+      responses:
+        "200":
+          description: 持ち物の一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemsListResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    post:
+      operationId: createItem
+      summary: 持ち物を新規登録
+      description: 持ち物 (Item) を新規作成する。itemTypeId が分からない場合は itemTypeName を渡すと、既存の ItemType を名前一致で探し、見つからなければ自動で作成する。所有者は呼び出し元エージェントの紐付けユーザーになる。
+      tags:
+        - Items
+      security: *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentCreateItemRequest"
+      responses:
+        "201":
+          description: 作成された持ち物
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/items/{id}/location:
+    get:
+      operationId: getItemLocation
+      summary: 持ち物の保管場所を取得
+      description: 指定した持ち物 (Item) の所在 (どの Box / Location にあるか) を返す。「○○ どこ？」系の質問に対する一次情報源として使う。
+      tags:
+        - Items
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: 持ち物 ID
+            example: item_xxx
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: 持ち物の所在情報
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemLocationResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/items/{id}/consume:
+    post:
+      operationId: consumeItem
+      summary: 持ち物を消費済みにする
+      description: 所有中 (owned) の持ち物を消費済み (consumed) に変更する。食品・消耗品の使い切りなど。すでに owned 以外の場合は 400 が返る。
+      tags:
+        - Items
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: 持ち物 ID
+          required: true
+          name: id
+          in: path
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusActionRequest"
+      responses:
+        "200":
+          description: 消費済みに変更された持ち物
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/items/{id}/give:
+    post:
+      operationId: giveItem
+      summary: 持ち物を譲渡済みにする
+      description: 所有中 (owned) の持ち物を譲渡済み (given) に変更する。givenTo に譲渡先を必ず指定する。すでに owned 以外の場合は 400 が返る。
+      tags:
+        - Items
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: 持ち物 ID
+          required: true
+          name: id
+          in: path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentGiveItemRequest"
+      responses:
+        "200":
+          description: 譲渡済みに変更された持ち物
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/items/{id}/sell:
+    post:
+      operationId: sellItem
+      summary: 持ち物を売却済みにする
+      description: 所有中 (owned) の持ち物を売却済み (sold) に変更する。soldTo / soldPrice は任意で記録できる。すでに owned 以外の場合は 400 が返る。
+      tags:
+        - Items
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: 持ち物 ID
+          required: true
+          name: id
+          in: path
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentSellItemRequest"
+      responses:
+        "200":
+          description: 売却済みに変更された持ち物
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/item-types:
+    get:
+      operationId: listItemTypes
+      summary: アイテム種別の一覧を取得
+      description: family に登録済みのアイテム種別 (ItemType) を全件返す。持ち物作成前に既存種別を確認したいときに使う。
+      tags:
+        - ItemTypes
+      security: *a1
+      responses:
+        "200":
+          description: アイテム種別一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemTypesListResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/boxes:
+    get:
+      operationId: listBoxes
+      summary: 箱の一覧を取得
+      description: family に登録済みの箱 (Box) を全件返す。locationName が併せて付与される。
+      tags:
+        - Boxes
+      security: *a1
+      responses:
+        "200":
+          description: 箱の一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoxesListResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/boxes/{id}/items:
+    get:
+      operationId: getBoxItems
+      summary: 指定した箱の中身を取得
+      description: 指定した箱 (Box) に入っている持ち物を返す。「この箱に何が入っている？」のユースケース。
+      tags:
+        - Boxes
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: 箱 ID
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: 箱と中身の持ち物一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoxItemsResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/locations:
+    get:
+      operationId: listLocations
+      summary: 保管場所の一覧を取得
+      description: family に登録済みの保管場所 (Location) を全件返す。
+      tags:
+        - Locations
+      security: *a1
+      responses:
+        "200":
+          description: 保管場所一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationsListResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/locations/{id}/boxes:
+    get:
+      operationId: getLocationBoxes
+      summary: 保管場所配下の箱を取得
+      description: 指定した保管場所 (Location) に紐付く箱 (Box) を全件返す。
+      tags:
+        - Locations
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: 保管場所 ID
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: 保管場所と配下の箱
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationBoxesResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/search:
+    get:
+      operationId: searchItems
+      summary: 持ち物を名前で検索
+      description: q (検索キーワード) を ItemType 名にあいまい一致させ、所有中 (owned) の持ち物のみを返す。各結果には box / location が付く。「○○ある？」「○○どこ？」系の自然言語問い合わせに最初に投げるエンドポイント。
+      tags:
+        - Search
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: 検索キーワード (アイテム種別名)
+            example: コーヒー豆
+          required: true
+          name: q
+          in: query
+      responses:
+        "200":
+          description: 検索結果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResultsResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/wishlist:
+    get:
+      operationId: listWishlist
+      summary: 購入予定の一覧を取得
+      description: 家族の購入予定 (Wishlist) 一覧を返す。status (pending/purchased/cancelled) や priority (high/medium/low) で絞り込み可能。
+      tags:
+        - Wishlist
+      security: *a1
+      parameters:
+        - schema:
+            allOf:
+              - $ref: "#/components/schemas/WishlistStatus"
+              - description: 指定したステータスのみ返す
+          required: false
+          name: status
+          in: query
+        - schema:
+            allOf:
+              - $ref: "#/components/schemas/Priority"
+              - description: 指定した優先度のみ返す
+          required: false
+          name: priority
+          in: query
+      responses:
+        "200":
+          description: 購入予定の一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistListResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    post:
+      operationId: createWishlist
+      summary: 購入予定を新規登録
+      description: 購入予定 (Wishlist) を新規作成する。priority / priceRange / url / memo は任意。requesterId は呼び出し元エージェントの紐付けユーザーになる。
+      tags:
+        - Wishlist
+      security: *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentCreateWishlistRequest"
+      responses:
+        "201":
+          description: 作成された購入予定
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/wishlist/search:
+    get:
+      operationId: searchWishlist
+      summary: 購入予定を検索
+      description: q (検索キーワード) で購入予定の name にあいまい一致させ、pending のみを返す。「○○ 買う予定ある？」を確認するときに使う。
+      tags:
+        - Wishlist
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: 検索キーワード (購入予定名)
+          required: true
+          name: q
+          in: query
+      responses:
+        "200":
+          description: 検索結果の購入予定
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistListResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/wishlist/{id}:
+    get:
+      operationId: getWishlist
+      summary: 購入予定を 1 件取得
+      description: 指定した購入予定 (Wishlist) を 1 件返す。
+      tags:
+        - Wishlist
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: 購入予定 ID
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: 購入予定 1 件
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/wishlist/{id}/purchase:
+    post:
+      operationId: purchaseWishlist
+      summary: 購入予定を購入完了にする
+      description: 検討中 (pending) の購入予定を購入完了 (purchased) に変更する。同時に対応する持ち物 (Item) が自動生成される。pending 以外の場合は 400 が返る。
+      tags:
+        - Wishlist
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: 購入予定 ID
+          required: true
+          name: id
+          in: path
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusActionRequest"
+      responses:
+        "200":
+          description: 購入完了結果 (購入予定 + 自動生成された Item)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistPurchaseResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/wishlist/{id}/cancel:
+    post:
+      operationId: cancelWishlist
+      summary: 購入予定を見送りにする
+      description: 検討中 (pending) の購入予定を見送り (cancelled) に変更する。pending 以外の場合は 400 が返る。
+      tags:
+        - Wishlist
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: 購入予定 ID
+          required: true
+          name: id
+          in: path
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusActionRequest"
+      responses:
+        "200":
+          description: 見送りに変更された購入予定
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+webhooks: {}

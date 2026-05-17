@@ -9,6 +9,7 @@ in
   fosi = pkgs.callPackage ./fosi { };
   obscura = pkgs.callPackage ./obscura { };
   hermes-claude-code-plugin = pkgs.callPackage ./hermes-claude-code-plugin { };
+  hermes-family-inventory-plugin = pkgs.callPackage ./hermes-family-inventory-plugin { };
   lsec2 = pkgs.callPackage ./lsec2 { };
   berkeley-mono = pkgs.callPackage ./font-berkeley-mono { };
   berkeley-mono-nerdfonts = pkgs.callPackage ./font-berkeley-mono-nerdfonts { };
