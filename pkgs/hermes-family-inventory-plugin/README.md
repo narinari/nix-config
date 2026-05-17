@@ -67,8 +67,13 @@ hermes -p 'listItems を status=owned で呼んで結果を要約して'
 
 ### 1. Agent API キーを生成
 
+下記のいずれか 1 つ (環境に応じて) で 64 文字 hex を生成:
+
 ```bash
-openssl rand -hex 32
+openssl rand -hex 32                                       # openssl 派
+head -c 32 /dev/urandom | xxd -p -c 64                    # xxd 派
+python3 -c 'import secrets; print(secrets.token_hex(32))' # Python 派
+nix shell nixpkgs#openssl --command openssl rand -hex 32  # nix 経由
 ```
 
 生成した値を安全な場所 (1Password 等) に控える。
