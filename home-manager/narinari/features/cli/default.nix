@@ -34,7 +34,9 @@
 
     # media
     ffmpeg
-    streamlink
+    (streamlink.overridePythonAttrs (_: {
+      doCheck = false;
+    }))
     yt-dlp
     # beets-unstable
 

@@ -50,28 +50,10 @@ let
   # 共通Emacsパッケージ
   commonEmacsPackages = epkgs: with epkgs; [ vterm ] ++ treesitterGrammars epkgs;
 
-  # GUI版（Darwin向けパッチ付き）
-  patchedEmacs = pkgs.emacs-unstable-pgtk.overrideAttrs (old: {
-    patches =
-      (old.patches or [ ])
-      ++ optional stdenv.isDarwin [
-        # Fix OS window role (needed for window managers like yabai)
-        (pkgs.fetchpatch {
-          url = "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-28/fix-window-role.patch";
-          sha256 = "+z/KfsBm1lvZTZNiMbxzXQGRTjkCFO4QPlEK35upjsE=";
-        })
-        # Enable rounded window with no decoration
-        (pkgs.fetchpatch {
-          url = "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-30/round-undecorated-frame.patch";
-          sha256 = "sha256-uYIxNTyfbprx5mCqMNFVrBcLeo+8e21qmBE3lpcnd+4=";
-        })
-        # Make Emacs aware of OS-level light/dark mode
-        (pkgs.fetchpatch {
-          url = "https://raw.githubusercontent.com/d12frosted/homebrew-emacs-plus/master/patches/emacs-30/system-appearance.patch";
-          sha256 = "3QLq91AQ6E921/W9nfDjdOUWR8YVsqBAT/W9c1woqAw=";
-        })
-      ];
-  });
+  # GUI版
+  # darwin: emacs-macport (Mitsuharu Yamamoto port, Mac 最適化済み — emacs-plus 用パッチは不要/不適合)
+  # Linux:  emacs-unstable-pgtk (Pure GTK / Wayland)
+  patchedEmacs = if stdenv.isDarwin then pkgs.emacs-macport else pkgs.emacs-unstable-pgtk;
   guiEmacs = (pkgs.emacsPackagesFor patchedEmacs).emacsWithPackages commonEmacsPackages;
 
   # ターミナル版（emacs-nox）
