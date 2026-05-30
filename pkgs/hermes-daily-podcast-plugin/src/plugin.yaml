@@ -1,0 +1,5 @@
+name: daily-podcast
+version: 0.1.0
+description: "毎日トピック (例: ホビー模型 tips) ごとに Hacker News / Bluesky / はてなブックマーク / Reddit を巡回し、LLM で重要記事を採点・日本語要約 → VOICEVOX (四国めたんノーマル) で音声化 → Tailscale 内 nginx に podcast RSS を配信する。tool は register() が動的登録するため provides_tools は空。トピック定義は /var/lib/hermes-podcast/topics.toml が単一情報源。"
+author: narinari
+provides_tools: []
