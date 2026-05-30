@@ -13,6 +13,9 @@
     ./hermes-agent.nix
     ./libvirt.nix
     ./searxng.nix
+    ./voicevox.nix
+    ./podcast-nginx.nix
+    ./podcast-timer.nix
     ../common/global
     ../common/linux
     ../common/linux/home-network.nix

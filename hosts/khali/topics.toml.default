@@ -1,0 +1,51 @@
+# Hermes daily-podcast — トピック定義
+# このファイルは hermes-daily-podcast-seed.service が初回のみ
+# /var/lib/hermes-podcast/topics.toml にコピーする。以降は hermes の
+# `add_topic` ツール (Discord 等の対話から) か手編集で更新する。Nix 側は触らない。
+#
+# VOICEVOX speaker_id (主要):
+#   2  = 四国めたん ノーマル (default)
+#   3  = ずんだもん ノーマル
+#   8  = 春日部つむぎ ノーマル
+
+[[topic]]
+slug = "hobby-models"
+title = "ホビー模型 Tips"
+description = """\
+プラモデル・ガンプラ・フィギュア・ジオラマ・スケールモデルなどの「組み立て・塗装・改造・ \
+レビュー・新製品情報」を扱う。一般芸能 / スポーツ / 政治 / 一般 IT ニュース・社会問題は \
+完全に対象外。AI / LLM / ChatGPT 系の話題も対象外。\
+"""
+voicevox_speaker_id = 2
+target_segment_count = 5
+
+# はてブはタグ検索で絞る (キーワード/カテゴリよりノイズが少ない)。
+# タグは LLM が会話の文脈から推測して `add_topic` で渡してもよい。
+[[topic.sources]]
+type = "hatena"
+tags = ["模型", "プラモデル", "ガンプラ", "hobby", "フィギュア"]
+min_users = 3
+
+[[topic.sources]]
+type = "hackernews"
+query = "\"plastic model\" OR \"scale model\" OR \"plamodel\" OR \"diorama painting\""
+min_points = 5
+min_comments = 1
+
+[[topic.sources]]
+type = "reddit"
+subreddit = "Gunpla"
+timeframe = "day"
+min_score = 30
+
+[[topic.sources]]
+type = "reddit"
+subreddit = "modelmakers"
+timeframe = "day"
+min_score = 20
+
+[[topic.sources]]
+type = "reddit"
+subreddit = "ScaleModelKits"
+timeframe = "day"
+min_score = 15

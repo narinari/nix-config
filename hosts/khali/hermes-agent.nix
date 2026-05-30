@@ -49,6 +49,12 @@ let
   # ドメイン知識は openapi.yaml が単一情報源 (詳細は plugin の README.md)。
   hermesFamilyInventoryPlugin = pkgs.callPackage ../../pkgs/hermes-family-inventory-plugin { };
 
+  # daily-podcast plugin (pkgs/hermes-daily-podcast-plugin/)。
+  # 毎日トピック毎に HN / Bluesky / はてブ / Reddit を巡回して LLM 要約 → VOICEVOX 音声化
+  # → /var/lib/hermes-podcast/episodes/<topic>/<date>.mp3 と RSS を更新する。
+  # 配信は podcast-nginx.nix の vhost (Tailscale 内のみ)。
+  hermesDailyPodcastPlugin = pkgs.callPackage ../../pkgs/hermes-daily-podcast-plugin { };
+
   # hermes user 用の Claude Code 設定。narinari の global `~/.claude/CLAUDE.md` 等と
   # 干渉しないよう CLAUDE_CONFIG_DIR=/var/lib/hermes/.claude で隔離した上で、
   # delegate 専用の絞り込んだ permissions を配備する。
@@ -139,7 +145,7 @@ in
       };
       model = {
         provider = "aperture";
-        default = "qwen3.6:35b-a3b-coding-mxfp8";
+        default = "qwen3.6:35b-mlx";
       };
       # 端末コマンド実行はホスト直接実行 (SmolVM サンドボックス連携は Phase 2)
       terminal = {
@@ -168,6 +174,46 @@ in
             具体的な操作は同 toolset の各 tool description (OpenAPI summary 由来) を読んで判断する。
           - 破壊的操作 (consume, give, sell, delete) は実行前に必ずユーザー確認を取る。
           - API がエラーを返した場合は error.message をそのまま日本語で伝える。
+
+          ## daily-podcast ツール運用ルール
+
+          - 「<topic-slug> の今日の episode を生成して」「<topic-slug> 作って」のような依頼を受けたら
+            **即座に** `generate_daily_episode(topic_slug=...)` を呼ぶ (確認不要 / 追加質問もしない)。
+            systemd timer から呼ばれた場合も同じ動作。target_date は指定がなければ省略する (今日扱い)。
+          - `list_topics` / `list_episodes` は read-only、確認不要。
+
+          ### 新トピック追加の自然な流れ (Discord 等から呼ばれた時)
+
+          ユーザーが「XX の podcast 作りたい」「YY のニュースを毎日聞きたい」等を言ったら:
+
+          1. **タイトル・slug・description を提案する**。slug は kebab-case 英数字 (例: ai-tips, japan-football)。
+          2. **巡回ソースを推測する**。トピックに合ったはてブタグを 3-7 個、関連 subreddit、HN 用の英語 phrase
+             検索キーワードを提案する。タグ例: AI 系なら ["LLM","機械学習","AI","ChatGPT"]、料理なら
+             ["レシピ","料理","食べ物"]。`add_topic` の description で具体的な type ごとの形式を確認する。
+          3. **ユーザーに「以下の内容で追加してよいか」と確認する** (slug / 各 source を提示)。
+          4. **OK が出たら `add_topic` を呼ぶ**。実行後は「翌日の Hermes cron (default: 0 22 * * *) で
+             自動生成されます」と伝える。cron 側で改めて追加する必要はない
+             (generate_all_today_episodes が topics.toml を毎晩読み直すため)。
+          5. すぐ試したいというリクエストなら、追加後に `generate_daily_episode(topic_slug)` を呼んで
+             その場で 1 本作って audio_url を返す。
+
+          ### 定期実行 (cron) の操作
+
+          - daily 生成は Hermes 内蔵 cron の job `hermes-daily-podcast-default` で行う。
+            初回 nixos-rebuild で自動登録される (冪等)。schedule は `0 22 * * *` (Asia/Tokyo)。
+          - schedule 変更や追加 cron が必要なら `cronjob` toolset / Hermes cron CLI で行う。
+            例: 「朝も episode 欲しい」→ `hermes cron create '0 7 * * *' '...'` を提案。
+          - Discord で「今日の episode は?」「最新の episode 何?」と聞かれたら、まず
+            `list_episodes(topic_slug)` を呼んで結果を返す。手動再生成依頼は `regenerate_episode`。
+
+          ### 破壊的操作
+
+          - `add_topic` / `regenerate_episode` は **破壊的**。Discord 1 行のフリ書きで突然呼ばない。
+            必ず内容を確認してから実行する。
+          - tool エラー (error フィールドあり) は日本語でそのまま要約して伝える。
+          - 「no candidates passed the relevance threshold」が返った場合は、ソース絞り込みが strict
+            すぎる可能性。diagnostic の raw_candidates / after_dedup / max_score を見せて、
+            min_users や min_score の引き下げ・タグ追加をユーザーに提案する。
         '';
       };
 
@@ -175,11 +221,13 @@ in
         "browser"
         "claude-code"
         "family-inventory"
+        "daily-podcast"
       ];
 
       plugins.enabled = [
         "claude-code"
         "family-inventory"
+        "daily-podcast"
       ];
 
       # Bundled skill `autonomous-ai-agents/claude-code` (v2.2.0) は「Hermes terminal で
@@ -215,11 +263,15 @@ in
       pkgs.git
       pkgs.ripgrep
       pkgs.fd
+
+      # daily-podcast plugin: VOICEVOX wav の連結・mp3 エンコードに使う
+      pkgs.ffmpeg-headless
     ];
 
     extraPlugins = [
       hermesClaudeCodePlugin
       hermesFamilyInventoryPlugin
+      hermesDailyPodcastPlugin
     ];
 
     # listOf str 型のため toString で /nix/store パスに変換
@@ -247,6 +299,25 @@ in
       # TODO: Cloud Run デプロイ後の URL に置換すること (例: https://family-inventory-xxxxx-an.a.run.app)
       FAMILY_INVENTORY_API_URL = "https://CHANGE_ME_CLOUD_RUN_URL";
       FAMILY_INVENTORY_AGENT_ACTOR = "narinari";
+
+      # daily-podcast plugin の非機密設定。
+      # ・LLM (要約・採点) は hail-mary 上の Ollama (qwen3.6:35b-mlx) を aperture 経由で利用。
+      #   model は env で差し替え可能 (実機での pull 状況に合わせる)。
+      # ・VOICEVOX engine は voicevox.nix の oci-containers で 127.0.0.1:50021 に listen。
+      # ・公開 URL は podcast-nginx.nix の vhost (http://khali/podcasts/)。
+      # ・Bluesky を有効化するには my-secrets/private/daily-podcast-env.age を作って
+      #   environmentFiles に追加し、`atproto` パッケージを hermes Python env に注入する。
+      DAILY_PODCAST_STATE_DIR = "/var/lib/hermes-podcast";
+      DAILY_PODCAST_VOICEVOX_URL = "http://127.0.0.1:50021";
+      # podcast クライアント (Overcast 等) は短いホスト名を validation 拒否するので
+      # Tailscale MagicDNS の FQDN を使う。Tailnet 内なら名前解決できる。
+      DAILY_PODCAST_PUBLIC_BASE_URL = "http://khali.taild10c60.ts.net/podcasts";
+      DAILY_PODCAST_DEFAULT_SPEAKER_ID = "2"; # 四国めたん ノーマル
+      # Podcast 全体の author / owner 表示名 (個別 topic ではなくシリーズ管理者の名前)
+      DAILY_PODCAST_AUTHOR = "friday hermes";
+      # hail-mary (M1 Max) の Ollama に pull 済みの MLX バックエンド版。
+      # 素のチャットチューニングで要約・翻訳向き、coding tuned (mxfp8) より自然。
+      HERMES_DAILY_PODCAST_LLM_MODEL = "qwen3.6:35b-mlx";
     };
   };
 
