@@ -100,28 +100,6 @@ in
         '';
       };
 
-      # ── 手動で 1 topic だけ再生成したいとき用の oneshot template ──
-      # `systemctl start hermes-daily-podcast@<slug>` で呼べる。
-      # Discord 経由なら直接 generate_daily_episode tool を叩いた方が早い。
-      "hermes-daily-podcast@" = {
-        description = "Generate today's hermes-daily-podcast episode for %i (manual one-shot)";
-        after = [
-          "hermes-agent.service"
-          "network-online.target"
-        ];
-        wants = [
-          "hermes-agent.service"
-          "network-online.target"
-        ];
-        serviceConfig = {
-          Type = "oneshot";
-          User = "hermes";
-          Group = "hermes";
-          WorkingDirectory = podcastStateDir;
-          ExecStart = "${config.services.hermes-agent.package}/bin/hermes chat -q '%i トピックの今日の episode を生成して、結果の audio_url と feed_url を返してください' -Q -t daily-podcast --max-turns 5";
-          TimeoutStartSec = "1800s";
-        };
-      };
     };
   };
 }
