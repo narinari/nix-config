@@ -7,6 +7,50 @@ Tailscale 内 nginx で podcast 配信。定期実行は Hermes 内蔵 cron。
 
 このドキュメントは Phase 2 以降の改善候補をまとめる。優先度は仮置き。
 
+## Phase 1.5 (短期 / 次にやる)
+
+shi3z 氏の [siki](https://github.com/shi3z/siki) (式神 — ローカル agentic AI)
+から取り込めるアイデアのうち、すぐ効くもの。Phase 2 の本格機能拡張より前に
+入れたい改善。
+
+### 多段モデル化 (score: 軽量 / summarize: 35B) ★★★
+
+siki は LFM2.5 で fast filtering → gpt-oss 20B で summarization の 2 段構成。
+我々は全部 `qwen3.6:35b-mlx` で回しているが、
+
+- score (採点): 候補 30-60 件を一気に裁く軽い作業 → 小型モデル
+  (例: `qwen3:4b-mlx` などの 4-8B 帯) で十分
+- summarize (要約・翻訳): 1 件ずつ本文を読む重い作業 → 35B 維持
+
+実装:
+
+- `src/llm.py` に `chat()` の model 引数を生かして score / summarize で分離
+- `src/score.py` は `cfg.score_model()` を使う、`src/summarize.py` は
+  `cfg.summarize_model()` を使う
+- 環境変数:
+  - `HERMES_DAILY_PODCAST_SCORE_MODEL` (default: 採点向きの軽量モデル)
+  - `HERMES_DAILY_PODCAST_SUMMARIZE_MODEL` (default: 現行 `qwen3.6:35b-mlx`)
+  - 既存の `HERMES_DAILY_PODCAST_LLM_MODEL` は summarize の alias として
+    後方互換
+- hosts/khali/hermes-agent.nix の environment に追加
+
+期待効果: スループット 3-5 倍、hail-mary 占有時間が短く Hermes 他処理にも余裕。
+
+### 採点を HIGH/MID/LOW の離散ラベル化 ★★
+
+siki は重要度を HIGH/MID/LOW の 3 値で出している。我々は 0-10 float だが、
+LLM が「3」「5」「7」のような中途半端な数字で迷う問題がある。離散ラベルなら
+安定性が増し、ハードフロアも書きやすい (`>=MID` で採用)。
+
+実装:
+
+- `src/score.py` のプロンプトを 0-10 → HIGH/MID/LOW + reason に変更
+- 内部表現は `score: float` を維持しつつ、LLM 出力 HIGH/MID/LOW を
+  10/5/1 にマッピング (既存 `MIN_SELECTION_SCORE=3` のロジックを温存)
+- `select_top` の挙動は変えない (上位 N かつ score>=floor)
+
+期待効果: 採点ブレ減、低品質候補のフロアカット精度向上。
+
 ## Phase 2
 
 ### Discord deliver で生成結果を通知 ★ 推奨
@@ -90,6 +134,19 @@ sudo -u hermes hermes cron edit hermes-daily-podcast-default --deliver discord
 
 - X API v2 Basic ($200/月) が必要なので scope outside だった
 - RSSHub セルフホストや、コミュニティ X gateway が現実解になるか継続観察
+
+### siki 由来の中期アイデア (画像生成 / Twitter curation)
+
+- **エピソード毎の cover image 自動生成** — siki は FLUX.2 / Helios を
+  tool として持つ。podcast の `<itunes:image>` を毎エピソード固有
+  (今日のトピックに合わせた cover) にすれば Apple Podcasts の見栄えが
+  化ける。ただし hail-mary GPU を相当食うので、まずは静的 cover を維持。
+  実装するなら trigger 後の非同期生成 (mp3 配信を block しない) が前提。
+- **Twitter (X) curation の手法** — siki は「Twitter timeline curation
+  with LLM filtering」を実装している。X 公式 API は有料 ($200/月) なので、
+  shi3z 氏がどう取っているか (login session の cookie 経由か、個人 API tier
+  か) を確認してから判断する。本家方式が取り込めれば Phase 2 で外したまま
+  になっている X 連携が復活する。
 
 ### Podcast 2.0 value tag (リスナーから micropayment)
 
