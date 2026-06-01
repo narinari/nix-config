@@ -1,9 +1,18 @@
 """LLM-based importance scoring for candidates.
 
-We send all candidates in one batch and ask the LLM to return a JSON object
-`{ "scores": [{"id": int, "score": float, "reason": str}, ...] }`. Doing it
-in one call (instead of N calls) is much faster and keeps relative ordering
-calibrated — the LLM sees its peers.
+We send all candidates in one batch and ask the LLM to classify each into one
+of three discrete labels (HIGH/MID/LOW), returning a JSON object
+`{ "scores": [{"id": int, "label": "HIGH|MID|LOW", "reason": str}, ...] }`.
+
+Doing it in one call (instead of N calls) is much faster and keeps relative
+ordering calibrated — the LLM sees its peers. The discrete label space is
+stabler than a 0-10 float (the model used to waver between 3/4/5 for similar
+candidates); we map labels back to a numeric score internally so the existing
+`MIN_SELECTION_SCORE` floor and `select_top` ranking keep working.
+
+The scoring pass is intentionally cheap: it runs against `cfg.score_model()`
+(default `qwen3.5:4b-mlx` on hail-mary) so we can throw 30-60 candidates at it
+without monopolizing the heavy summarization model.
 """
 
 from __future__ import annotations
@@ -15,6 +24,17 @@ from . import config as cfg
 from . import llm
 
 logger = logging.getLogger(__name__)
+
+# Discrete label → numeric score. Anchored so HIGH/MID stay above the
+# MIN_SELECTION_SCORE floor and LOW (plus "off-topic", which the prompt maps
+# to LOW) sinks below it.
+LABEL_TO_SCORE: dict[str, float] = {
+    "HIGH": 10.0,
+    "MID": 5.0,
+    "LOW": 1.0,
+}
+
+MIN_SELECTION_SCORE = 3.0
 
 
 def score_candidates(
@@ -39,8 +59,8 @@ def score_candidates(
             "role": "system",
             "content": (
                 "あなたは特定ジャンルの番組プロデューサー兼編集者です。"
-                "「番組のジャンル」に直接該当しない候補は score=0 を付け、決して採用しないでください。"
-                "人気記事だからといって score を上げるのは禁止です — ジャンル一致度が最優先です。"
+                "「番組のジャンル」に直接該当しない候補は LOW を付け、決して採用しないでください。"
+                "人気記事だからといって HIGH を付けるのは禁止です — ジャンル一致度が最優先です。"
                 "出力は厳密な JSON のみ、自然言語の前置きや markdown のコードブロックは禁止です。"
             ),
         },
@@ -48,7 +68,12 @@ def score_candidates(
     ]
 
     try:
-        result = llm.chat_json(messages, temperature=0.1, max_tokens=4096)
+        result = llm.chat_json(
+            messages,
+            model=cfg.score_model(),
+            temperature=0.1,
+            max_tokens=4096,
+        )
     except llm.LlmError as exc:
         # Make the failure mode obvious in logs — silently falling back to
         # popularity ranking gives wrong-but-plausible episodes (sports / news
@@ -74,19 +99,43 @@ def score_candidates(
             continue
         try:
             cid = int(s.get("id"))
-            sv = float(s.get("score"))
         except (TypeError, ValueError):
             continue
-        score_by_id[cid] = {
-            "score": max(0.0, min(10.0, sv)),
-            "score_reason": str(s.get("reason") or "")[:300],
-        }
+        score_by_id[cid] = _decide_score(s)
 
     out: list[dict[str, Any]] = []
     for i, c in enumerate(candidates):
         decided = score_by_id.get(i, {"score": 0.0, "score_reason": ""})
         out.append({**c, **decided})
     return out
+
+
+def _decide_score(s: dict[str, Any]) -> dict[str, Any]:
+    """Convert one LLM verdict (label + reason) into the internal numeric form.
+
+    Backward compatible: if the model emits the legacy `score` float instead
+    of `label`, we still accept it. New code path is label-first.
+    """
+    reason = str(s.get("reason") or "")[:300]
+
+    label_raw = s.get("label")
+    if isinstance(label_raw, str):
+        label = label_raw.strip().upper()
+        if label in LABEL_TO_SCORE:
+            return {"score": LABEL_TO_SCORE[label], "score_reason": reason}
+
+    # Legacy / fallback path: numeric score directly.
+    if "score" in s:
+        try:
+            sv = float(s.get("score"))
+        except (TypeError, ValueError):
+            sv = 0.0
+        return {
+            "score": max(0.0, min(10.0, sv)),
+            "score_reason": reason,
+        }
+
+    return {"score": 0.0, "score_reason": reason}
 
 
 def _build_prompt(
@@ -99,12 +148,17 @@ def _build_prompt(
     if hint:
         lines.append(f"## 今日の観点\n{hint}\n")
     lines.append(
-        "## 採点基準 (0-10)\n"
-        "- **ジャンル一致が最優先**。番組のジャンルに直接該当しない候補は問答無用で score=0。\n"
-        "  たとえばホビー模型ジャンルでサッカー / 政治 / 芸能 / 一般 IT ニュースが出てきたら全部 0。\n"
-        "- ジャンルに一致した上で: 実用に近いか / 深掘り価値があるか / 新規性\n"
-        "- ノイズ (宣伝・スパム・釣り) は score=0\n"
-        "- 重複候補 (同じ話題で別ソース) はどちらか 1 つを高くつけ、他は 0\n"
+        "## 採点ラベル (HIGH / MID / LOW)\n"
+        "- HIGH: 番組のジャンルに直接該当し、内容が濃く実用的・新規性が高い\n"
+        "- MID: 番組のジャンルに該当するが、内容が浅い or 既出寄り\n"
+        "- LOW: ジャンル外 / ノイズ (宣伝・スパム・釣り) / 重複 / 中身が薄い\n"
+        "\n"
+        "## 採点ルール\n"
+        "- **ジャンル一致が最優先**。番組のジャンルに直接該当しない候補は問答無用で LOW。\n"
+        "  たとえばホビー模型ジャンルでサッカー / 政治 / 芸能 / 一般 IT ニュースが出てきたら全部 LOW。\n"
+        "- 人気が高くてもジャンル外なら LOW。スコアを甘くしない。\n"
+        "- 同じ話題で別ソースの重複候補は、最良の 1 つを HIGH / MID、残りを LOW にする。\n"
+        "- 迷ったら MID ではなく LOW を選ぶ。LOW は最終選定で必ず除外される。\n"
     )
     lines.append("## 候補\n")
     for c in indexed:
@@ -117,7 +171,8 @@ def _build_prompt(
         )
     lines.append(
         "\n## 出力 (JSON のみ)\n"
-        '{"scores": [{"id": <int>, "score": <0-10 float>, "reason": "<日本語1文>"}, ...]}'
+        '{"scores": [{"id": <int>, "label": "HIGH"|"MID"|"LOW", '
+        '"reason": "<日本語1文>"}, ...]}'
     )
     return "\n".join(lines)
 
@@ -135,9 +190,6 @@ def _fallback_score(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
         score = min(10.0, pts / 50.0)
         out.append({**c, "score": score, "score_reason": "fallback: points-based"})
     return out
-
-
-MIN_SELECTION_SCORE = 3.0
 
 
 def select_top(

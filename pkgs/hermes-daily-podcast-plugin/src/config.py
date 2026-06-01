@@ -27,6 +27,8 @@ ENV_DEFAULT_SPEAKER = "DAILY_PODCAST_DEFAULT_SPEAKER_ID"
 ENV_AUTHOR = "DAILY_PODCAST_AUTHOR"
 ENV_OWNER_EMAIL = "DAILY_PODCAST_OWNER_EMAIL"
 ENV_LLM_MODEL = "HERMES_DAILY_PODCAST_LLM_MODEL"
+ENV_SCORE_MODEL = "HERMES_DAILY_PODCAST_SCORE_MODEL"
+ENV_SUMMARIZE_MODEL = "HERMES_DAILY_PODCAST_SUMMARIZE_MODEL"
 ENV_LLM_BASE_URL = "HERMES_DAILY_PODCAST_LLM_BASE_URL"
 ENV_LLM_API_KEY = "OPENAI_API_KEY"  # aperture との互換
 
@@ -38,6 +40,10 @@ DEFAULT_PUBLIC_BASE_URL = "http://khali.taild10c60.ts.net/podcasts"
 DEFAULT_SPEAKER_ID = 2  # 四国めたん ノーマル
 DEFAULT_AUTHOR = "friday hermes"
 DEFAULT_LLM_MODEL = "qwen3.6:35b-mlx"
+# 採点 (HIGH/MID/LOW 分類) は短い文脈を一括で裁くだけなので 4-8B 帯で十分。
+# qwen3.5:4b-mlx は hail-mary に pull 済み。summarize より 3-5 倍速い。
+DEFAULT_SCORE_MODEL = "qwen3.5:4b-mlx"
+DEFAULT_SUMMARIZE_MODEL = DEFAULT_LLM_MODEL
 DEFAULT_LLM_BASE_URL = "http://ai/v1"  # aperture
 
 DEFAULT_SEGMENT_COUNT = 5
@@ -147,7 +153,38 @@ def owner_email() -> str:
 
 
 def llm_model() -> str:
-    return os.environ.get(ENV_LLM_MODEL, DEFAULT_LLM_MODEL)
+    """Legacy single-model entrypoint. Returns summarize_model() for backward
+    compatibility — older callers (and tests) expect "the model" to mean the
+    heavy summarization model."""
+    return summarize_model()
+
+
+def score_model() -> str:
+    """Lightweight model for batch scoring (HIGH/MID/LOW classification).
+
+    Precedence: SCORE_MODEL env > LLM_MODEL env (legacy single-model) > default.
+    """
+    explicit = os.environ.get(ENV_SCORE_MODEL, "").strip()
+    if explicit:
+        return explicit
+    legacy = os.environ.get(ENV_LLM_MODEL, "").strip()
+    if legacy:
+        return legacy
+    return DEFAULT_SCORE_MODEL
+
+
+def summarize_model() -> str:
+    """Heavy model for per-article Japanese summarization / translation.
+
+    Precedence: SUMMARIZE_MODEL env > LLM_MODEL env (legacy alias) > default.
+    """
+    explicit = os.environ.get(ENV_SUMMARIZE_MODEL, "").strip()
+    if explicit:
+        return explicit
+    legacy = os.environ.get(ENV_LLM_MODEL, "").strip()
+    if legacy:
+        return legacy
+    return DEFAULT_SUMMARIZE_MODEL
 
 
 def llm_base_url() -> str:

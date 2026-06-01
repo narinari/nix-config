@@ -301,8 +301,8 @@ in
       FAMILY_INVENTORY_AGENT_ACTOR = "narinari";
 
       # daily-podcast plugin の非機密設定。
-      # ・LLM (要約・採点) は hail-mary 上の Ollama (qwen3.6:35b-mlx) を aperture 経由で利用。
-      #   model は env で差し替え可能 (実機での pull 状況に合わせる)。
+      # ・LLM は 2 段構成: 採点 (score) は軽量モデル、要約 (summarize) は 35B。
+      #   どちらも hail-mary 上の Ollama (MLX backend) を aperture 経由で叩く。
       # ・VOICEVOX engine は voicevox.nix の oci-containers で 127.0.0.1:50021 に listen。
       # ・公開 URL は podcast-nginx.nix の vhost (http://khali/podcasts/)。
       # ・Bluesky を有効化するには my-secrets/private/daily-podcast-env.age を作って
@@ -315,8 +315,14 @@ in
       DAILY_PODCAST_DEFAULT_SPEAKER_ID = "2"; # 四国めたん ノーマル
       # Podcast 全体の author / owner 表示名 (個別 topic ではなくシリーズ管理者の名前)
       DAILY_PODCAST_AUTHOR = "friday hermes";
-      # hail-mary (M1 Max) の Ollama に pull 済みの MLX バックエンド版。
+      # 採点 (HIGH/MID/LOW 分類): 候補 30-60 件を一気に裁く軽い作業 → 4B 帯で十分。
+      # hail-mary に pull 済みの MLX backend tag。summarize より 3-5 倍速い。
+      HERMES_DAILY_PODCAST_SCORE_MODEL = "qwen3.5:4b-mlx";
+      # 要約・翻訳: 本文を読んで日本語に書き起こす重い作業 → 35B 維持。
       # 素のチャットチューニングで要約・翻訳向き、coding tuned (mxfp8) より自然。
+      HERMES_DAILY_PODCAST_SUMMARIZE_MODEL = "qwen3.6:35b-mlx";
+      # 旧 LLM_MODEL は SCORE/SUMMARIZE 未設定時の fallback として効く後方互換。
+      # 新規キーが両方セット済みなので参考値扱いで残しておく (削除しても挙動は同じ)。
       HERMES_DAILY_PODCAST_LLM_MODEL = "qwen3.6:35b-mlx";
     };
   };

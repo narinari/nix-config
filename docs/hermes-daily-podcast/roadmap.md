@@ -7,47 +7,42 @@ Tailscale 内 nginx で podcast 配信。定期実行は Hermes 内蔵 cron。
 
 このドキュメントは Phase 2 以降の改善候補をまとめる。優先度は仮置き。
 
-## Phase 1.5 (短期 / 次にやる)
+## Phase 1.5 (完了)
 
 shi3z 氏の [siki](https://github.com/shi3z/siki) (式神 — ローカル agentic AI)
-から取り込めるアイデアのうち、すぐ効くもの。Phase 2 の本格機能拡張より前に
-入れたい改善。
+を参考に取り込んだ短期改善 2 件。実装済み。
 
-### 多段モデル化 (score: 軽量 / summarize: 35B) ★★★
+### 多段モデル化 (score: 軽量 / summarize: 35B) ★★★ — 完了
 
-siki は LFM2.5 で fast filtering → gpt-oss 20B で summarization の 2 段構成。
-我々は全部 `qwen3.6:35b-mlx` で回しているが、
+`qwen3.6:35b-mlx` 一本だった LLM 呼び出しを 2 段に分離。
 
-- score (採点): 候補 30-60 件を一気に裁く軽い作業 → 小型モデル
-  (例: `qwen3:4b-mlx` などの 4-8B 帯) で十分
-- summarize (要約・翻訳): 1 件ずつ本文を読む重い作業 → 35B 維持
+- score (採点): `qwen3.5:4b-mlx` (hail-mary に pull 済み)。候補 30-60 件を
+  一括で裁くだけなので 4B で十分
+- summarize (要約・翻訳): `qwen3.6:35b-mlx` 維持
 
 実装:
 
-- `src/llm.py` に `chat()` の model 引数を生かして score / summarize で分離
-- `src/score.py` は `cfg.score_model()` を使う、`src/summarize.py` は
-  `cfg.summarize_model()` を使う
-- 環境変数:
-  - `HERMES_DAILY_PODCAST_SCORE_MODEL` (default: 採点向きの軽量モデル)
-  - `HERMES_DAILY_PODCAST_SUMMARIZE_MODEL` (default: 現行 `qwen3.6:35b-mlx`)
-  - 既存の `HERMES_DAILY_PODCAST_LLM_MODEL` は summarize の alias として
-    後方互換
-- hosts/khali/hermes-agent.nix の environment に追加
+- `src/config.py` に `score_model()` / `summarize_model()` を追加。
+  既存 `llm_model()` は summarize の alias として後方互換
+- `src/score.py` / `src/summarize.py` がそれぞれ `cfg.score_model()` /
+  `cfg.summarize_model()` を `llm.chat_json` の `model` 引数に渡す
+- 環境変数 (`hosts/khali/hermes-agent.nix` で配備):
+  - `HERMES_DAILY_PODCAST_SCORE_MODEL` (default: `qwen3.5:4b-mlx`)
+  - `HERMES_DAILY_PODCAST_SUMMARIZE_MODEL` (default: `qwen3.6:35b-mlx`)
+  - 既存 `HERMES_DAILY_PODCAST_LLM_MODEL` は両者未設定時の fallback として残す
 
 期待効果: スループット 3-5 倍、hail-mary 占有時間が短く Hermes 他処理にも余裕。
 
-### 採点を HIGH/MID/LOW の離散ラベル化 ★★
+### 採点を HIGH/MID/LOW の離散ラベル化 ★★ — 完了
 
-siki は重要度を HIGH/MID/LOW の 3 値で出している。我々は 0-10 float だが、
-LLM が「3」「5」「7」のような中途半端な数字で迷う問題がある。離散ラベルなら
-安定性が増し、ハードフロアも書きやすい (`>=MID` で採用)。
+`src/score.py` のプロンプトを 0-10 float → HIGH/MID/LOW + reason に変更。
+内部表現は `score: float` を維持し、LLM 出力ラベルを 10/5/1 にマッピング。
+既存 `MIN_SELECTION_SCORE=3.0` フロアロジックと `select_top` の挙動は不変。
 
-実装:
-
-- `src/score.py` のプロンプトを 0-10 → HIGH/MID/LOW + reason に変更
-- 内部表現は `score: float` を維持しつつ、LLM 出力 HIGH/MID/LOW を
-  10/5/1 にマッピング (既存 `MIN_SELECTION_SCORE=3` のロジックを温存)
-- `select_top` の挙動は変えない (上位 N かつ score>=floor)
+- 旧 prompt が float を返す場合に備えて legacy 互換パスを `_decide_score()`
+  に残してある (label が無く `score` だけ来たらそのまま採用)
+- 単体テストは `tests/test_score.py` (ラベルマッピング / 軽量モデル使用 /
+  legacy float 互換 / フロアカット を網羅)
 
 期待効果: 採点ブレ減、低品質候補のフロアカット精度向上。
 

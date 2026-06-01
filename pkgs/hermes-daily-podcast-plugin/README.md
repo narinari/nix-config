@@ -1,9 +1,10 @@
 # hermes-daily-podcast-plugin
 
 Hermes Agent プラグイン。毎日トピック (`hobby-models` など) ごとに Hacker News /
-Bluesky / はてなブックマーク / Reddit を巡回し、LLM (qwen3.6:35b-mlx via aperture)
-で重要記事を採点・日本語要約し、VOICEVOX (四国めたん ノーマル) で音声化して、
-Tailscale 内 nginx に podcast RSS を配信する。
+Bluesky / はてなブックマーク / Reddit を巡回し、LLM 2 段構成 (採点は軽量 4B、
+要約は 35B、いずれも aperture 経由の hail-mary Ollama) で重要記事を採点・
+日本語要約し、VOICEVOX (四国めたん ノーマル) で音声化して、Tailscale 内 nginx
+に podcast RSS を配信する。
 
 ## 公開する Hermes tools
 
@@ -23,7 +24,9 @@ Tailscale 内 nginx に podcast RSS を配信する。
 | `DAILY_PODCAST_VOICEVOX_URL` | yes | `http://127.0.0.1:50021` | VOICEVOX engine HTTP API |
 | `DAILY_PODCAST_PUBLIC_BASE_URL` | yes | `http://khali/podcasts` | RSS enclosure の URL prefix |
 | `DAILY_PODCAST_DEFAULT_SPEAKER_ID` | no | `2` | VOICEVOX speaker id (四国めたん ノーマル) |
-| `HERMES_DAILY_PODCAST_LLM_MODEL` | no | `qwen3.6:35b-mlx` | aperture (`http://ai/v1`) で叩く Ollama tag |
+| `HERMES_DAILY_PODCAST_SCORE_MODEL` | no | `qwen3.5:4b-mlx` | 採点 (HIGH/MID/LOW 分類) 用の軽量モデル。候補 30-60 件を一括で裁く |
+| `HERMES_DAILY_PODCAST_SUMMARIZE_MODEL` | no | `qwen3.6:35b-mlx` | 1 件ずつ本文を読む要約・翻訳用の重いモデル |
+| `HERMES_DAILY_PODCAST_LLM_MODEL` | no | — | 旧 alias。`SCORE_MODEL` / `SUMMARIZE_MODEL` 未設定時の fallback (後方互換) |
 | `HERMES_DAILY_PODCAST_LLM_BASE_URL` | no | `http://ai/v1` | Aperture / Ollama OpenAI 互換エンドポイント |
 | `OPENAI_API_KEY` | yes (任意値) | — | Aperture は Tailscale identity で代理認証するためダミーで可 |
 | `BLUESKY_HANDLE` | no | — | Bluesky source を使う場合。例 `your.bsky.social` |
@@ -132,7 +135,7 @@ iPhone (Tailscale 接続) から購読・再生できる。
 ## トラブルシュート
 
 - **音声が空白**: VOICEVOX engine が落ちている可能性。`systemctl status podman-voicevox-engine` と `curl http://127.0.0.1:50021/version` を確認。
-- **LLM がタイムアウト**: hail-mary の Ollama が pull 中 / busy。`ollama list | grep qwen3.6` で tag を確認、必要なら `HERMES_DAILY_PODCAST_LLM_MODEL` を別 tag に差し替え。
+- **LLM がタイムアウト**: hail-mary の Ollama が pull 中 / busy。`ollama list | grep qwen3` で tag を確認、必要なら `HERMES_DAILY_PODCAST_SCORE_MODEL` / `HERMES_DAILY_PODCAST_SUMMARIZE_MODEL` を別 tag に差し替え (採点と要約で独立して切替え可)。
 - **重複が抑制されない**: `sqlite3 /var/lib/hermes-podcast/state.sqlite 'select count(*) from sources_seen'` で件数確認。タイトル類似度の閾値は `src/dedupe.py:TITLE_SIMILARITY_THRESHOLD`。
 - **Bluesky が常に空**: `BLUESKY_HANDLE` / `BLUESKY_APP_PASSWORD` env または `atproto` パッケージが無効。Phase 1 デフォルトでは無効で OK。
 - **Reddit が 429**: anonymous レート (10/min) に詰まっている。複数 subreddit を巡回する場合は `INTER_REQUEST_SLEEP` で間隔を空けている。

@@ -76,4 +76,9 @@ def _ask_llm(
         },
         {"role": "user", "content": user},
     ]
-    return llm.chat_json(messages, temperature=0.3, max_tokens=600)
+    return llm.chat_json(
+        messages,
+        model=cfg.summarize_model(),
+        temperature=0.3,
+        max_tokens=600,
+    )
