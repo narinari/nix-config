@@ -130,7 +130,7 @@
           modules = [
             ../home-manager/narinari/khali.nix
             inputs.sops-nix.homeManagerModule
-            inputs.agenix.homeManagerModule.default
+            inputs.agenix.homeManagerModules.default
             inputs.noctalia.homeModules.default
           ];
           pkgs = pkgsFor "x86_64-linux";
