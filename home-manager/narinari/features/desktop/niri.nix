@@ -68,7 +68,12 @@
 
     binds {
         Mod+Return       { spawn "wezterm"; }
-        Mod+D            { spawn "noctalia-shell" "ipc" "call" "launcher" "toggle"; }
+        // wlr-which-key ベースのメニュー (features/desktop/menu.nix が提供する
+        // menu-browser / menu-emacs を起動)。Hyprland 側と同じ操作感に揃える。
+        Mod+D            { spawn "menu-browser"; }
+        Mod+Semicolon    { spawn "menu-emacs"; }
+        // noctalia-shell の launcher は Mod+Space に退避。
+        Mod+Space        { spawn "noctalia-shell" "ipc" "call" "launcher" "toggle"; }
         Mod+Q            { close-window; }
         Mod+Shift+Q      { quit; }
 
