@@ -16,6 +16,7 @@
     ./features/llm
     ./features/llm/aperture.nix
     ./features/llm/codex.nix
+    ./features/llm/claude-code-skills.nix
     ./features/bitwarden
     ./features/rclone
     ./features/desktop/common

@@ -19,7 +19,12 @@ let
 
   codexConfigFile = pkgs.writeText "codex-config.toml" ''
     # Codex CLI 設定 (Tailscale Aperture 経由)
-    model = "gemma4:26b-a4b-it-q8_0"
+    #
+    # デフォルトは coding 用 qwen3.6 (hail-mary on MLX, Aperture 経由)。
+    # 他用途は profile を明示すること: `codex --profile local_gemma4 ...`
+    # Claude Code の codex-implement skill から呼ばれる主要経路でもある
+    # (関連: docs/codex-implement-claude-bridge.md)
+    model = "qwen3.6:35b-a3b-coding-mxfp8"
     model_provider = "tailscale-aperture"
 
     # Tailscale Aperture AIゲートウェイ
@@ -35,14 +40,24 @@ let
     env_key = "OLLAMA_API_KEY"
     env_key_instructions = "Ollama does not require an API key"
 
-    # ローカルモデルプロファイル (Aperture 経由)
+    # 実装委譲用デフォルト profile (Claude codex-implement skill から呼ばれる主用途)
+    # NOTE: TOML の bare key にドット (`.`) を含めると dotted-key として table 階層に
+    # 展開されてしまう (例: `[profiles.local_qwen3.6_coding]` は
+    # `profiles -> local_qwen3 -> 6_coding` の 4 段 table になる) ため、
+    # profile 名は必ずアンダースコア区切りで書く。
+    [profiles.local_qwen3_6_coding]
+    model = "qwen3.6:35b-a3b-coding-mxfp8"
+    model_provider = "tailscale-aperture"
+    model_context_window = 131072
+
+    # フォールバック: 汎用対話 / 指示追従重視のとき
     [profiles.local_gemma4]
     model = "gemma4:26b-a4b-it-q8_0"
     model_provider = "tailscale-aperture"
     model_context_window = 131072
 
-    # ローカルモデルプロファイル (Aperture 経由)
-    [profiles.local_qwen3.5]
+    # フォールバック: qwen3.5 coding 比較用 (aperture 側で qwen3.6 が出ないとき)
+    [profiles.local_qwen3_5]
     model = "qwen3.5:35b-a3b-coding-nvfp4"
     model_provider = "tailscale-aperture"
     model_context_window = 131072

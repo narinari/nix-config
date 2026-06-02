@@ -52,6 +52,7 @@ let
           "Bash(*go vet*)"
           "Bash(*go test*)"
           "Bash(make:*)"
+          "Bash(codex:*)"
           "Bash(gh pr create:*)"
           "Bash(gh pr edit:*)"
           "Bash(gh pr view:*)"
