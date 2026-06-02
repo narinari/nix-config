@@ -95,38 +95,31 @@ in
 {
   imports = [ inputs.hermes-agent.nixosModules.default ];
 
-  age.secrets."friday-hermes-env" = {
-    file = "${inputs.my-secrets}/private/friday-hermes-env.age";
-  };
+  age.secrets = {
+    "friday-hermes-env" = {
+      file = "${inputs.my-secrets}/private/friday-hermes-env.age";
+    };
 
-  # Claude Code OAuth credentials (Pro/Max sub) の暗号化スナップショット。
-  # /run/agenix/hermes-claude-credentials に root:root 0400 で配置される。
-  # hermes-agent-credentials.service が初回のみ /var/lib/hermes/.claude/.credentials.json
-  # に hermes 所有でコピーする (token refresh で書き換わるため、agenix 直配備は不可)。
-  age.secrets."hermes-claude-credentials" = {
-    file = "${inputs.my-secrets}/private/hermes-claude-credentials.json.age";
-    mode = "0400";
-    owner = "root";
-    group = "root";
-  };
+    # Claude Code OAuth credentials (Pro/Max sub) の暗号化スナップショット。
+    # /run/agenix/hermes-claude-credentials に root:root 0400 で配置される。
+    # hermes-agent-credentials.service が初回のみ /var/lib/hermes/.claude/.credentials.json
+    # に hermes 所有でコピーする (token refresh で書き換わるため、agenix 直配備は不可)。
+    "hermes-claude-credentials" = {
+      file = "${inputs.my-secrets}/private/hermes-claude-credentials.json.age";
+      mode = "0400";
+      owner = "root";
+      group = "root";
+    };
 
-  # ── family-inventory agent API キー (環境変数) ────────────────────────────
-  # TODO: my-secrets リポジトリ側で agenix により
-  #   `private/family-inventory-agent-env.age`
-  # を作成したら、以下 2 ブロックのコメントアウトを解除して
-  # `sudo nixos-rebuild switch --flake .#khali` する。
-  #
-  # secret の中身 (1 行):
-  #   FAMILY_INVENTORY_AGENT_API_KEY=<openssl rand -hex 32 で生成した値>
-  #
-  # systemd の EnvironmentFile= は service 起動前に root で読み取られるため、
-  # 既存の `friday-hermes-env` と同じく owner/group/mode は省略 (agenix default: root:root 0400)
-  # で良い。詳細手順は pkgs/hermes-family-inventory-plugin/README.md の
-  # "khali host への統合手順" セクションを参照。
-  #
-  # age.secrets."family-inventory-agent-env" = {
-  #   file = "${inputs.my-secrets}/private/family-inventory-agent-env.age";
-  # };
+    # ── family-inventory agent API キー (環境変数) ────────────────────────────
+    # systemd の EnvironmentFile= は service 起動前に root で読み取られるため、
+    # 既存の `friday-hermes-env` と同じく owner/group/mode は省略 (agenix default: root:root 0400)
+    # で良い。詳細手順は pkgs/hermes-family-inventory-plugin/README.md の
+    # "khali host への統合手順" セクションを参照。
+    "family-inventory-agent-env" = {
+      file = "${inputs.my-secrets}/private/family-inventory-agent-env.age";
+    };
+  };
 
   services.hermes-agent = {
     enable = true;
@@ -278,10 +271,7 @@ in
     environmentFiles = [
       (toString hermesEnvFile)
       config.age.secrets."friday-hermes-env".path
-      # TODO: my-secrets に family-inventory-agent-env.age を追加した後、
-      # 上の `age.secrets."family-inventory-agent-env"` ブロックと併せて
-      # 以下のコメントアウトを解除すること。
-      # config.age.secrets."family-inventory-agent-env".path
+      config.age.secrets."family-inventory-agent-env".path
     ];
 
     # 非機密 env (HERMES_HOME/.env にマージされる)
@@ -295,9 +285,8 @@ in
       HERMES_CLAUDE_CODE_MODEL = "claude-opus-4-7";
 
       # family-inventory plugin の非機密設定。API キー (FAMILY_INVENTORY_AGENT_API_KEY) は
-      # agenix secret 経由 (上記 environmentFiles の TODO を参照)。
-      # TODO: Cloud Run デプロイ後の URL に置換すること (例: https://family-inventory-xxxxx-an.a.run.app)
-      FAMILY_INVENTORY_API_URL = "https://CHANGE_ME_CLOUD_RUN_URL";
+      # agenix secret 経由
+      FAMILY_INVENTORY_API_URL = "https://family-inventory-api-662848505444.asia-northeast1.run.app";
       FAMILY_INVENTORY_AGENT_ACTOR = "narinari";
 
       # daily-podcast plugin の非機密設定。
