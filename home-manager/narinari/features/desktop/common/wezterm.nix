@@ -197,13 +197,20 @@
 
         macos_forward_to_ime_modifier_mask = "SHIFT|CTRL",
 
-        -- Work around https://github.com/wez/wezterm/issues/5990
+        -- WebGpu は wayland EGL の solid block 化け (wezterm#5990, open) を
+        -- 回避する代替レンダリングパス。enable_wayland はデフォルト (true) に
+        -- 戻し、niri/Hyprland と wayland 直接接続にすることで XWayland
+        -- (xwayland-satellite) 経路で起きていた split 下ペインの mouse hit-test
+        -- y_origin ズレ (行選択が最上行に張り付くバグ) を解消する。
         front_end = "WebGpu",
-        enable_wayland = false,
 
         color_scheme = "Tokyo Night",
         use_fancy_tab_bar = false,
         tab_bar_at_bottom = false,
+        -- タブが 1 個 ↔ 2 個の遷移で tab bar 高さが動的変化し、特定 release で
+        -- ペインの mouse hit-test 用 top_y が古いまま残るバグ (split 下ペインで
+        -- 行選択が最上行に張り付く) を避けるため常時表示にする。
+        hide_tab_bar_if_only_one_tab = false,
         tab_max_width = 50,
         colors = {
           tab_bar = {
