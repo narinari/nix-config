@@ -134,11 +134,19 @@ in
           base_url = "http://ai/v1";
           api_mode = "chat_completions";
           key_env = "OPENAI_API_KEY";
+          # http://ai は Tailscale MagicDNS 短縮名のため Hermes の is_local_endpoint()
+          # (agent/model_metadata.py:344) が False を返し、デフォルトの 300s stale /
+          # 1800s request timeout が適用される。Aperture 経由でも hail-mary 側の
+          # cold-load (MLX 35B で 30-120s) 中の応答待ちで Hermes 側が自切断しないよう
+          # 明示的に伸ばす。stream 側は providers config では制御できないため
+          # services.hermes-agent.environment.HERMES_STREAM_STALE_TIMEOUT で別途設定。
+          request_timeout_seconds = 1800;
+          stale_timeout_seconds = 1800;
         };
       };
       model = {
         provider = "aperture";
-        default = "qwen3.6:35b-mlx";
+        default = "gemma4:12b-it-qat";
       };
       # 端末コマンド実行はホスト直接実行 (SmolVM サンドボックス連携は Phase 2)
       terminal = {
@@ -278,6 +286,12 @@ in
     # SEARXNG_URL は services.searx 側のエンドポイントを直接参照する。
     environment = {
       SEARXNG_URL = "http://127.0.0.1:8888";
+
+      # http://ai/v1 は Tailscale MagicDNS で local 判定にならないため、
+      # stream 応答待ちのデフォルト 180s (run_agent.py:7303) を伸ばす。
+      # non-stream 側は providers.aperture.stale_timeout_seconds で別途設定。
+      HERMES_STREAM_STALE_TIMEOUT = "1800";
+
       # claude CLI に narinari の global config を読ませず、hermes 専用ディレクトリへ隔離する。
       # hermes-agent-credentials.service が事前にこのディレクトリへ credentials を seed する。
       CLAUDE_CONFIG_DIR = "/var/lib/hermes/.claude";
@@ -306,13 +320,13 @@ in
       DAILY_PODCAST_AUTHOR = "friday hermes";
       # 採点 (HIGH/MID/LOW 分類): 候補 30-60 件を一気に裁く軽い作業 → 4B 帯で十分。
       # hail-mary に pull 済みの MLX backend tag。summarize より 3-5 倍速い。
-      HERMES_DAILY_PODCAST_SCORE_MODEL = "qwen3.5:4b-mlx";
+      HERMES_DAILY_PODCAST_SCORE_MODEL = "gemma4:12b-it-qat";
       # 要約・翻訳: 本文を読んで日本語に書き起こす重い作業 → 35B 維持。
       # 素のチャットチューニングで要約・翻訳向き、coding tuned (mxfp8) より自然。
-      HERMES_DAILY_PODCAST_SUMMARIZE_MODEL = "qwen3.6:35b-mlx";
+      HERMES_DAILY_PODCAST_SUMMARIZE_MODEL = "gemma4:31b-it-qat";
       # 旧 LLM_MODEL は SCORE/SUMMARIZE 未設定時の fallback として効く後方互換。
       # 新規キーが両方セット済みなので参考値扱いで残しておく (削除しても挙動は同じ)。
-      HERMES_DAILY_PODCAST_LLM_MODEL = "qwen3.6:35b-mlx";
+      HERMES_DAILY_PODCAST_LLM_MODEL = "gemma4:31b-it-qat";
     };
   };
 
