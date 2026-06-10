@@ -1,11 +1,13 @@
 # hermes-daily-podcast ロードマップ
 
 Phase 1 (現状) は `pkgs/hermes-daily-podcast-plugin/` で実装済み:
-HN / はてブ (タグ検索) / Reddit / Bluesky を巡回 → LLM (qwen3.6:35b-mlx via aperture)
-で採点 → 日本語要約 → VOICEVOX (四国めたん ノーマル) で音声化 →
-Tailscale 内 nginx で podcast 配信。定期実行は Hermes 内蔵 cron。
+HN / はてブ (タグ検索) / Reddit / Bluesky / GitHub Issues / Polymarket / YouTube /
+X (xAI Live Search) を巡回 → LLM (gemma4:31b via aperture) で採点 → 日本語要約 →
+VOICEVOX (四国めたん ノーマル) で音声化 → Tailscale 内 nginx で podcast 配信。
+定期実行は Hermes 内蔵 cron。
 
-このドキュメントは Phase 2 以降の改善候補をまとめる。優先度は仮置き。
+このドキュメントは Phase 4 で完了した改善履歴 (last30days 取込み) と
+Phase 5 以降の改善候補をまとめる。優先度は仮置き。
 
 ## Phase 1.5 (完了)
 
@@ -45,6 +47,59 @@ shi3z 氏の [siki](https://github.com/shi3z/siki) (式神 — ローカル agen
   legacy float 互換 / フロアカット を網羅)
 
 期待効果: 採点ブレ減、低品質候補のフロアカット精度向上。
+
+## Phase 4 (完了): last30days-skill ベースのデータ取得層刷新
+
+[`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) (MIT, v3.3.2)
+からデータ取得層の堅牢な共通基盤と新ソース実装パターンを取り込んだ。
+
+### 共通基盤の vendor 取込み — 完了
+
+- `src/_vendor/last30days/http.py` + `log.py` を `pkgs/hermes-daily-podcast-plugin/`
+  に vendor (上流コミット `122158415ae421da83e739f2668032f6bc78d39c`)。
+- 既存 `src/http.py` は vendor 委譲のシムに変更。`HttpError(status, message)` API は
+  既存 fetcher を壊さないように残してある。
+- 効果:
+  - 429 + `Retry-After` ヘッダ尊重の指数バックオフ
+  - DNS gaierror 時の retry budget 自動拡張
+  - 秘匿パラメータ (`api_key`/`token`/`secret`) の自動マスキングログ
+  - httpx 依存の解消 (stdlib のみで完結)
+
+### `fetch_all` の並列 fan-out — 完了
+
+- `src/sources/__init__.py` の `fetch_all` を `ThreadPoolExecutor` ベースに変更
+  (`max_workers=8`, per-source timeout `90s`)。
+- 1 ソースの DNS ハング / SDK デッドロックが episode 生成全体を止めないように、
+  per-source timeout を vendor http のリトライとは別レイヤで持つ。
+- 出力順序は `sources` の宣言順を維持 (ログ可読性 / dedupe 順序の互換)。
+
+### 新ソース 4 種を追加 — 完了
+
+- `github_issues` (`src/sources/github.py`) — GitHub Search API。`GITHUB_TOKEN`
+  優先、未設定なら anonymous 60 req/h。reactions / comments を points にマップ。
+- `polymarket` (`src/sources/polymarket.py`) — Gamma API。鍵不要。アクティブな
+  予測市場のみ surface し、`min_liquidity` で死に market を除外。
+- `youtube` (`src/sources/youtube.py`) — `yt-dlp ytsearch{N}:{q} --dump-json
+  --skip-download` を subprocess で起動。動画 metadata のみ抽出 (captions は
+  取らない)。`yt-dlp` バイナリは hermes-agent.nix の `extraPackages` で同梱。
+- `x` (`src/sources/x.py`) — xAI Live Search (`POST /v1/chat/completions` に
+  `search_parameters.mode=on`)。`XAI_API_KEY` 必須、未設定なら自動 skip。
+- `src/sources/_common.py` に `normalize_ts` / `truncate` 共通ヘルパを切り出し。
+
+### テスト整備 — 完了
+
+- `tests/test_http_vendor.py` — 429 + Retry-After / DNS gaierror / secret マスキング
+- `tests/test_fetch_all_parallel.py` — 並列実行時間 / 入力順保証 / 故障分離
+
+`README.md` に開発用 pytest コマンドを追加。
+
+### 設計判断メモ
+
+- vendor 対象は `http.py` + `log.py` のみ。`query.py` / `relevance.py` / `schema.py`
+  は Hermes 側が LLM scorer + dict ベースの Candidate 形式を持つため不要。
+- `_vendor/last30days/UPSTREAM.md` に上流 SHA・流用ファイル一覧・意図的な diff
+  (USER_AGENT 変更 / `HERMES_PODCAST_VENDOR_DEBUG` 追加) を記録し、
+  追従コミット時の手順も載せた。
 
 ## Phase 2
 
@@ -125,10 +180,17 @@ sudo -u hermes hermes cron edit hermes-daily-podcast-default --deliver discord
 - VOICEVOX engine 互換 API を提供 (URL prefix を差し替えるだけで使える)
 - 2026 Q2 以降の成熟・利用規約整備を待ってから検討
 
-### X (Twitter) ソース対応
+### X (Twitter) ソース対応 — Phase 4 で xAI Live Search 経由で対応済み
 
-- X API v2 Basic ($200/月) が必要なので scope outside だった
-- RSSHub セルフホストや、コミュニティ X gateway が現実解になるか継続観察
+xAI Live Search 経由で公開投稿を取得する `x` source を実装した
+(`src/sources/x.py`)。X API v2 Basic ($200/月) を回避するため、Grok の
+search_parameters 経由で投稿を JSON 配列として吐かせる方式。
+
+残課題 (Phase 5):
+
+- 応答パースが LLM 依存のため、無効 JSON で skip するケースが残る
+- 公式 X API v2 と切替可能なバックエンド層を作って、将来 API 料金が下がった
+  ときに切り替えられるようにする
 
 ### siki 由来の中期アイデア (画像生成 / Twitter curation)
 
@@ -137,16 +199,26 @@ sudo -u hermes hermes cron edit hermes-daily-podcast-default --deliver discord
   (今日のトピックに合わせた cover) にすれば Apple Podcasts の見栄えが
   化ける。ただし hail-mary GPU を相当食うので、まずは静的 cover を維持。
   実装するなら trigger 後の非同期生成 (mp3 配信を block しない) が前提。
-- **Twitter (X) curation の手法** — siki は「Twitter timeline curation
-  with LLM filtering」を実装している。X 公式 API は有料 ($200/月) なので、
-  shi3z 氏がどう取っているか (login session の cookie 経由か、個人 API tier
-  か) を確認してから判断する。本家方式が取り込めれば Phase 2 で外したまま
-  になっている X 連携が復活する。
 
 ### Podcast 2.0 value tag (リスナーから micropayment)
 
 - iTunes 互換 RSS は維持しつつ podcast namespace の `<podcast:value>` を追加
 - リスナー規模が増えた時の monetization 選択肢
+
+## Phase 5 候補 (last30days-skill 由来の伸びしろ)
+
+Phase 4 で取り込まなかった last30days-skill の adapter / パターン:
+
+- **TikTok / Instagram via ScrapeCreators** — `SCRAPECREATORS_API_KEY` が必要
+  (100 credits 無料、以降従量)。ホビー系トピックでは「組み立て動画 short」が
+  TikTok にあるので有用かもしれない。
+- **HN コメント enrichment** — last30days の `enrich_top_stories` は Algolia
+  items endpoint から top-K story のコメント上位 5 件を抽出する。要約の素材に
+  使うとエピソードの密度が上がる可能性。`ThreadPoolExecutor(max_workers=5)`
+  で並列。実装難度は低いが、要約 prompt 側も合わせて改修が要る。
+- **GitHub release notes 抽出** — last30days の `_fetch_latest_releases` を
+  github source に組み込み、リリースノートを episode の素材にする。OSS 動向の
+  podcast にハマる。
 
 ## 参考: 設計の主要判断 (Phase 1 で決定済み)
 

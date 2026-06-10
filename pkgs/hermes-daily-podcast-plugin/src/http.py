@@ -1,7 +1,13 @@
 """Shared HTTP utilities for source fetchers.
 
-httpx if available, urllib fallback. Always returns the response body as
-bytes/text so callers can decide JSON vs RSS parsing.
+Thin shim over `_vendor.last30days.http`. The vendor module gives us
+Retry-After / 429 backoff, DNS gaierror retries, and secret-masked logging
+without the plugin growing its own retry policy. The shim preserves the
+``HttpError(status, message)`` / ``get_json`` / ``get_bytes`` API the
+existing fetchers were written against, so they remain unchanged.
+
+The previous httpx-based implementation is gone; stdlib (via the vendor
+module) is enough and removes the optional dependency.
 """
 
 from __future__ import annotations
@@ -9,16 +15,34 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ._vendor.last30days import http as _vendor_http
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_SECONDS = 30.0
-DEFAULT_UA = "hermes-daily-podcast/0.1"
 
 
 class HttpError(RuntimeError):
-    def __init__(self, status: int | None, message: str):
+    """Backwards-compatible alias for vendor HTTPError.
+
+    Exposes ``status`` (existing fetcher code reads this attribute) and
+    ``body`` (set when the vendor captured the response body).
+    """
+
+    def __init__(
+        self,
+        status: int | None,
+        message: str,
+        *,
+        body: str | None = None,
+    ):
         super().__init__(message)
         self.status = status
+        self.body = body
+
+    @classmethod
+    def _from_vendor(cls, exc: _vendor_http.HTTPError) -> "HttpError":
+        return cls(exc.status_code, str(exc), body=exc.body)
 
 
 def get_json(
@@ -28,10 +52,16 @@ def get_json(
     headers: dict[str, str] | None = None,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> Any:
-    body = _get(url, params=params, headers=headers, timeout=timeout)
-    import json
-
-    return json.loads(body.decode("utf-8"))
+    try:
+        return _vendor_http.request(
+            "GET",
+            url,
+            headers=dict(headers) if headers else None,
+            params=params,
+            timeout=int(timeout),
+        )
+    except _vendor_http.HTTPError as exc:
+        raise HttpError._from_vendor(exc) from exc
 
 
 def get_bytes(
@@ -41,62 +71,46 @@ def get_bytes(
     headers: dict[str, str] | None = None,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> bytes:
-    return _get(url, params=params, headers=headers, timeout=timeout)
-
-
-def _get(
-    url: str,
-    *,
-    params: dict[str, Any] | None,
-    headers: dict[str, str] | None,
-    timeout: float,
-) -> bytes:
-    merged_headers = {"User-Agent": DEFAULT_UA, "Accept": "*/*"}
-    if headers:
-        merged_headers.update(headers)
     try:
-        import httpx
-    except ImportError:
-        return _get_stdlib(url, params=params, headers=merged_headers, timeout=timeout)
-
-    try:
-        # follow_redirects defaults to False on httpx >= 0.20; many feed
-        # endpoints (e.g. Hatena tag search) 301 to a canonical URL, so we
-        # opt in here.
-        resp = httpx.get(
+        text = _vendor_http.request(
+            "GET",
             url,
+            headers=dict(headers) if headers else None,
             params=params,
-            headers=merged_headers,
-            timeout=timeout,
-            follow_redirects=True,
+            timeout=int(timeout),
+            raw=True,
         )
-        if resp.status_code >= 400:
-            raise HttpError(resp.status_code, f"{url} -> {resp.status_code}")
-        return resp.content
-    except httpx.HTTPError as exc:
-        raise HttpError(None, f"{url}: {exc}") from exc
+    except _vendor_http.HTTPError as exc:
+        raise HttpError._from_vendor(exc) from exc
+    if isinstance(text, (bytes, bytearray)):
+        return bytes(text)
+    return text.encode("utf-8")
 
 
-def _get_stdlib(
+def post_json(
     url: str,
     *,
-    params: dict[str, Any] | None,
-    headers: dict[str, str],
-    timeout: float,
-) -> bytes:
-    from urllib import error as urlerr
-    from urllib import request as urlreq
-    from urllib.parse import urlencode
-
-    full_url = url
-    if params:
-        sep = "&" if "?" in url else "?"
-        full_url = f"{url}{sep}{urlencode(params, doseq=True)}"
-    req = urlreq.Request(full_url, headers=headers)
+    json: dict[str, Any],
+    headers: dict[str, str] | None = None,
+    timeout: float = DEFAULT_TIMEOUT_SECONDS,
+) -> Any:
+    """POST JSON helper. Added for new source adapters (e.g. xAI Live Search)."""
     try:
-        with urlreq.urlopen(req, timeout=timeout) as resp:
-            return resp.read()
-    except urlerr.HTTPError as exc:
-        raise HttpError(exc.code, f"{full_url} -> {exc.code}: {exc.reason}") from exc
-    except urlerr.URLError as exc:
-        raise HttpError(None, f"{full_url}: {exc}") from exc
+        return _vendor_http.request(
+            "POST",
+            url,
+            headers=dict(headers) if headers else None,
+            json_data=json,
+            timeout=int(timeout),
+        )
+    except _vendor_http.HTTPError as exc:
+        raise HttpError._from_vendor(exc) from exc
+
+
+__all__ = [
+    "HttpError",
+    "get_json",
+    "get_bytes",
+    "post_json",
+    "DEFAULT_TIMEOUT_SECONDS",
+]

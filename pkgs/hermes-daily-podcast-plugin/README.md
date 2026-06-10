@@ -1,10 +1,15 @@
 # hermes-daily-podcast-plugin
 
 Hermes Agent プラグイン。毎日トピック (`hobby-models` など) ごとに Hacker News /
-Bluesky / はてなブックマーク / Reddit を巡回し、LLM 2 段構成 (採点は軽量 4B、
-要約は 35B、いずれも aperture 経由の hail-mary Ollama) で重要記事を採点・
-日本語要約し、VOICEVOX (四国めたん ノーマル) で音声化して、Tailscale 内 nginx
-に podcast RSS を配信する。
+Bluesky / はてなブックマーク / Reddit / GitHub Issues / Polymarket / YouTube /
+X (xAI Live Search) を巡回し、LLM 2 段構成 (採点は軽量 4B、要約は 35B、いずれも
+aperture 経由の hail-mary Ollama) で重要記事を採点・日本語要約し、VOICEVOX
+(四国めたん ノーマル) で音声化して、Tailscale 内 nginx に podcast RSS を配信する。
+
+ソース取得層は [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill)
+(MIT) の `http.py` / `log.py` を `src/_vendor/last30days/` に取り込み、429 +
+Retry-After / DNS gaierror リトライ / API キー秘匿マスキングを共通化している。
+詳細は `src/_vendor/last30days/UPSTREAM.md`。
 
 ## 公開する Hermes tools
 
@@ -31,11 +36,16 @@ Bluesky / はてなブックマーク / Reddit を巡回し、LLM 2 段構成 (�
 | `OPENAI_API_KEY` | yes (任意値) | — | Aperture は Tailscale identity で代理認証するためダミーで可 |
 | `BLUESKY_HANDLE` | no | — | Bluesky source を使う場合。例 `your.bsky.social` |
 | `BLUESKY_APP_PASSWORD` | no | — | Bluesky source 用の app password |
+| `GITHUB_TOKEN` / `GH_TOKEN` | no | — | `github_issues` source の認証。未設定なら anonymous (60 req/h)、設定すれば 5000 req/h |
+| `XAI_API_KEY` | no | — | `x` source の xAI Live Search 用 API キー。未設定なら `x` source は自動 skip |
+| `XAI_MODEL` | no | `grok-3-latest` | xAI Live Search で使うモデル名。`x` ソースの `model` 設定で個別上書き可 |
+| `HERMES_PODCAST_VENDOR_DEBUG` | no | `0` | vendor http 層 (retry / マスキングログ) の stderr を出力する |
 | `REDDIT_USER_AGENT` | no | `hermes-daily-podcast/0.1 by /u/anonymous` | Reddit JSON 取得時の UA。Reddit 規約上、識別可能な UA を推奨 |
 
 `hosts/khali/hermes-agent.nix` で `environment` と `environmentFiles` 経由で
-セットされる。Bluesky 用 secret は agenix の `daily-podcast-env.age` に格納する
-(初期は未配備、Phase 1 では Bluesky は無効)。
+セットされる。Bluesky / GitHub / xAI 用 secret は agenix の
+`daily-podcast-env.age` に格納する (詳細は `hosts/khali/hermes-agent.nix` の
+`environmentFiles` セクション付近のコメント)。
 
 ## トピックの追加方法
 
@@ -104,16 +114,73 @@ env が必要。未設定なら自動 skip。
 | `min_users` | 5 | 検索系のときの users 足切り |
 
 ### `reddit`
-anonymous JSON (`https://www.reddit.com/r/<sub>/top.json`)。`User-Agent` 必須。
+Atom 1.0 RSS (`https://www.reddit.com/r/<sub>/top/.rss`)。ブラウザ風 `User-Agent`
+を投げて 403/429 を回避。再試行は vendor http 層 (429 + Retry-After 尊重) に委譲。
 
 | key | 既定値 | 説明 |
 | --- | --- | --- |
 | `subreddit` | — | サブレディット名 (必須、`r/` プレフィックス無し) |
 | `timeframe` | `day` | `hour`/`day`/`week`/`month`/`year`/`all` |
 | `limit` | 25 | 取得件数 |
-| `min_score` | 10 | 足切り upvote |
 
-将来 `asyncpraw` (OAuth) に乗り換えるとレート制限 60/min まで緩和される (TODO)。
+RSS では `score` / `num_comments` を取れないため `min_score` は廃止。最終的な
+relevance フィルタは LLM scorer (`src/score.py`) に任せる。
+
+### `github_issues`
+GitHub Search API (`https://api.github.com/search/issues`)。OSS の議論・要望・
+バグ報告をトピックに沿って拾う。`GITHUB_TOKEN` / `GH_TOKEN` 未設定でも動くが、
+anonymous レート (60 req/h) は daily 運用ですぐ枯渇するので token 推奨。
+
+| key | 既定値 | 説明 |
+| --- | --- | --- |
+| `query` | — | GitHub Search 構文の検索クエリ (必須)。例: `kubernetes label:enhancement` |
+| `min_reactions` | 3 | reactions.total_count の足切り |
+| `limit` | 25 | per_page (最大 100) |
+| `since_days` | 7 | `created:>` で見る日数。1=直近 24h、7=週次 |
+| `sort` | `reactions` | `reactions`/`comments`/`created`/`updated` のいずれか |
+| `order` | `desc` | `desc`/`asc` |
+
+### `polymarket`
+Polymarket Gamma API (`https://gamma-api.polymarket.com/public-search`)。鍵不要、
+アクティブな予測市場のみを surface する。スポーツ / 政治 / AI など世論の
+ベットを podcast の小ネタとして拾うのに向く。
+
+| key | 既定値 | 説明 |
+| --- | --- | --- |
+| `query` | — | 検索文字列 (必須) |
+| `limit` | 20 | 取得件数の上限 |
+| `min_liquidity` | 1000 | これ未満の流動性しかない market は除外 (resolve 寸前 / 死に market 対策) |
+
+### `youtube`
+`yt-dlp ytsearch{N}:{query} --dump-json --skip-download` を subprocess で起動して
+動画 metadata (title / description / view_count / upload_date / channel) を
+抽出する。動画本体や caption はダウンロードしない (downstream LLM が記事/URL を
+別途読みに行く想定)。
+
+`yt-dlp` バイナリが PATH に無いと自動 skip する (`hosts/khali/hermes-agent.nix`
+の `extraPackages` に同梱)。
+
+| key | 既定値 | 説明 |
+| --- | --- | --- |
+| `query` | — | YouTube 検索クエリ (必須) |
+| `limit` | 10 | `ytsearch{N}` の N |
+| `lang` | `ja` | language_hint。要約 prompt のヒントに使う |
+| `timeout_seconds` | 180 | subprocess タイムアウト |
+
+### `x`
+xAI Live Search 経由で X (Twitter) を検索する。`POST https://api.x.ai/v1/chat/completions`
+に `search_parameters.mode=on, sources=[{type:x}]` 付きで投げ、Grok に JSON 配列
+を返してもらう方式。`XAI_API_KEY` が未設定なら自動 skip。
+
+LLM の応答パースに依存するため、他ソースよりやや脆い。プロダクション運用前に
+出力を必ず眼で確認する。
+
+| key | 既定値 | 説明 |
+| --- | --- | --- |
+| `query` | — | 検索クエリ (必須) |
+| `limit` | 15 | 取得件数の上限 |
+| `lang` | `ja` | Grok への言語ヒント (`Prefer posts in language 'ja'`) |
+| `model` | env `XAI_MODEL` / `grok-3-latest` | 個別に上書きしたい場合 |
 
 ## 出力ファイル
 
@@ -138,12 +205,29 @@ iPhone (Tailscale 接続) から購読・再生できる。
 - **LLM がタイムアウト**: hail-mary の Ollama が pull 中 / busy。`ollama list | grep qwen3` で tag を確認、必要なら `HERMES_DAILY_PODCAST_SCORE_MODEL` / `HERMES_DAILY_PODCAST_SUMMARIZE_MODEL` を別 tag に差し替え (採点と要約で独立して切替え可)。
 - **重複が抑制されない**: `sqlite3 /var/lib/hermes-podcast/state.sqlite 'select count(*) from sources_seen'` で件数確認。タイトル類似度の閾値は `src/dedupe.py:TITLE_SIMILARITY_THRESHOLD`。
 - **Bluesky が常に空**: `BLUESKY_HANDLE` / `BLUESKY_APP_PASSWORD` env または `atproto` パッケージが無効。Phase 1 デフォルトでは無効で OK。
-- **Reddit が 429**: anonymous レート (10/min) に詰まっている。複数 subreddit を巡回する場合は `INTER_REQUEST_SLEEP` で間隔を空けている。
+- **Reddit が 429**: vendor http が Retry-After 尊重で 2 回まで自動 retry する。それでも継続的に 429 なら巡回間隔を空ける (topic を分割するか `cron` schedule を調整)。
+- **github_issues が常に空 / 403**: 未認証で 60 req/h を超えた可能性。`GITHUB_TOKEN` を `daily-podcast-env.age` に追加する。
+- **`x` source が常に空**: `XAI_API_KEY` 未設定 → warn ログを出して自動 skip するのが正しい挙動。設定済みなのに空ならモデル応答が JSON でない可能性。`HERMES_PODCAST_VENDOR_DEBUG=1` で詳細ログを出して確認。
+- **youtube が常に空**: `yt-dlp` バイナリが PATH に無い (extraPackages 反映前) か、`yt-dlp` がレート制限を食らっている (`HERMES_PODCAST_VENDOR_DEBUG=1` で yt-dlp の stderr を確認)。
 - **feed が iTunes namespace を含まない**: `feedgen` パッケージが Hermes Python env に未注入。stdlib fallback で簡略 RSS が出る (podcast クライアントは多くがこれで動く)。本格運用するなら `feedgen` を `services.hermes-agent` の Python deps に追加 (将来 TODO)。
 
 ## 限界 / 既知の TODO
 
 - `atproto` / `trafilatura` / `feedparser` / `feedgen` / `rapidfuzz` / `url-normalize` を hermes-agent の Python runtime に正式注入する手立てがまだない。本 plugin は全 lib に対して stdlib fallback を実装してあるが、機能差 (要約精度・dedup 精度・RSS 拡張) は出る。Phase 2 で `services.hermes-agent.extraPythonPackages` 相当 API を Nous Research の upstream に提案するか、自前の wrapper Python env を作る案を検討する。
-- X (Twitter) 連携は API コスト ($200/月) のため scope outside。Phase 2 で再検討。
+- `x` source は xAI Live Search 経由の LLM パース方式に依存しており、応答が JSON でない場合に skip される。本格運用するなら X API v2 (有料) と切替可能なバックエンド層を `src/sources/x.py` に足す。
 - 対談形式 (二人話者) は Phase 2。compose_script に役割切り替えを足し、`role_speakers={"host":2, "guest":3}` を呼び出し側から渡す。
 - Apple Podcasts への公式登録は Tailscale Funnel か Cloudflare Tunnel で public URL を取った後 Phase 2。
+
+## 開発
+
+Plugin 単体テスト (vendor http + 並列 fetch_all + 既存 config/dedupe テスト):
+
+```bash
+cd pkgs/hermes-daily-podcast-plugin
+nix shell nixpkgs#python313Packages.pytest -c \
+  python -m pytest tests/test_http_vendor.py tests/test_fetch_all_parallel.py tests/test_config.py -q
+```
+
+`test_dedupe.py` / `test_score.py` / `test_script.py` は `feedparser` / `rapidfuzz` /
+`jinja2` などが必要なため、Hermes Agent runtime と同じ環境 (現状は手動 venv) で
+実行する。

@@ -15,15 +15,15 @@ Trade-offs vs. the old JSON path:
   URLs (when present) live inside the entry HTML body as `[link]` anchors.
   We extract them when we can; otherwise we keep the comments URL.
 
-Phase 2 will swap this for `asyncpraw` (OAuth, 60 req/min) but the RSS
-fallback is robust enough to ship today.
+Retry policy: handled by ``..http`` → ``_vendor.last30days.http`` (429 +
+Retry-After, exponential backoff, DNS gaierror recovery). We no longer
+implement a per-source retry loop here.
 """
 
 from __future__ import annotations
 
 import logging
 import re
-import time
 from datetime import datetime, timezone
 from html import unescape
 from typing import Any
@@ -40,9 +40,6 @@ REDDIT_UA = (
     "Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0"
 )
 
-INTER_REQUEST_SLEEP = 3.0
-MAX_ATTEMPTS = 3
-
 
 @register("reddit")
 def fetch(source: cfg.SourceConfig) -> list[dict[str, Any]]:
@@ -58,32 +55,12 @@ def fetch(source: cfg.SourceConfig) -> list[dict[str, Any]]:
     params = {"t": timeframe, "limit": str(limit)}
     headers = {"User-Agent": REDDIT_UA}
 
-    backoff = INTER_REQUEST_SLEEP
-    raw: bytes | None = None
-    for attempt in range(MAX_ATTEMPTS):
-        try:
-            raw = http.get_bytes(url, params=params, headers=headers)
-            break
-        except http.HttpError as exc:
-            if exc.status in (429, 403, 503) and attempt < MAX_ATTEMPTS - 1:
-                logger.warning(
-                    "daily-podcast reddit r/%s: %s; retrying in %.0fs",
-                    sub,
-                    exc,
-                    backoff,
-                )
-                time.sleep(backoff)
-                backoff *= 2
-                continue
-            logger.warning("daily-podcast reddit r/%s: %s", sub, exc)
-            return []
-
-    if raw is None:
+    try:
+        raw = http.get_bytes(url, params=params, headers=headers, timeout=20)
+    except http.HttpError as exc:
+        logger.warning("daily-podcast reddit r/%s: %s", sub, exc)
         return []
 
-    # Stay polite even on success — the next sub fetch shouldn't follow
-    # immediately.
-    time.sleep(INTER_REQUEST_SLEEP)
     return _parse_atom(raw, sub)
 
 
@@ -100,7 +77,11 @@ def _parse_atom(raw: bytes, sub: str) -> list[dict[str, Any]]:
         parsed = feedparser.parse(raw)
         entries = list(parsed.entries or [])
         if entries:
-            return [_entry_from_feedparser(e, sub) for e in entries if _entry_is_usable(e)]
+            return [
+                _entry_from_feedparser(e, sub)
+                for e in entries
+                if _entry_is_usable(e)
+            ]
     except ImportError:
         pass
     except Exception:  # pragma: no cover - defensive

@@ -278,6 +278,10 @@ in
 
       # daily-podcast plugin: VOICEVOX wav の連結・mp3 エンコードに使う
       pkgs.ffmpeg-headless
+      # daily-podcast plugin: YouTube source (sources/youtube.py) が subprocess で
+      # 起動する yt-dlp。`ytsearch{N}:{query} --dump-json --skip-download` で
+      # 検索結果の metadata を抜くだけで、動画本体はダウンロードしない。
+      pkgs.yt-dlp
     ];
 
     extraPlugins = [
@@ -319,8 +323,16 @@ in
       #   どちらも hail-mary 上の Ollama (MLX backend) を aperture 経由で叩く。
       # ・VOICEVOX engine は voicevox.nix の oci-containers で 127.0.0.1:50021 に listen。
       # ・公開 URL は podcast-nginx.nix の vhost (http://khali/podcasts/)。
-      # ・Bluesky を有効化するには my-secrets/private/daily-podcast-env.age を作って
-      #   environmentFiles に追加し、`atproto` パッケージを hermes Python env に注入する。
+      # ・Bluesky / GitHub Issues / X (xAI Live Search) を有効化するには
+      #   my-secrets/private/daily-podcast-env.age を作って environmentFiles に追加する。
+      #   env 例 (詳細は pkgs/hermes-daily-podcast-plugin/README.md):
+      #     BLUESKY_HANDLE=narinari.bsky.social
+      #     BLUESKY_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
+      #     GITHUB_TOKEN=ghp_xxx        # github_issues source 用 (5000 req/h)。未設定でも anonymous 60 req/h で動く
+      #     XAI_API_KEY=xai-xxx         # x source 用。Live Search で X 投稿を集める
+      #   secret 追加後は environmentFiles 配列に
+      #     config.age.secrets."daily-podcast-env".path
+      #   を加え、age.secrets."daily-podcast-env" を定義する。
       DAILY_PODCAST_STATE_DIR = "/var/lib/hermes-podcast";
       DAILY_PODCAST_VOICEVOX_URL = "http://127.0.0.1:50021";
       # podcast クライアント (Overcast 等) は短いホスト名を validation 拒否するので

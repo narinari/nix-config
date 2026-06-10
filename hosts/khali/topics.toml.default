@@ -49,3 +49,45 @@ type = "reddit"
 subreddit = "ScaleModelKits"
 timeframe = "day"
 min_score = 15
+
+# ──────────────────────────────────────────────────────────────────────────
+# 新ソース type (github_issues / polymarket / youtube / x) のサンプル。
+# `add_topic` ツールで topic を新しく作るときの叩き台として残してある。
+# このファイル自体は seed 用なので、編集する場合は
+# /var/lib/hermes-podcast/topics.toml を直接いじる方が安全。
+# ──────────────────────────────────────────────────────────────────────────
+#
+# [[topic]]
+# slug = "oss-tech"
+# title = "OSS / 技術トピック"
+# description = "OSS の議論・新リリース・予測市場・YouTube 解説などを横断的に拾う"
+# voicevox_speaker_id = 3  # ずんだもん ノーマル
+# target_segment_count = 5
+#
+# # GitHub Issues / PR: 認証は GITHUB_TOKEN env (agenix daily-podcast-env.age)
+# # 検索構文は GitHub Search の構文がそのまま使える
+# [[topic.sources]]
+# type = "github_issues"
+# query = "kubernetes label:enhancement"
+# min_reactions = 10
+# since_days = 7
+#
+# # Polymarket: 鍵不要。アクティブな予測市場のみ surface
+# [[topic.sources]]
+# type = "polymarket"
+# query = "AI safety"
+# limit = 10
+#
+# # YouTube: pkgs.yt-dlp バイナリが PATH に必要 (hermes-agent.nix で同梱済み)
+# [[topic.sources]]
+# type = "youtube"
+# query = "claude code workflow"
+# limit = 8
+# lang = "ja"
+#
+# # X (xAI Live Search): XAI_API_KEY env が必要 (agenix daily-podcast-env.age)
+# [[topic.sources]]
+# type = "x"
+# query = "Anthropic Claude"
+# limit = 12
+# lang = "ja"
