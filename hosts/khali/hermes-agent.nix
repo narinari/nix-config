@@ -246,6 +246,17 @@ in
       # SearXNG は search-only なので web_extract / web_crawl は無効のまま。
       # 詳細: https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search#searxng-free-self-hosted
       web.search_backend = "searxng";
+
+      # browser ツールは local mode で運用する (agent-browser が
+      # AGENT_BROWSER_EXECUTABLE_PATH の Chromium を spawn)。
+      # `hermes setup` の browser フローが過去に config.yaml へ
+      # cdp_url: ws://127.0.0.1:9222/devtools/browser を書き込んだ事故があり、
+      # 誰も listen していない 9222 ポートへの CDP WebSocket 接続で
+      # "Connection refused (os error 111)" となって browser_navigate が壊れる。
+      # 空文字を Nix 側から流し込むことで configMergeScript の deep_merge が
+      # 既存の cdp_url を上書きし、browser_tool.py:289 の
+      # `cdp_url or ""` 経路で local mode フォールバックが効く。
+      browser.cdp_url = "";
     };
 
     extraPackages = [
