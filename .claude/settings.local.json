@@ -122,9 +122,6 @@
       "Bash(systemctl --user show app-org.fcitx.Fcitx5@autostart.service)",
       "Bash(command -v uwsm)",
       "Bash(base64 -w0)",
-      "Bash(printf \"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK0UoOqtXG7c0vFO0IGkHbutD4xp9PaOHJIojWJnlORu jarvis\")",
-      "Bash(printf \"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGHs4FsDznZeCf4WJ+WhM4CD+yviP8aZaqX/f+bmHWc/ friday\")",
-      "Bash(printf \"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINKmJzTrtQcM9UhOccWZFmTUB1dNDPzEnb9Y7gM1owWK narinari@khali\")",
       "Read(//home/narinari/**)",
       "Bash(sops --decrypt --extract '[\"jarvis\"]' private/host_keys.yaml)",
       "Bash(chmod 600 /tmp/jarvis_host_key)",
@@ -168,7 +165,8 @@
       "Bash(sudo du -sh --exclude=var/lib/libvirt /tmp/old-archlinux/)",
       "Bash(lscpu)",
       "Bash(findmnt --source /dev/nvme1n1p1)",
-      "Bash(sudo fuser *)"
+      "Bash(sudo fuser *)",
+      "Bash(gh api *)"
     ]
   }
 }
