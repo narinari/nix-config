@@ -339,6 +339,89 @@ components:
         - success
         - data
       description: アイテム種別一覧レスポンス
+    ItemTypeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            itemType:
+              $ref: "#/components/schemas/ItemType"
+          required:
+            - itemType
+      required:
+        - success
+        - data
+      description: アイテム種別レスポンス
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+        familyId:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+          pattern: ^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$
+          description: "CSS HEX カラーコード (#RGB または #RRGGBB)"
+          example: "#FF8800"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - familyId
+        - name
+        - createdAt
+        - updatedAt
+      description: タグ (Tag)。アイテムに付与する分類ラベル。color は CSS HEX カラーコード形式で任意。
+    TagsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            tags:
+              type: array
+              items:
+                $ref: "#/components/schemas/Tag"
+          required:
+            - tags
+      required:
+        - success
+        - data
+      description: タグ一覧レスポンス
+    TagResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            tag:
+              $ref: "#/components/schemas/Tag"
+          required:
+            - tag
+      required:
+        - success
+        - data
+      description: タグレスポンス
     BoxesListResponse:
       type: object
       properties:
@@ -954,6 +1037,317 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ItemTypesListResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    post:
+      operationId: createItemType
+      summary: アイテム種別を新規登録
+      description: family にアイテム種別 (ItemType) を新規作成する。name は必須。tags は任意の文字列配列。
+      tags:
+        - ItemTypes
+      security: *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                manufacturer:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 500
+                tags:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - name
+      responses:
+        "201":
+          description: 作成されたアイテム種別
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemTypeResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/item-types/{id}:
+    put:
+      operationId: updateItemType
+      summary: アイテム種別を更新
+      description: family に登録済みのアイテム種別を更新する。name / manufacturer / description / tags はすべて任意。
+      tags:
+        - ItemTypes
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: アイテム種別 ID
+          required: true
+          name: id
+          in: path
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                manufacturer:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 500
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: 更新されたアイテム種別
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemTypeResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/tags:
+    get:
+      operationId: listTags
+      summary: タグの一覧を取得
+      description: family に登録済みのタグ (Tag) を全件返す。name 順にソートされる。
+      tags:
+        - Tags
+      security: *a1
+      responses:
+        "200":
+          description: タグ一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagsListResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    post:
+      operationId: createTag
+      summary: タグを新規登録
+      description: 'family にタグ (Tag) を新規作成する。name は必須。color は CSS カラーコード (例: "#FF0000") で任意。'
+      tags:
+        - Tags
+      security: *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                color:
+                  type: string
+                  pattern: ^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$
+              required:
+                - name
+      responses:
+        "201":
+          description: 作成されたタグ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagResponse"
+        "400":
+          description: バリデーションエラー / ステータス不整合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: API キーが無効
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: エージェント Actor がファミリーに紐付いていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: リソースが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "500":
+          description: サーバ内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /agent/tags/{id}:
+    put:
+      operationId: updateTag
+      summary: タグを更新
+      description: family に登録済みのタグ (Tag) を更新する。name / color はどちらも任意。
+      tags:
+        - Tags
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            description: タグ ID
+          required: true
+          name: id
+          in: path
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                color:
+                  type: string
+                  pattern: ^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$
+      responses:
+        "200":
+          description: 更新されたタグ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagResponse"
         "400":
           description: バリデーションエラー / ステータス不整合
           content:
