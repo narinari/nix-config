@@ -166,7 +166,13 @@
       "Bash(lscpu)",
       "Bash(findmnt --source /dev/nvme1n1p1)",
       "Bash(sudo fuser *)",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(codex exec *)",
+      "Bash(codex --version)",
+      "Bash(niri msg *)",
+      "Bash(xargs -I {} sh -c 'test -d \"{}/hermes_cli\" && echo {}')",
+      "Bash(nix store *)",
+      "Read(//tmp/last30days-skill/**)"
     ]
   }
 }
