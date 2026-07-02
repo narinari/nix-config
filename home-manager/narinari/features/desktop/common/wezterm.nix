@@ -203,6 +203,9 @@
         -- (xwayland-satellite) 経路で起きていた split 下ペインの mouse hit-test
         -- y_origin ズレ (行選択が最上行に張り付くバグ) を解消する。
         front_end = "WebGpu",
+        -- 既定 (LowPower) だと wayland compositor の frame callback 取りこぼしで
+        -- 入力時しか再描画されない idle stall が出るため HighPerformance に固定。
+        webgpu_power_preference = "HighPerformance",
 
         color_scheme = "Tokyo Night",
         use_fancy_tab_bar = false,
