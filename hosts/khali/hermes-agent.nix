@@ -119,6 +119,10 @@ in
     "family-inventory-agent-env" = {
       file = "${inputs.my-secrets}/private/family-inventory-agent-env.age";
     };
+
+    "daily-podcast-env" = {
+      file = "${inputs.my-secrets}/private/hermes-daily-podcast-env.age";
+    };
   };
 
   services.hermes-agent = {
@@ -295,6 +299,7 @@ in
       (toString hermesEnvFile)
       config.age.secrets."friday-hermes-env".path
       config.age.secrets."family-inventory-agent-env".path
+      config.age.secrets."daily-podcast-env".path
     ];
 
     # 非機密 env (HERMES_HOME/.env にマージされる)
