@@ -12,6 +12,7 @@
     ./hardware-configuration.nix
     ./hermes-agent.nix
     ./libvirt.nix
+    ./steam.nix
     ./searxng.nix
     ./voicevox.nix
     ./podcast-nginx.nix
