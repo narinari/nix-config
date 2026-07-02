@@ -56,8 +56,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # v5 は alpha (TOML 設定・ネイティブ実装) のため安定版 v4.7.7 (Quickshell 版) にピン。
+    # programs.noctalia-shell + JSON 設定 (~/.config/noctalia/settings.json) を提供する。
     noctalia = {
-      url = "github:noctalia-dev/noctalia-shell";
+      url = "github:noctalia-dev/noctalia/v4.7.7";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
