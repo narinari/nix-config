@@ -24,7 +24,6 @@
     ./features/desktop/fcitx5.nix
     ./features/desktop/hyprlock.nix
     ./features/desktop/hypridle.nix
-    ./features/desktop/hyprpanel.nix
     ./features/desktop/hyprland.nix
     ./features/desktop/menu.nix
     ./features/desktop/niri.nix

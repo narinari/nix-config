@@ -51,11 +51,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    hyprpanel = {
-      url = "github:Jas-SinghFSU/HyprPanel";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # v5 は alpha (TOML 設定・ネイティブ実装) のため安定版 v4.7.7 (Quickshell 版) にピン。
     # programs.noctalia-shell + JSON 設定 (~/.config/noctalia/settings.json) を提供する。
     noctalia = {
