@@ -55,14 +55,6 @@
         }
     }
 
-    // wezterm は niri 上で zero-sized configure を待つバグ (niri 公式 wiki
-    // "Application Issues" に記載) があり、default-column-width に列幅プリセット
-    // が割り当てられているとウィンドウが描画されない。空にして起動を許す。
-    window-rule {
-        match app-id="org.wezfurlong.wezterm"
-        default-column-width {}
-    }
-
     spawn-at-startup "xwayland-satellite"
     spawn-at-startup "noctalia-shell"
 
