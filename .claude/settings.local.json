@@ -172,7 +172,9 @@
       "Bash(niri msg *)",
       "Bash(xargs -I {} sh -c 'test -d \"{}/hermes_cli\" && echo {}')",
       "Bash(nix store *)",
-      "Read(//tmp/last30days-skill/**)"
+      "Read(//tmp/last30days-skill/**)",
+      "Read(//usr/share/**)",
+      "Bash(niri --version)"
     ]
   }
 }
