@@ -94,7 +94,7 @@ in
         # :tools lookup & :lang org +roam
         sqlite
         # :lang latex & :lang org (latex previews)
-        texlive.combined.scheme-medium
+        texliveMedium # 26.05+ で combined.* は deprecated
         # unstable.fava # HACK Momentarily broken on nixos-unstable
       ];
 

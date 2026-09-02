@@ -46,35 +46,28 @@
         PubkeyAcceptedAlgorithms = "+ssh-rsa";
       };
 
-      matchBlocks = {
+      # 26.05 以降 matchBlocks は deprecated → settings へ移行 (OpenSSH directive 名)。
+      settings = {
         "*" = {
-          sendEnv = [ "COLORTERM" ];
-          controlMaster = "auto";
-          controlPersist = "10m";
-          hashKnownHosts = false;
-          userKnownHostsFile = "/dev/null";
-          serverAliveInterval = 300;
-          extraOptions = {
-            StrictHostKeyChecking = "no";
-          };
+          SendEnv = [ "COLORTERM" ];
+          ControlMaster = "auto";
+          ControlPersist = "10m";
+          HashKnownHosts = false;
+          UserKnownHostsFile = "/dev/null";
+          ServerAliveInterval = 300;
+          StrictHostKeyChecking = "no";
         };
-
         "github.com.private" = {
-          hostname = "github.com";
-          user = "git";
-          port = 22;
-          serverAliveInterval = 60;
-          extraOptions = {
-            TCPKeepAlive = "yes";
-          };
+          HostName = "github.com";
+          User = "git";
+          Port = 22;
+          ServerAliveInterval = 60;
+          TCPKeepAlive = "yes";
         };
-
         "github.com" = {
-          user = "git";
-          serverAliveInterval = 60;
-          extraOptions = {
-            TCPKeepAlive = "yes";
-          };
+          User = "git";
+          ServerAliveInterval = 60;
+          TCPKeepAlive = "yes";
         };
       };
     };

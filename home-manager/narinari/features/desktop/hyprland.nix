@@ -36,6 +36,8 @@ in
 {
   wayland.windowManager.hyprland = {
     enable = true;
+    # legacy の hyprlang 設定を明示。26.05 以降の new default は "lua"。
+    configType = "hyprlang";
     systemd.enable = false; # UWSM がセッション管理するため HM 側は無効化
     settings = {
       monitor = [

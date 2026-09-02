@@ -140,10 +140,18 @@
         "--reverse"
         "--inline-info"
       ];
-      changeDirWidgetCommand = "fd --type d"; # alt+c
-      changeDirWidgetOptions = [ "--preview 'tree -C {} | head -200'" ];
-      fileWidgetCommand = "fd --type f";
-      fileWidgetOptions = [ "--preview 'head {}'" ];
+      changeDirWidget = {
+        command = "fd --type d"; # alt+c
+        options = [ "--preview 'tree -C {} | head -200'" ];
+      };
+      fileWidget = {
+        command = "fd --type f";
+        options = [ "--preview 'head {}'" ];
+      };
+      # atuin が Ctrl-R を使うため、fzf の Ctrl-R バインドを無効化する。
+      historyWidget = {
+        command = "";
+      };
       colors = {
         bg = "#1e1e1e";
         "bg+" = "#1e1e1e";
