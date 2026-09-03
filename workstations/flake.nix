@@ -66,8 +66,13 @@
     # tarball download (github: type) は repo サイズ (~173MB) で truncate するため
     # git+https を使用して shallow clone を許可する
     hermes-agent = {
-      url = "git+https://github.com/NousResearch/hermes-agent?ref=refs/tags/v2026.5.7&submodules=1";
-      inputs.nixpkgs.follows = "nixpkgs";
+      url = "git+https://github.com/NousResearch/hermes-agent?ref=refs/tags/v2026.8.31&submodules=1";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        # 上流 v2026.8.31 が nix/checks.nix 専用に home-manager input を追加したため、
+        # follows を付けて二重の home-manager / nixpkgs が lock に入るのを防ぐ。
+        home-manager.follows = "home-manager";
+      };
     };
   };
 
