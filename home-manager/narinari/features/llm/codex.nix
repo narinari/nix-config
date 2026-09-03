@@ -24,8 +24,9 @@ let
     # 他用途は profile を明示すること: `codex --profile local_gemma4 ...`
     # Claude Code の codex-implement skill から呼ばれる主要経路でもある
     # (関連: docs/codex-implement-claude-bridge.md)
-    model = "qwen3.6:35b-a3b-coding-mxfp8"
+    model = "qwen3.8:27b-mxfp8"
     model_provider = "tailscale-aperture"
+    model_context_window = 262144
 
     # Tailscale Aperture AIゲートウェイ
     [model_providers.tailscale-aperture]
@@ -45,22 +46,16 @@ let
     # 展開されてしまう (例: `[profiles.local_qwen3.6_coding]` は
     # `profiles -> local_qwen3 -> 6_coding` の 4 段 table になる) ため、
     # profile 名は必ずアンダースコア区切りで書く。
-    [profiles.local_qwen3_6_coding]
-    model = "qwen3.6:35b-a3b-coding-mxfp8"
+    [profiles.local_qwen3_8_coding]
+    model = "qwen3.8:27b-mxfp8"
     model_provider = "tailscale-aperture"
-    model_context_window = 131072
+    model_context_window = 262144
 
     # フォールバック: 汎用対話 / 指示追従重視のとき
     [profiles.local_gemma4]
     model = "gemma4:26b-a4b-it-q8_0"
     model_provider = "tailscale-aperture"
-    model_context_window = 131072
-
-    # フォールバック: qwen3.5 coding 比較用 (aperture 側で qwen3.6 が出ないとき)
-    [profiles.local_qwen3_5]
-    model = "qwen3.5:35b-a3b-coding-nvfp4"
-    model_provider = "tailscale-aperture"
-    model_context_window = 131072
+    model_context_window = 262144
   '';
 in
 {

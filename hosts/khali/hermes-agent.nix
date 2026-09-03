@@ -150,7 +150,7 @@ in
       };
       model = {
         provider = "aperture";
-        default = "gemma4:12b-it-qat";
+        default = "qwen3.8:27b-mxfp8";
       };
       # 端末コマンド実行はホスト直接実行 (SmolVM サンドボックス連携は Phase 2)
       terminal = {
@@ -348,13 +348,13 @@ in
       DAILY_PODCAST_AUTHOR = "friday hermes";
       # 採点 (HIGH/MID/LOW 分類): 候補 30-60 件を一気に裁く軽い作業 → 4B 帯で十分。
       # hail-mary に pull 済みの MLX backend tag。summarize より 3-5 倍速い。
-      HERMES_DAILY_PODCAST_SCORE_MODEL = "gemma4:12b-it-qat";
+      HERMES_DAILY_PODCAST_SCORE_MODEL = "qwen3.8:27b-mxfp8";
       # 要約・翻訳: 本文を読んで日本語に書き起こす重い作業 → 35B 維持。
       # 素のチャットチューニングで要約・翻訳向き、coding tuned (mxfp8) より自然。
-      HERMES_DAILY_PODCAST_SUMMARIZE_MODEL = "gemma4:31b-it-qat";
+      HERMES_DAILY_PODCAST_SUMMARIZE_MODEL = "qwen3.8:27b-mxfp8";
       # 旧 LLM_MODEL は SCORE/SUMMARIZE 未設定時の fallback として効く後方互換。
       # 新規キーが両方セット済みなので参考値扱いで残しておく (削除しても挙動は同じ)。
-      HERMES_DAILY_PODCAST_LLM_MODEL = "gemma4:31b-it-qat";
+      HERMES_DAILY_PODCAST_LLM_MODEL = "qwen3.8:27b-mxfp8";
     };
   };
 

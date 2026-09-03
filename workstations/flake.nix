@@ -58,7 +58,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    codex-cli-nix.url = "github:sadjow/codex-cli-nix";
+    codex-cli-nix = {
+      url = "github:sadjow/codex-cli-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # tarball download (github: type) は repo サイズ (~173MB) で truncate するため
     # git+https を使用して shallow clone を許可する
