@@ -309,8 +309,14 @@ in
 
       # http://ai/v1 は Tailscale MagicDNS で local 判定にならないため、
       # stream 応答待ちのデフォルト 180s (run_agent.py:7303) を伸ばす。
-      # non-stream 側は providers.aperture.stale_timeout_seconds で別途設定。
       HERMES_STREAM_STALE_TIMEOUT = "1800";
+      # non-stream (cron/subagent) 側の stale 検出器。v0.21 では named custom
+      # provider の実行時 provider id が "custom" になるため
+      # providers.aperture.stale_timeout_seconds が参照されず、qwen3 系は
+      # reasoning floor の 180s (agent/reasoning_timeouts.py) で切られて
+      # cron の 27B 呼び出し (27k tokens のプロンプト処理) が毎回失敗する。
+      # 明示 env は floor より優先される (run_agent.py:_resolved_api_call_stale_timeout_base)。
+      HERMES_API_CALL_STALE_TIMEOUT = "1800";
 
       # claude CLI に narinari の global config を読ませず、hermes 専用ディレクトリへ隔離する。
       # hermes-agent-credentials.service が事前にこのディレクトリへ credentials を seed する。
