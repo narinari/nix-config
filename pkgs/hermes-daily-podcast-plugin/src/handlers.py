@@ -59,10 +59,17 @@ def generate_daily_episode(
             "target_date": target.isoformat(),
         }
 
-    seen = state_mod.recent_seen(topic_slug, days=14)
+    # 二段 dedup:
+    #  1) 過去にエピソード採用した URL は恒久除外 (同じ記事の再放送は常に誤り)
+    #  2) タイトル fuzzy 一致は 14 日窓 (連載・定期記事の誤爆を防ぐため窓付き)
+    adopted = state_mod.adopted_urls(topic_slug)
+    seen_recent = state_mod.recent_seen(topic_slug, days=14)
     deduped: list[dict[str, Any]] = []
     for c in raw_candidates:
-        if dedupe.is_duplicate(c.get("url") or "", c.get("title") or "", seen):
+        url = c.get("url") or ""
+        if dedupe.normalize_url(url) in adopted:
+            continue
+        if dedupe.is_duplicate(url, c.get("title") or "", seen_recent):
             continue
         deduped.append(c)
     logger.info("daily-podcast generate %s: %d after dedup", topic_slug, len(deduped))

@@ -204,7 +204,7 @@ iPhone (Tailscale 接続) から購読・再生できる。
 - **音声が空白**: VOICEVOX engine が落ちている可能性。`systemctl status podman-voicevox-engine` と `curl http://127.0.0.1:50021/version` を確認。
 - **LLM がタイムアウト**: hail-mary の Ollama が pull 中 / busy。`ollama list | grep qwen3` で tag を確認、必要なら `HERMES_DAILY_PODCAST_SCORE_MODEL` / `HERMES_DAILY_PODCAST_SUMMARIZE_MODEL` を別 tag に差し替え (採点と要約で独立して切替え可)。タイムアウトを含む全ての transport エラーは `LlmError` に正規化される (`src/llm.py:_post`) ので、topic ごとクラッシュではなくログ + error envelope になるのが正しい挙動。
 - **採点 LLM が空応答を返す**: qwen3 系の thinking がトークン枠を食い潰すケース。採点パスは `disable_thinking=True` (`/no_think` + Ollama `think:false`) と `max_tokens=8192` で呼んでおり、`<think>...</think>` がコンテンツに漏れた場合も `chat_json` が除去する。それでも空なら `journalctl -u hermes-agent | grep "valid JSON"` でモデルの生応答を確認。
-- **重複が抑制されない**: `sqlite3 /var/lib/hermes-podcast/state.sqlite 'select count(*) from sources_seen'` で件数確認。タイトル類似度の閾値は `src/dedupe.py:TITLE_SIMILARITY_THRESHOLD`。
+- **重複が抑制されない**: `sqlite3 /var/lib/hermes-podcast/state.sqlite 'select count(*) from sources_seen'` で件数確認。タイトル類似度の閾値は `src/dedupe.py:TITLE_SIMILARITY_THRESHOLD`。dedup は二段構え: エピソード採用済み URL は**恒久除外** (`state.adopted_urls`)、タイトル fuzzy 一致は直近 14 日窓 (`state.recent_seen`、`last_seen_at` 基準)。`last_seen_at` カラムは初回接続時に自動マイグレーションされる。注意: 恒久除外は `dedupe.normalize_url` の出力で照合するため、URL 正規化ロジックを変更すると過去履歴とミスマッチが起きる (変更時は `sources_seen.normalized_url` の再正規化が必要)。
 - **Bluesky が常に空**: `BLUESKY_HANDLE` / `BLUESKY_APP_PASSWORD` env または `atproto` パッケージが無効。Phase 1 デフォルトでは無効で OK。
 - **Reddit が 429**: vendor http が Retry-After 尊重で 2 回まで自動 retry する。それでも継続的に 429 なら巡回間隔を空ける (topic を分割するか `cron` schedule を調整)。
 - **github_issues が常に空 / 403**: 未認証で 60 req/h を超えた可能性。`GITHUB_TOKEN` を `daily-podcast-env.age` に追加する。
