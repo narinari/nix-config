@@ -1,19 +1,21 @@
 # Hermes daily-podcast — 状態ディレクトリの整備と、Hermes 内蔵 cron への
 # daily ジョブ登録を担当する。
 #
-# 定期実行は Hermes 自身の cron 機能を使う:
-#   hermes cron create '0 22 * * *' 'generate_all_today_episodes ツールを呼んで...' --name <name>
+# 定期実行は Hermes cron の --no-agent モードを使う:
+#   hermes cron create '0 22 * * *' --no-agent --script daily-podcast-generate-all.py --name <name>
 #
-# これにより:
-# - systemd timer は不要 (Nix 編集なしで Discord 経由の cronjob toolset で
-#   追加・編集・削除ができる)
-# - 結果を Discord 等に直接 deliver させる選択肢が増える (`--deliver discord`)
-# - hermes-agent.service が常駐していれば自動で tick される
+# --no-agent はエージェント LLM を完全にスキップし、スクリプトの stdout を
+# そのまま配信する。ジョブは「固定ツールを 1 回呼ぶ」だけの決定的処理で、
+# エージェント会話 (27B が全ツール定義込み ~27k tokens を読む) は純粋な
+# オーバーヘッドだったため v0.21 移行時に廃止した。エピソード内部の LLM
+# (採点・要約) はプラグイン側でそのまま動く。
 #
 # 初回 seed では:
 # 1. /var/lib/hermes-podcast の作成
-# 2. topics.toml と static/cover.png を seed
-# 3. 既定の cron job (hermes-daily-podcast-default) が無ければ作成 (冪等)
+# 2. topics.toml と static/cover.png を seed (無い場合のみ)
+# 3. runner スクリプトを ~/.hermes/scripts/ へインストール (毎回上書き)
+# 4. --no-agent cron job (hermes-daily-podcast-noagent) が無ければ、旧 LLM
+#    駆動 job (hermes-daily-podcast-default) を削除して作成 (冪等)
 #
 # トピック追加で cron を増やす必要はない: generate_all_today_episodes が
 # topics.toml の全 topic を毎晩巡回するため。
@@ -80,20 +82,33 @@ in
             ${pkgs.coreutils}/bin/chmod 0644 "$cover"
           fi
 
-          # ── Hermes 内蔵 cron に daily job を登録 (冪等) ──
-          # 22:00 JST = 13:00 UTC。hermes は OS の TZ で解釈するため、khali の
-          # timezone (Asia/Tokyo を期待) に合わせる。
-          JOB_NAME="hermes-daily-podcast-default"
+          # ── --no-agent runner スクリプト: 常に最新へ上書き ──
+          scripts=/var/lib/hermes/.hermes/scripts
+          ${pkgs.coreutils}/bin/install -d -m 0755 -o hermes -g hermes "$scripts"
+          ${pkgs.coreutils}/bin/install -m 0755 -o hermes -g hermes \
+            ${./podcast-generate-all.py} "$scripts/daily-podcast-generate-all.py"
+
+          # ── Hermes 内蔵 cron に --no-agent daily job を登録 (冪等) ──
+          # 22:00 JST。hermes は OS の TZ で解釈するため khali の timezone
+          # (Asia/Tokyo を期待) に合わせる。旧 LLM 駆動 job からの移行:
+          # 新 job が無ければ旧 job を削除してから作成する。
+          OLD_JOB_NAME="hermes-daily-podcast-default"
+          JOB_NAME="hermes-daily-podcast-noagent"
           cd ${podcastStateDir}
           if ! ${pkgs.sudo}/bin/sudo -u hermes -E \
             ${config.services.hermes-agent.package}/bin/hermes cron list 2>/dev/null \
             | grep -q "$JOB_NAME"; then
-            echo "[seed] registering Hermes cron job: $JOB_NAME"
+            ${pkgs.sudo}/bin/sudo -u hermes -E \
+              ${config.services.hermes-agent.package}/bin/hermes cron remove "$OLD_JOB_NAME" \
+              2>/dev/null || true
+            echo "[seed] registering Hermes cron job: $JOB_NAME (--no-agent)"
             ${pkgs.sudo}/bin/sudo -u hermes -E \
               ${config.services.hermes-agent.package}/bin/hermes cron create \
                 '0 22 * * *' \
-                'generate_all_today_episodes ツールを呼んで、登録されている全 topic で今日の episode を一括生成してください。結果のサマリだけ返してください。' \
-                --name "$JOB_NAME" || echo "[seed] cron create failed — register manually via Discord cronjob toolset"
+                --name "$JOB_NAME" \
+                --no-agent \
+                --script daily-podcast-generate-all.py \
+              || echo "[seed] cron create failed — register manually via Discord cronjob toolset"
           else
             echo "[seed] Hermes cron job $JOB_NAME already exists; skipping"
           fi

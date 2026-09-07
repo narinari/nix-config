@@ -79,9 +79,15 @@ type = "reddit"
 subreddit = "LocalLLaMA"
 ```
 
-トピックを足したあと、22:00 の自動生成に乗せるには
-`hosts/khali/podcast-timer.nix` の `scheduledTopics` に slug を追加して
-`sudo nixos-rebuild switch --flake .#khali` する。
+追加したトピックは次回 22:00 の定期実行で自動的に拾われる (Nix の変更は
+不要)。定期実行は Hermes cron の **--no-agent ジョブ**
+(`hermes-daily-podcast-noagent`) で、`~/.hermes/scripts/daily-podcast-generate-all.py`
+がプラグインの `generate_all_today_episodes` を直接呼ぶ — エージェント LLM は
+関与しない (エピソード内部の採点・要約 LLM はプラグインが呼ぶ)。手動実行:
+
+```bash
+sudo -u hermes hermes cron run hermes-daily-podcast-noagent
+```
 
 注意: `hosts/khali/topics.toml.default` は seed service が**初回のみ**
 `/var/lib/hermes-podcast/topics.toml` にコピーする叩き台。以後 Nix は触らない
