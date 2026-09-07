@@ -158,6 +158,16 @@ in
         timeout = 600;
       };
 
+      # v0.21 のツール実行デッドライン (agent/tool_executor.py、デフォルト 420s)。
+      # generate_all_today_episodes は 27B 採点 + 要約×5 + VOICEVOX で正常時
+      # ~13 分かかるため、420s では毎回タイムアウトする。sequential 側は
+      # concurrent_batch を継承するのでこの 1 キーで両経路に効く。
+      timeouts = {
+        tools = {
+          concurrent_batch = 1800;
+        };
+      };
+
       # 応答言語の強制 (qwen3.6 は default 英語応答するため) +
       # claude_code delegate の運用方針
       agent = {
@@ -317,6 +327,10 @@ in
       # cron の 27B 呼び出し (27k tokens のプロンプト処理) が毎回失敗する。
       # 明示 env は floor より優先される (run_agent.py:_resolved_api_call_stale_timeout_base)。
       HERMES_API_CALL_STALE_TIMEOUT = "1800";
+      # cron scheduler の inactivity 監視 (cron/jobs.py、デフォルト 600s)。
+      # 長時間ツール実行中は activity が進まないため、podcast 生成 (~13 分) が
+      # idle 判定で殺されないよう延長する。
+      HERMES_CRON_TIMEOUT = "1800";
 
       # claude CLI に narinari の global config を読ませず、hermes 専用ディレクトリへ隔離する。
       # hermes-agent-credentials.service が事前にこのディレクトリへ credentials を seed する。
