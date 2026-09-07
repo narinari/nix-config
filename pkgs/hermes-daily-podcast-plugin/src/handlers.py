@@ -81,7 +81,24 @@ def generate_daily_episode(
             "target_date": target.isoformat(),
         }
 
-    scored = score_mod.score_candidates(deduped, topic=topic, hint=hint)
+    try:
+        scored = score_mod.score_candidates(
+            deduped,
+            topic=topic,
+            hint=hint,
+            recent_titles=[title for _, title in seen_recent],
+        )
+    except score_mod.ScoreUnavailableError as exc:
+        # ジャンル判定なしのエピソードは配信しない (fail closed)。
+        return {
+            "error": f"scoring LLM unavailable: {exc}",
+            "hint": (
+                "aperture / hail-mary の疎通と score model の応答を確認。"
+                "journalctl -u hermes-agent | grep 'daily-podcast score' 参照。"
+            ),
+            "topic_slug": topic_slug,
+            "target_date": target.isoformat(),
+        }
     selected = score_mod.select_top(scored, topic.target_segment_count)
     if not selected:
         # All candidates were below the relevance floor — refusing to ship

@@ -31,6 +31,7 @@ ENV_SCORE_MODEL = "HERMES_DAILY_PODCAST_SCORE_MODEL"
 ENV_SUMMARIZE_MODEL = "HERMES_DAILY_PODCAST_SUMMARIZE_MODEL"
 ENV_LLM_BASE_URL = "HERMES_DAILY_PODCAST_LLM_BASE_URL"
 ENV_LLM_API_KEY = "OPENAI_API_KEY"  # aperture との互換
+ENV_ALLOW_POPULARITY_FALLBACK = "DAILY_PODCAST_ALLOW_POPULARITY_FALLBACK"
 
 DEFAULT_STATE_DIR = "/var/lib/hermes-podcast"
 DEFAULT_VOICEVOX_URL = "http://127.0.0.1:50021"
@@ -193,6 +194,16 @@ def llm_base_url() -> str:
 
 def llm_api_key() -> str:
     return os.environ.get(ENV_LLM_API_KEY, "").strip()
+
+
+def allow_popularity_fallback() -> bool:
+    """Whether scoring may fall back to raw popularity when the LLM fails.
+
+    Default False (fail closed): the popularity path cannot judge genre fit,
+    and every episode it ever produced was full of off-topic articles.
+    """
+    raw = os.environ.get(ENV_ALLOW_POPULARITY_FALLBACK, "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
 
 
 def load_topics() -> list[TopicConfig]:

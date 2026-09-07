@@ -36,24 +36,41 @@ LABEL_TO_SCORE: dict[str, float] = {
 
 MIN_SELECTION_SCORE = 3.0
 
+# opt-in フォールバック時の鮮度減衰: ブクマ数は単調増加なので、鮮度を見ないと
+# 古い高ブクマ記事が恒久的に上位を占める。
+FALLBACK_HALF_LIFE_DAYS = 7
+FALLBACK_MAX_AGE_DAYS = 14
+
+
+class ScoreUnavailableError(RuntimeError):
+    """Raised when LLM scoring failed and popularity fallback is disabled.
+
+    Fail closed: an episode assembled without genre judgement is worse than
+    no episode (every fallback-built episode shipped off-topic articles).
+    """
+
 
 def score_candidates(
     candidates: list[dict[str, Any]],
     *,
     topic: cfg.TopicConfig,
     hint: str | None = None,
+    recent_titles: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Return candidates with `score` and `score_reason` keys filled in.
 
     Candidates that the LLM couldn't score keep score=0.0 so they sink to the
     bottom of the ranking but aren't lost.
+
+    `recent_titles` are titles already adopted in recent episodes — passed to
+    the prompt so the model marks effectively-identical stories LOW.
     """
     if not candidates:
         return []
 
     indexed = [{**c, "_id": i} for i, c in enumerate(candidates)]
 
-    user_msg = _build_prompt(topic, indexed, hint)
+    user_msg = _build_prompt(topic, indexed, hint, recent_titles)
     messages = [
         {
             "role": "system",
@@ -78,23 +95,14 @@ def score_candidates(
             disable_thinking=True,
         )
     except llm.LlmError as exc:
-        # Make the failure mode obvious in logs — silently falling back to
-        # popularity ranking gives wrong-but-plausible episodes (sports / news
-        # instead of the requested hobby topic).
-        logger.error(
-            "daily-podcast score: LLM call failed (%s); FALLING BACK TO POPULARITY",
-            exc,
-        )
-        return _fallback_score(candidates)
+        return _handle_scoring_failure(candidates, f"LLM call failed: {exc}")
 
     scores_raw = result.get("scores") if isinstance(result, dict) else None
     if not isinstance(scores_raw, list):
-        logger.error(
-            "daily-podcast score: LLM returned bad shape (no 'scores' list); "
-            "FALLING BACK TO POPULARITY. got=%r",
-            result,
+        return _handle_scoring_failure(
+            candidates,
+            f"LLM returned bad shape (no 'scores' list): {result!r:.300}",
         )
-        return _fallback_score(candidates)
 
     score_by_id: dict[int, dict[str, Any]] = {}
     for s in scores_raw:
@@ -111,6 +119,26 @@ def score_candidates(
         decided = score_by_id.get(i, {"score": 0.0, "score_reason": ""})
         out.append({**c, **decided})
     return out
+
+
+def _handle_scoring_failure(
+    candidates: list[dict[str, Any]], reason: str
+) -> list[dict[str, Any]]:
+    """Fail closed by default; popularity fallback only when opted in via
+    DAILY_PODCAST_ALLOW_POPULARITY_FALLBACK."""
+    if cfg.allow_popularity_fallback():
+        logger.error(
+            "daily-podcast score: %s; FALLING BACK TO POPULARITY (opt-in)",
+            reason,
+        )
+        return _fallback_score(candidates)
+    logger.error(
+        "daily-podcast score: %s; refusing to build an episode without "
+        "genre judgement (set %s=1 to allow popularity fallback)",
+        reason,
+        cfg.ENV_ALLOW_POPULARITY_FALLBACK,
+    )
+    raise ScoreUnavailableError(reason)
 
 
 def _decide_score(s: dict[str, Any]) -> dict[str, Any]:
@@ -145,11 +173,19 @@ def _build_prompt(
     topic: cfg.TopicConfig,
     indexed: list[dict[str, Any]],
     hint: str | None,
+    recent_titles: list[str] | None = None,
 ) -> str:
     lines: list[str] = []
     lines.append(f"## 番組のジャンル\n{topic.title}\n\n{topic.description}\n")
     if hint:
         lines.append(f"## 今日の観点\n{hint}\n")
+    if recent_titles:
+        titles = "\n".join(f"- {t}" for t in recent_titles[:30])
+        lines.append(
+            "## 直近のエピソードで扱った既出タイトル\n"
+            f"{titles}\n"
+            "これらと同一・実質同内容の候補は LOW を付けること。\n"
+        )
     lines.append(
         "## 採点ラベル (HIGH / MID / LOW)\n"
         "- HIGH: 番組のジャンルに直接該当し、内容が濃く実用的・新規性が高い\n"
@@ -181,7 +217,13 @@ def _build_prompt(
 
 
 def _fallback_score(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Fallback: rank by points-ish signal if LLM unavailable."""
+    """Opt-in fallback: rank by points, decayed by staleness.
+
+    Bookmark counts only ever grow, so without decay the same old viral
+    articles win every night. Candidates without published_at keep full
+    score — we can't tell their age, and sinking them would empty sparse
+    topics.
+    """
     out: list[dict[str, Any]] = []
     for c in candidates:
         pts = c.get("points") or 0
@@ -189,10 +231,32 @@ def _fallback_score(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
             pts = int(pts)
         except (TypeError, ValueError):
             pts = 0
-        # Map roughly to 0..10 via log-ish scaling.
         score = min(10.0, pts / 50.0)
-        out.append({**c, "score": score, "score_reason": "fallback: points-based"})
+        age_days = _age_days(c.get("published_at"))
+        reason = "fallback: points-based"
+        if age_days is not None:
+            if age_days > FALLBACK_MAX_AGE_DAYS:
+                score = 0.0
+                reason = f"fallback: stale ({age_days}d)"
+            elif age_days > FALLBACK_HALF_LIFE_DAYS:
+                score /= 2
+                reason = f"fallback: points halved ({age_days}d)"
+        out.append({**c, "score": score, "score_reason": reason})
     return out
+
+
+def _age_days(published_at: Any) -> int | None:
+    if not published_at:
+        return None
+    from datetime import datetime, timezone
+
+    try:
+        ts = datetime.fromisoformat(str(published_at).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - ts).days
 
 
 def select_top(

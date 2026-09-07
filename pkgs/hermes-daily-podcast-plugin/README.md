@@ -39,6 +39,7 @@ Retry-After / DNS gaierror リトライ / API キー秘匿マスキングを共�
 | `GITHUB_TOKEN` / `GH_TOKEN` | no | — | `github_issues` source の認証。未設定なら anonymous (60 req/h)、設定すれば 5000 req/h |
 | `XAI_API_KEY` | no | — | `x` source の xAI Live Search 用 API キー。未設定なら `x` source は自動 skip |
 | `XAI_MODEL` | no | `grok-3-latest` | xAI Live Search で使うモデル名。`x` ソースの `model` 設定で個別上書き可 |
+| `DAILY_PODCAST_ALLOW_POPULARITY_FALLBACK` | no | `0` | 採点 LLM 失敗時にブクマ数順フォールバックで生成を続行する opt-in。既定は fail-closed (エピソードを作らず error を返す)。フォールバック時は published_at 7 日超で半減・14 日超で 0 の鮮度減衰つき |
 | `HERMES_PODCAST_VENDOR_DEBUG` | no | `0` | vendor http 層 (retry / マスキングログ) の stderr を出力する |
 | `REDDIT_USER_AGENT` | no | `hermes-daily-podcast/0.1 by /u/anonymous` | Reddit JSON 取得時の UA。Reddit 規約上、識別可能な UA を推奨 |
 

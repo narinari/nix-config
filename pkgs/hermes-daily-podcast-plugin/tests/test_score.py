@@ -145,6 +145,116 @@ class TestLegacyFloatCompat:
         assert result[0]["score"] == 7.5
 
 
+class TestFailClosed:
+    """LLM 採点が使えない夜は「間違ったエピソード」より「エピソードなし」。
+    生成された全 23 エピソードが popularity フォールバック産 (ジャンル外
+    記事入り) だった事故の再発防止。"""
+
+    def _raise_llm_error(self, monkeypatch):
+        def fake(messages, **kwargs):
+            raise score_mod.llm.LlmError("timed out")
+
+        monkeypatch.setattr(score_mod.llm, "chat_json", fake)
+
+    def test_llm_error_raises_score_unavailable_by_default(self, monkeypatch):
+        monkeypatch.delenv("DAILY_PODCAST_ALLOW_POPULARITY_FALLBACK", raising=False)
+        self._raise_llm_error(monkeypatch)
+        try:
+            score_mod.score_candidates(_candidates(2), topic=_topic())
+        except score_mod.ScoreUnavailableError:
+            pass
+        else:
+            raise AssertionError("expected ScoreUnavailableError")
+
+    def test_bad_shape_raises_score_unavailable_by_default(self, monkeypatch):
+        monkeypatch.delenv("DAILY_PODCAST_ALLOW_POPULARITY_FALLBACK", raising=False)
+        monkeypatch.setattr(
+            score_mod.llm, "chat_json", _stub_llm({"nonsense": True})
+        )
+        try:
+            score_mod.score_candidates(_candidates(2), topic=_topic())
+        except score_mod.ScoreUnavailableError:
+            pass
+        else:
+            raise AssertionError("expected ScoreUnavailableError")
+
+    def test_env_optin_restores_popularity_fallback(self, monkeypatch):
+        monkeypatch.setenv("DAILY_PODCAST_ALLOW_POPULARITY_FALLBACK", "1")
+        self._raise_llm_error(monkeypatch)
+        result = score_mod.score_candidates(_candidates(2), topic=_topic())
+        assert len(result) == 2
+        assert all("fallback" in c["score_reason"] for c in result)
+
+
+class TestFallbackFreshnessDecay:
+    """opt-in フォールバックでもブクマ数単調増加による「古い人気記事が恒久
+    上位」は防ぐ: 7 日超で半減、14 日超で 0。"""
+
+    def _aged(self, days_ago: int, points: int = 500) -> list[dict[str, Any]]:
+        from datetime import datetime, timedelta, timezone
+
+        ts = (
+            datetime.now(timezone.utc) - timedelta(days=days_ago)
+        ).isoformat()
+        return [
+            {
+                "title": "x",
+                "url": "https://example.com/x",
+                "points": points,
+                "published_at": ts,
+            }
+        ]
+
+    def test_stale_candidate_scores_zero(self):
+        result = score_mod._fallback_score(self._aged(30))
+        assert result[0]["score"] == 0.0
+
+    def test_week_old_candidate_is_halved(self):
+        fresh = score_mod._fallback_score(self._aged(1))[0]["score"]
+        aged = score_mod._fallback_score(self._aged(10))[0]["score"]
+        assert aged == fresh / 2
+
+    def test_missing_published_at_is_not_penalized(self):
+        result = score_mod._fallback_score(
+            [{"title": "x", "url": "https://example.com/x", "points": 500}]
+        )
+        assert result[0]["score"] == 10.0
+
+
+class TestRecentTitlesInPrompt:
+    def test_prompt_includes_recent_titles(self, monkeypatch):
+        captured: dict[str, Any] = {}
+        monkeypatch.setattr(
+            score_mod.llm,
+            "chat_json",
+            _stub_llm(
+                {"scores": [{"id": 0, "label": "HIGH", "reason": "x"}]},
+                captured=captured,
+            ),
+        )
+        score_mod.score_candidates(
+            _candidates(1),
+            topic=_topic(),
+            recent_titles=["既出のレビュー記事タイトル"],
+        )
+        user_msg = captured["messages"][-1]["content"]
+        assert "既出のレビュー記事タイトル" in user_msg
+
+    def test_prompt_omits_section_when_no_titles(self, monkeypatch):
+        captured: dict[str, Any] = {}
+        monkeypatch.setattr(
+            score_mod.llm,
+            "chat_json",
+            _stub_llm(
+                {"scores": [{"id": 0, "label": "HIGH", "reason": "x"}]},
+                captured=captured,
+            ),
+        )
+        score_mod.score_candidates(_candidates(1), topic=_topic())
+        user_msg = captured["messages"][-1]["content"]
+        assert "既出タイトル" not in user_msg
+
+
 class TestSelectTopFloor:
     def test_low_label_is_filtered_by_floor(self):
         scored = [

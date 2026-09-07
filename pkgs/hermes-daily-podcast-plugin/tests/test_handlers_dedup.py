@@ -47,6 +47,30 @@ def _run_with_candidates(
     return reached
 
 
+class TestScoreUnavailable:
+    def test_score_unavailable_returns_error_envelope(self, tmp_path, monkeypatch):
+        """採点 LLM が死んでいる夜はクラッシュでも配信でもなく error を返す。"""
+        import src.score as score_mod
+
+        monkeypatch.setenv("DAILY_PODCAST_STATE_DIR", str(tmp_path))
+        monkeypatch.setattr(handlers.cfg, "find_topic", lambda slug: TOPIC)
+        monkeypatch.setattr(
+            handlers.sources_mod,
+            "fetch_all",
+            lambda *a, **kw: [{"title": "x", "url": "https://example.com/x"}],
+        )
+
+        def raise_unavailable(cands, **kwargs):
+            raise score_mod.ScoreUnavailableError("LLM timed out")
+
+        monkeypatch.setattr(
+            handlers.score_mod, "score_candidates", raise_unavailable
+        )
+        result = handlers.generate_daily_episode(topic_slug="hobby-models")
+        assert "error" in result
+        assert "scoring" in result["error"]
+
+
 class TestTwoStageDedup:
     def test_adopted_url_is_permanently_excluded(self, tmp_path, monkeypatch):
         """Adopted long ago (beyond the 14-day window) → still excluded."""
