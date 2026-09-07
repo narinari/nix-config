@@ -348,7 +348,9 @@ in
       DAILY_PODCAST_AUTHOR = "friday hermes";
       # 採点 (HIGH/MID/LOW 分類): 候補 30-60 件を一気に裁く軽い作業 → 4B 帯で十分。
       # hail-mary に pull 済みの MLX backend tag。summarize より 3-5 倍速い。
-      HERMES_DAILY_PODCAST_SCORE_MODEL = "qwen3.8:27b-mxfp8";
+      # 27B に上げたところ一括採点が 300s タイムアウトし毎晩クラッシュしたため
+      # 4B に戻した (LLM_MODEL が 27B のままなので明示上書きが必須)。
+      HERMES_DAILY_PODCAST_SCORE_MODEL = "qwen3.5:4b-mlx";
       # 要約・翻訳: 本文を読んで日本語に書き起こす重い作業 → 35B 維持。
       # 素のチャットチューニングで要約・翻訳向き、coding tuned (mxfp8) より自然。
       HERMES_DAILY_PODCAST_SUMMARIZE_MODEL = "qwen3.8:27b-mxfp8";
