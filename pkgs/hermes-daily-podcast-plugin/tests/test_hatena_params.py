@@ -90,6 +90,11 @@ class TestTagRequestShape:
         )
         assert calls[0]["params"]["date_begin"] == "2026-01-01"
 
+    def test_malformed_date_begin_is_dropped(self, monkeypatch):
+        calls = _capture_get_bytes(monkeypatch)
+        hatena.fetch(_source({"tags": ["模型"], "date_begin": "not-a-date"}))
+        assert "date_begin" not in calls[0]["params"]
+
     def test_no_date_begin_when_neither_present(self, monkeypatch):
         calls = _capture_get_bytes(monkeypatch)
         hatena.fetch(_source({"tags": ["模型"]}))

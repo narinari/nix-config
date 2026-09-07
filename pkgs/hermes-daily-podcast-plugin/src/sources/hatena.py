@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -49,6 +50,13 @@ def fetch(source: cfg.SourceConfig) -> list[dict[str, Any]]:
     date_begin = str(
         source.extra.get("date_begin") or source.extra.get("since_date") or ""
     ).strip()
+    if date_begin and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_begin):
+        logger.warning(
+            "daily-podcast hatena: ignoring malformed date_begin=%r "
+            "(expected YYYY-MM-DD)",
+            date_begin,
+        )
+        date_begin = ""
 
     # Normalize tags into a list of clean strings.
     tags: list[str] = []

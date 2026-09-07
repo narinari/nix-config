@@ -127,6 +127,108 @@ class TestSinceInjection:
         assert captured[0].type == "hatena"
 
 
+def _episode_row(episode_date: str, items: list[dict[str, Any]] | None = None):
+    return state_mod.EpisodeRow(
+        id=f"hobby-models:{episode_date}",
+        topic="hobby-models",
+        episode_date=episode_date,
+        title="t",
+        audio_path="/x.mp3",
+        audio_url="http://x/x.mp3",
+        duration_seconds=1,
+        size_bytes=1,
+        summary=None,
+        script={"utterances": [], "items": items} if items is not None else None,
+        created_at=f"{episode_date}T00:00:00+00:00",
+    )
+
+
+class TestSinceIgnoresNewerEpisodes:
+    """regenerate_episode で過去日を再生成するとき、target より後の
+    エピソードを since の基準にしてはいけない (since が target を追い越し
+    hatena がほぼ空になる)。"""
+
+    def test_since_uses_latest_episode_before_target(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("DAILY_PODCAST_STATE_DIR", str(tmp_path))
+        state_mod.upsert_episode(_episode_row("2026-08-20"))
+        state_mod.upsert_episode(_episode_row("2026-09-07"))  # target より後
+
+        captured: list[Any] = []
+
+        def fake_fetch_all(sources, *a, **kw):
+            captured.extend(sources)
+            return []
+
+        monkeypatch.setattr(handlers.cfg, "find_topic", lambda slug: TOPIC)
+        monkeypatch.setattr(handlers.sources_mod, "fetch_all", fake_fetch_all)
+        handlers.generate_daily_episode(
+            topic_slug="hobby-models", target_date="2026-09-01"
+        )
+        # 2026-09-07 ではなく 2026-08-20 を基準に (− 2 日)
+        assert captured[0].extra["since_date"] == "2026-08-18"
+
+    def test_regenerating_the_only_episode_falls_back_to_default(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setenv("DAILY_PODCAST_STATE_DIR", str(tmp_path))
+        state_mod.upsert_episode(_episode_row("2026-09-01"))
+
+        captured: list[Any] = []
+
+        def fake_fetch_all(sources, *a, **kw):
+            captured.extend(sources)
+            return []
+
+        monkeypatch.setattr(handlers.cfg, "find_topic", lambda slug: TOPIC)
+        monkeypatch.setattr(handlers.sources_mod, "fetch_all", fake_fetch_all)
+        handlers.generate_daily_episode(
+            topic_slug="hobby-models", target_date="2026-09-01"
+        )
+        # 自分自身 (同日) は基準にしない → 履歴なし扱いで 30 日前
+        assert captured[0].extra["since_date"] == "2026-08-02"
+
+
+class TestRegenerateAllowsOwnArticles:
+    def test_own_episode_urls_are_not_excluded(self, tmp_path, monkeypatch):
+        """同一日の再生成では、そのエピソード自身が使った記事は候補に残す
+        (恒久 dedup は「別の日の再放送」を防ぐためのもの)。"""
+        monkeypatch.setenv("DAILY_PODCAST_STATE_DIR", str(tmp_path))
+        state_mod.upsert_episode(
+            _episode_row(
+                "2026-09-01",
+                items=[{"url": "https://example.com/mine", "title": "自分の記事"}],
+            )
+        )
+        state_mod.remember_sources(
+            "hobby-models",
+            [
+                ("https://example.com/mine", "自分の記事"),
+                ("https://example.com/other", "別の日の記事"),
+            ],
+        )
+
+        reached: list[dict[str, Any]] = []
+
+        def fake_score(cands, **kwargs):
+            reached.extend(cands)
+            return [{**c, "score": 1.0, "score_reason": "LOW"} for c in cands]
+
+        monkeypatch.setattr(handlers.cfg, "find_topic", lambda slug: TOPIC)
+        monkeypatch.setattr(
+            handlers.sources_mod,
+            "fetch_all",
+            lambda *a, **kw: [
+                {"title": "自分の記事", "url": "https://example.com/mine"},
+                {"title": "別の日の記事", "url": "https://example.com/other"},
+            ],
+        )
+        monkeypatch.setattr(handlers.score_mod, "score_candidates", fake_score)
+        handlers.generate_daily_episode(
+            topic_slug="hobby-models", target_date="2026-09-01"
+        )
+        assert [c["url"] for c in reached] == ["https://example.com/mine"]
+
+
 class TestScoreUnavailable:
     def test_score_unavailable_returns_error_envelope(self, tmp_path, monkeypatch):
         """採点 LLM が死んでいる夜はクラッシュでも配信でもなく error を返す。"""

@@ -170,6 +170,25 @@ def list_episodes(topic: str, limit: int = 10) -> list[EpisodeRow]:
     return [_row_to_episode(r) for r in rows]
 
 
+def latest_episode_date_before(topic: str, before_date: str) -> str | None:
+    """Most recent episode_date strictly before `before_date` (YYYY-MM-DD).
+
+    Used to anchor the incremental-fetch window: when regenerating a past
+    episode, episodes newer than the target must not be the anchor (the
+    window would start after the target date and fetch almost nothing).
+    """
+    with transaction() as conn:
+        row = conn.execute(
+            """
+            SELECT episode_date FROM episodes
+            WHERE topic = ? AND episode_date < ?
+            ORDER BY episode_date DESC LIMIT 1
+            """,
+            (topic, before_date),
+        ).fetchone()
+    return row["episode_date"] if row else None
+
+
 def get_episode(episode_id: str) -> EpisodeRow | None:
     with transaction() as conn:
         row = conn.execute(

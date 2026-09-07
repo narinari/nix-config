@@ -72,8 +72,13 @@ def generate_daily_episode(
     # 二段 dedup:
     #  1) 過去にエピソード採用した URL は恒久除外 (同じ記事の再放送は常に誤り)
     #  2) タイトル fuzzy 一致は 14 日窓 (連載・定期記事の誤爆を防ぐため窓付き)
+    # ただし同一日の再生成では、そのエピソード自身が使った記事は候補に残す。
     adopted = state_mod.adopted_urls(topic_slug)
     seen_recent = state_mod.recent_seen(topic_slug, days=14)
+    own_urls = _own_episode_urls(topic_slug, target)
+    if own_urls:
+        adopted -= own_urls
+        seen_recent = [(u, t) for u, t in seen_recent if u not in own_urls]
     deduped: list[dict[str, Any]] = []
     for c in raw_candidates:
         url = c.get("url") or ""
@@ -337,19 +342,38 @@ def generate_all_today_episodes(
 
 
 def _resolve_since(topic_slug: str, target: date_cls) -> date_cls:
-    """新着取得の起点日: 前回エピソード日 − OVERLAP、[target-60d, ...] に制限。"""
+    """新着取得の起点日: target より前の直近エピソード日 − OVERLAP。
+
+    [target-60d, ...] に制限。target 以降のエピソードは基準にしない —
+    過去日の regenerate で since が target を追い越すと取得がほぼ空になる。
+    """
     from datetime import timedelta
 
     default = target - timedelta(days=SINCE_DEFAULT_DAYS)
     floor = target - timedelta(days=SINCE_MAX_DAYS)
-    episodes = state_mod.list_episodes(topic_slug, limit=1)
-    if not episodes:
+    last_date = state_mod.latest_episode_date_before(
+        topic_slug, target.isoformat()
+    )
+    if last_date is None:
         return default
     try:
-        last = date_cls.fromisoformat(episodes[0].episode_date)
+        last = date_cls.fromisoformat(last_date)
     except ValueError:
         return default
     return max(last - timedelta(days=SINCE_OVERLAP_DAYS), floor)
+
+
+def _own_episode_urls(topic_slug: str, target: date_cls) -> set[str]:
+    """target 日のエピソードが既に存在する場合、そこで使った記事の URL 集合。"""
+    row = state_mod.get_episode(f"{topic_slug}:{target.isoformat()}")
+    if row is None or not row.script:
+        return set()
+    urls: set[str] = set()
+    for item in row.script.get("items") or []:
+        url = item.get("url") if isinstance(item, dict) else None
+        if url:
+            urls.add(dedupe.normalize_url(url))
+    return urls
 
 
 def _sources_with_since(
