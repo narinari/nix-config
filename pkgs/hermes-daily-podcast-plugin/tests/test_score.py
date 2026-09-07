@@ -237,6 +237,55 @@ class TestFallbackFreshnessDecay:
         assert result[0]["score"] == 10.0
 
 
+class TestScoringCostControl:
+    """27B の decode は実測 ~7 tok/s — 全候補に reason を書かせると
+    600s を超える。LOW は reason 省略、候補は新しい順に最大 50 件。"""
+
+    def _stub(self, monkeypatch) -> dict[str, Any]:
+        captured: dict[str, Any] = {}
+        monkeypatch.setattr(
+            score_mod.llm,
+            "chat_json",
+            _stub_llm({"scores": []}, captured=captured),
+        )
+        return captured
+
+    def test_prompt_tells_low_to_omit_reason(self, monkeypatch):
+        captured = self._stub(monkeypatch)
+        score_mod.score_candidates(_candidates(1), topic=_topic())
+        user_msg = captured["messages"][-1]["content"]
+        assert "LOW" in user_msg and "reason" in user_msg
+        assert "空" in user_msg  # 「LOW の reason は空でよい」指示
+
+    def test_caps_prompt_candidates_but_returns_all(self, monkeypatch):
+        captured = self._stub(monkeypatch)
+        result = score_mod.score_candidates(_candidates(60), topic=_topic())
+        user_msg = captured["messages"][-1]["content"]
+        assert user_msg.count("id=") == score_mod.MAX_SCORING_CANDIDATES
+        assert len(result) == 60  # 溢れた候補も score 0 で返る
+
+    def test_cap_keeps_newest_candidates(self, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+
+        captured = self._stub(monkeypatch)
+        now = datetime.now(timezone.utc)
+        cands = []
+        for i in range(60):
+            cands.append(
+                {
+                    "title": f"item {i}",
+                    "url": f"https://example.com/{i}",
+                    # i が大きいほど新しい
+                    "published_at": (now - timedelta(days=60 - i)).isoformat(),
+                }
+            )
+        score_mod.score_candidates(cands, topic=_topic())
+        user_msg = captured["messages"][-1]["content"]
+        # 最も古い 10 件 (i=0..9) が落ち、新しい候補は残る
+        assert "https://example.com/0\n" not in user_msg
+        assert "https://example.com/59" in user_msg
+
+
 class TestRecentTitlesInPrompt:
     def test_prompt_includes_recent_titles(self, monkeypatch):
         captured: dict[str, Any] = {}

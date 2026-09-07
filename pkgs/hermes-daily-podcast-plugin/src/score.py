@@ -40,6 +40,10 @@ MIN_SELECTION_SCORE = 3.0
 # デフォルト 300s では夜間の揺らぎで届かないことがあるため余裕を持たせる。
 SCORE_TIMEOUT_SECONDS = 600.0
 
+# 27B の decode は M1 Max で実測 ~7 tok/s。出力トークン数が所要時間を支配する
+# ため、プロンプトに載せる候補数を新しい順に制限する (溢れは score 0 で沈む)。
+MAX_SCORING_CANDIDATES = 50
+
 # opt-in フォールバック時の鮮度減衰: ブクマ数は単調増加なので、鮮度を見ないと
 # 古い高ブクマ記事が恒久的に上位を占める。
 FALLBACK_HALF_LIFE_DAYS = 7
@@ -72,7 +76,7 @@ def score_candidates(
     if not candidates:
         return []
 
-    indexed = [{**c, "_id": i} for i, c in enumerate(candidates)]
+    indexed = _select_for_prompt(candidates)
 
     user_msg = _build_prompt(topic, indexed, hint, recent_titles)
     messages = [
@@ -124,6 +128,29 @@ def score_candidates(
         decided = score_by_id.get(i, {"score": 0.0, "score_reason": ""})
         out.append({**c, **decided})
     return out
+
+
+def _select_for_prompt(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Attach original indices and cap the prompt to the newest candidates.
+
+    `_id` always refers to the position in the caller's list so the score
+    mapping stays correct even when the prompt subset is reordered/capped.
+    Candidates without published_at sort oldest (they're usually evergreen
+    pages like Wikipedia, not news).
+    """
+    indexed = [{**c, "_id": i} for i, c in enumerate(candidates)]
+    if len(indexed) <= MAX_SCORING_CANDIDATES:
+        return indexed
+    logger.info(
+        "daily-podcast score: capping %d candidates to %d newest for the prompt",
+        len(indexed),
+        MAX_SCORING_CANDIDATES,
+    )
+    return sorted(
+        indexed,
+        key=lambda c: str(c.get("published_at") or ""),
+        reverse=True,
+    )[:MAX_SCORING_CANDIDATES]
 
 
 def _handle_scoring_failure(
@@ -203,6 +230,8 @@ def _build_prompt(
         "- 人気が高くてもジャンル外なら LOW。スコアを甘くしない。\n"
         "- 同じ話題で別ソースの重複候補は、最良の 1 つを HIGH / MID、残りを LOW にする。\n"
         "- 迷ったら MID ではなく LOW を選ぶ。LOW は最終選定で必ず除外される。\n"
+        "- reason は HIGH / MID のみ日本語 1 文で書く。**LOW の reason は空文字でよい** "
+        "(出力を短く保つため)。\n"
     )
     lines.append("## 候補\n")
     for c in indexed:
@@ -211,12 +240,12 @@ def _build_prompt(
             f"comments={c.get('comments')}\n"
             f"  title: {c.get('title','')[:200]}\n"
             f"  url: {c.get('url','')}\n"
-            f"  snippet: {(c.get('summary') or '')[:300]}"
+            f"  snippet: {(c.get('summary') or '')[:200]}"
         )
     lines.append(
         "\n## 出力 (JSON のみ)\n"
         '{"scores": [{"id": <int>, "label": "HIGH"|"MID"|"LOW", '
-        '"reason": "<日本語1文>"}, ...]}'
+        '"reason": "<HIGH/MID のみ日本語1文、LOW は空文字>"}, ...]}'
     )
     return "\n".join(lines)
 
