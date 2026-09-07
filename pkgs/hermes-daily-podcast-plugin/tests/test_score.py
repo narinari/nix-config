@@ -52,6 +52,7 @@ def _stub_llm(reply: dict[str, Any], *, captured: dict[str, Any] | None = None):
         if captured is not None:
             captured["model"] = kwargs.get("model")
             captured["messages"] = messages
+            captured["timeout"] = kwargs.get("timeout")
         return reply
 
     return fake
@@ -92,6 +93,21 @@ class TestLabelMapping:
         )
         score_mod.score_candidates(_candidates(1), topic=_topic())
         assert captured["model"] == "tiny:4b"
+
+    def test_uses_extended_score_timeout(self, monkeypatch):
+        """27B 一括採点は実測 ~260s — llm.py デフォルト 300s では夜間の
+        揺らぎに耐えないため、採点専用の延長タイムアウトを渡す。"""
+        captured: dict[str, Any] = {}
+        monkeypatch.setattr(
+            score_mod.llm,
+            "chat_json",
+            _stub_llm(
+                {"scores": [{"id": 0, "label": "HIGH", "reason": "x"}]},
+                captured=captured,
+            ),
+        )
+        score_mod.score_candidates(_candidates(1), topic=_topic())
+        assert captured["timeout"] == score_mod.SCORE_TIMEOUT_SECONDS
 
     def test_lowercase_label_is_normalized(self, monkeypatch):
         monkeypatch.setattr(

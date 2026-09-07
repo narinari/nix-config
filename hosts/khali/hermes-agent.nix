@@ -352,11 +352,13 @@ in
       DAILY_PODCAST_DEFAULT_SPEAKER_ID = "2"; # 四国めたん ノーマル
       # Podcast 全体の author / owner 表示名 (個別 topic ではなくシリーズ管理者の名前)
       DAILY_PODCAST_AUTHOR = "friday hermes";
-      # 採点 (HIGH/MID/LOW 分類): 候補 30-60 件を一気に裁く軽い作業 → 4B 帯で十分。
-      # hail-mary に pull 済みの MLX backend tag。summarize より 3-5 倍速い。
-      # 27B に上げたところ一括採点が 300s タイムアウトし毎晩クラッシュしたため
-      # 4B に戻した (LLM_MODEL が 27B のままなので明示上書きが必須)。
-      HERMES_DAILY_PODCAST_SCORE_MODEL = "qwen3.5:4b-mlx";
+      # 採点 (HIGH/MID/LOW 分類) も 27B に統一。理由:
+      # - qwen3.5:4b-mlx は thinking を止められず (/no_think, think:false 無効)、
+      #   長い候補リストで reasoning が max_tokens を食い潰して空応答になる
+      # - 別モデルにするとロード切替が発生し hail-mary (64GB) で Metal OOM を誘発
+      # 27B は reasoning が短く収束し、40 候補一括で実測 ~260s。plugin 側の
+      # 採点タイムアウトは 600s (score.py:SCORE_TIMEOUT_SECONDS) に延長済み。
+      HERMES_DAILY_PODCAST_SCORE_MODEL = "qwen3.8:27b-mxfp8";
       # 要約・翻訳: 本文を読んで日本語に書き起こす重い作業 → 35B 維持。
       # 素のチャットチューニングで要約・翻訳向き、coding tuned (mxfp8) より自然。
       HERMES_DAILY_PODCAST_SUMMARIZE_MODEL = "qwen3.8:27b-mxfp8";

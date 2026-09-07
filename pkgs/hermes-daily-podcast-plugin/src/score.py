@@ -36,6 +36,10 @@ LABEL_TO_SCORE: dict[str, float] = {
 
 MIN_SELECTION_SCORE = 3.0
 
+# 27B (qwen3.8:27b-mxfp8) で候補 40 件の一括採点は実測 ~260s。llm.py の
+# デフォルト 300s では夜間の揺らぎで届かないことがあるため余裕を持たせる。
+SCORE_TIMEOUT_SECONDS = 600.0
+
 # opt-in フォールバック時の鮮度減衰: ブクマ数は単調増加なので、鮮度を見ないと
 # 古い高ブクマ記事が恒久的に上位を占める。
 FALLBACK_HALF_LIFE_DAYS = 7
@@ -93,6 +97,7 @@ def score_candidates(
             # あったため、採点パスでは思考を切り、枠にも余裕を持たせる。
             max_tokens=8192,
             disable_thinking=True,
+            timeout=SCORE_TIMEOUT_SECONDS,
         )
     except llm.LlmError as exc:
         return _handle_scoring_failure(candidates, f"LLM call failed: {exc}")

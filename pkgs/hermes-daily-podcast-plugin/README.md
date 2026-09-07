@@ -29,7 +29,7 @@ Retry-After / DNS gaierror リトライ / API キー秘匿マスキングを共�
 | `DAILY_PODCAST_VOICEVOX_URL` | yes | `http://127.0.0.1:50021` | VOICEVOX engine HTTP API |
 | `DAILY_PODCAST_PUBLIC_BASE_URL` | yes | `http://khali/podcasts` | RSS enclosure の URL prefix |
 | `DAILY_PODCAST_DEFAULT_SPEAKER_ID` | no | `2` | VOICEVOX speaker id (四国めたん ノーマル) |
-| `HERMES_DAILY_PODCAST_SCORE_MODEL` | no | `qwen3.5:4b-mlx` | 採点 (HIGH/MID/LOW 分類) 用の軽量モデル。候補 30-60 件を一括で裁く |
+| `HERMES_DAILY_PODCAST_SCORE_MODEL` | no | `qwen3.5:4b-mlx` | 採点 (HIGH/MID/LOW 分類) 用モデル。候補 30-60 件を一括で裁く (タイムアウト 600s)。khali では summarize と同じ 27B に統一 — thinking を止められない小型モデルは長い候補リストで空応答になり、別モデル併用はロード切替で OOM を誘発するため |
 | `HERMES_DAILY_PODCAST_SUMMARIZE_MODEL` | no | `qwen3.6:35b-mlx` | 1 件ずつ本文を読む要約・翻訳用の重いモデル |
 | `HERMES_DAILY_PODCAST_LLM_MODEL` | no | — | 旧 alias。`SCORE_MODEL` / `SUMMARIZE_MODEL` 未設定時の fallback (後方互換) |
 | `HERMES_DAILY_PODCAST_LLM_BASE_URL` | no | `http://ai/v1` | Aperture / Ollama OpenAI 互換エンドポイント |
