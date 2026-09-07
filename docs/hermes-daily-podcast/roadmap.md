@@ -205,6 +205,37 @@ search_parameters 経由で投稿を JSON 配列として吐かせる方式。
 - iTunes 互換 RSS は維持しつつ podcast namespace の `<podcast:value>` を追加
 - リスナー規模が増えた時の monetization 選択肢
 
+## Phase 5 (完了): 「毎回同じ話題」障害の根本修正 (2026-09-07)
+
+hobby-models が 3 ヶ月間ほぼ同一ラインナップ (半分はジャンル外) を配信していた
+障害の修正。原因は 4 つの掛け算だった:
+
+1. LLM 採点が一度も成功していなかった (空応答 → popularity fallback / 27B
+   タイムアウト → topic クラッシュ)。→ httpx 例外の LlmError 正規化、
+   `/no_think` + `think:false`、max_tokens 8192、SCORE_MODEL を 4B に戻した
+2. `remember_sources` の INSERT OR IGNORE で `first_seen_at` が凍結し、14 日
+   窓を抜けた記事が永久再採用。→ `last_seen_at` 追加 + UPSERT、採用済み URL
+   は恒久除外 (`adopted_urls`)
+3. popularity fallback がジャンル・鮮度を無視。→ fail-closed 化
+   (`DAILY_PODCAST_ALLOW_POPULARITY_FALLBACK` で opt-in、鮮度減衰つき)
+4. hatena `search/tag` の 301 でフィルタが全て落ち「過去数年の人気記事」固定。
+   → `/q/<タグ>` 直叩き + `date_begin` (前回生成日 − 2 日を handlers が注入)、
+   `hobby` タグ除外、min_users 1
+
+### 残 TODO (Phase 5 スコープ外)
+
+- **reddit 429 全滅**: r/Gunpla ほか 3 subreddit が毎晩 429。vendor http の
+  retry では足りず、UA 見直し / バックオフ強化 / OAuth (asyncpraw、Phase 2 の
+  項目と統合) が必要。あわせて RSS に score が無く `points=None` になる問題も
+  再検討 (現状 LLM 採点なら実害なし)
+- **hackernews クエリ死亡**: 現行クエリ (`"plastic model" OR ...`) は Algolia
+  で nbHits=0。クエリ再設計するか hobby-models からは source 削除
+- **採点空応答時の 1 回リトライ**: fail-closed 化で夜間 LLM 不調 = エピソード
+  0 本になるため、リトライ 1 回を挟む価値がある
+- **hatena `date_begin` の仕様監視**: 非公開パラメータのため将来変わりうる。
+  効かなくなってもフィード全体が返るだけ (dedup が守る) だが、候補の鮮度が
+  落ちたらここを疑う
+
 ## Phase 5 候補 (last30days-skill 由来の伸びしろ)
 
 Phase 4 で取り込まなかった last30days-skill の adapter / パターン:

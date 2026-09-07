@@ -21,10 +21,13 @@ target_segment_count = 5
 
 # はてブはタグ検索で絞る (キーワード/カテゴリよりノイズが少ない)。
 # タグは LLM が会話の文脈から推測して `add_topic` で渡してもよい。
+# 注意: `hobby` タグは「趣味一般」のバズ記事 (ジャンル外) が大量に混ざるので使わない。
+# min_users = 1 で広く拾い、ジャンル・品質の選別は LLM 採点に任せる。
+# date_begin は handlers が「前回生成日 − 2 日」を自動注入する (明示指定で上書き可)。
 [[topic.sources]]
 type = "hatena"
-tags = ["模型", "プラモデル", "ガンプラ", "hobby", "フィギュア"]
-min_users = 3
+tags = ["模型", "プラモデル", "ガンプラ", "フィギュア", "スケールモデル", "ジオラマ", "ミニ四駆", "エアブラシ"]
+min_users = 1
 
 [[topic.sources]]
 type = "hackernews"

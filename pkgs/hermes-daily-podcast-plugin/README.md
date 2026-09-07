@@ -83,6 +83,12 @@ subreddit = "LocalLLaMA"
 `hosts/khali/podcast-timer.nix` の `scheduledTopics` に slug を追加して
 `sudo nixos-rebuild switch --flake .#khali` する。
 
+注意: `hosts/khali/topics.toml.default` は seed service が**初回のみ**
+`/var/lib/hermes-podcast/topics.toml` にコピーする叩き台。以後 Nix は触らない
+ため、`topics.toml.default` を更新しても実機には反映されない —
+`/var/lib/hermes-podcast/topics.toml` を直接編集すること (毎 run 読み直される
+ので service 再起動は不要)。
+
 ## ソースタイプ
 
 ### `hackernews`
@@ -106,13 +112,18 @@ env が必要。未設定なら自動 skip。
 | `limit` | 25 | 取得件数 |
 
 ### `hatena`
-`https://b.hatena.ne.jp/hotentry/<category>.rss` or `search.rss?q=...`。
+タグ検索は `https://b.hatena.ne.jp/q/<タグ>?target=tag&mode=rss&sort=recent&...` を
+直接叩く (優先順位: tags > query > category)。旧 `search/tag` エンドポイントは
+`/q/` へ 301 リダイレクトされる際に `users` / `date_begin` 等の絞り込みが全て
+落とされ「過去数年の人気記事」固定になるため使用しない。
 
 | key | 既定値 | 説明 |
 | --- | --- | --- |
+| `tags` | — | タグのリスト。タグごとに 1 フィード取得してマージ (推奨) |
 | `category` | — | `general`/`social`/`economics`/`life`/`knowledge`/`it`/`fun`/`entertainment`/`game` のいずれか。`query` 指定時は無視 |
-| `query` | — | キーワード検索 (こちらが優先) |
-| `min_users` | 5 | 検索系のときの users 足切り |
+| `query` | — | キーワード検索 (`search.rss`) |
+| `min_users` | 1 | users 足切り。母数優先で低め、選別は LLM 採点に任せる |
+| `date_begin` | — | `YYYY-MM-DD`。未指定なら handlers 注入の `since_date` (前回生成日 − 2 日、履歴なしは 30 日前、最大 60 日遡り) が使われる |
 
 ### `reddit`
 Atom 1.0 RSS (`https://www.reddit.com/r/<sub>/top/.rss`)。ブラウザ風 `User-Agent`

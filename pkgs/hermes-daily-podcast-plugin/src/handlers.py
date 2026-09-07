@@ -27,6 +27,13 @@ from . import voicevox
 
 logger = logging.getLogger(__name__)
 
+# ソースへの since_date 注入 (source 側は任意で date_begin 等に使う):
+# 前回生成日 − OVERLAP を「ここから先の新着だけ拾えばよい」目安として渡す。
+# 多少の重複は恒久 URL dedup が吸収するので、境界は厳密でなくてよい。
+SINCE_OVERLAP_DAYS = 2
+SINCE_DEFAULT_DAYS = 30  # エピソード履歴が無い場合
+SINCE_MAX_DAYS = 60  # 長期間生成が止まっていても遡り過ぎない
+
 
 def generate_daily_episode(
     *,
@@ -47,7 +54,10 @@ def generate_daily_episode(
 
     target = _resolve_target_date(target_date)
 
-    raw_candidates = sources_mod.fetch_all(list(topic.sources))
+    since = _resolve_since(topic_slug, target)
+    raw_candidates = sources_mod.fetch_all(
+        _sources_with_since(topic.sources, since)
+    )
     logger.info(
         "daily-podcast generate %s/%s: %d raw candidates",
         topic_slug, target, len(raw_candidates),
@@ -324,6 +334,38 @@ def generate_all_today_episodes(
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
+
+
+def _resolve_since(topic_slug: str, target: date_cls) -> date_cls:
+    """新着取得の起点日: 前回エピソード日 − OVERLAP、[target-60d, ...] に制限。"""
+    from datetime import timedelta
+
+    default = target - timedelta(days=SINCE_DEFAULT_DAYS)
+    floor = target - timedelta(days=SINCE_MAX_DAYS)
+    episodes = state_mod.list_episodes(topic_slug, limit=1)
+    if not episodes:
+        return default
+    try:
+        last = date_cls.fromisoformat(episodes[0].episode_date)
+    except ValueError:
+        return default
+    return max(last - timedelta(days=SINCE_OVERLAP_DAYS), floor)
+
+
+def _sources_with_since(
+    sources: tuple[cfg.SourceConfig, ...], since: date_cls
+) -> list[cfg.SourceConfig]:
+    """Return copies of source configs with `since_date` injected into extra.
+
+    Fetchers that don't understand `since_date` ignore unknown keys, so the
+    injection is non-invasive.
+    """
+    return [
+        cfg.SourceConfig(
+            type=s.type, extra={**s.extra, "since_date": since.isoformat()}
+        )
+        for s in sources
+    ]
 
 
 def _resolve_target_date(target_date: str | None) -> date_cls:

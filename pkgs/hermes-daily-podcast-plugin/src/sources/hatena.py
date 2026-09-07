@@ -5,6 +5,11 @@
 - `tags = ["模型", "プラモデル", ...]` — タグ検索 (推奨)。タグごとに別々の
   RSS を取得し、結果をマージ。タグ一致は title だけでなく「実際にそのタグが
   付与された記事」に絞れるので、キーワード曖昧検索よりノイズが少ない。
+  `/q/<タグ>` を直接叩く: 旧 `search/tag` エンドポイントは `/q/` へ 301 され、
+  その際 `users` / `date_begin` 等の絞り込みパラメータが全て落とされる
+  (= 実質「過去数年の人気記事」固定になる) ため使ってはいけない。
+  `date_begin` (YYYY-MM-DD) は明示指定 > handlers が注入する `since_date`
+  (前回生成日 − 2 日) の順で採用。
 - `query = "ガンプラ"` — フリーキーワード検索 (`search.rss?q=...`)。タイトル /
   本文 / タグの全文一致。誤マッチが出ることもある。
 - `category = "fun"` — `hotentry/<category>.rss` でカテゴリ別ホットエントリ。
@@ -28,7 +33,11 @@ logger = logging.getLogger(__name__)
 
 HOTENTRY_URL = "https://b.hatena.ne.jp/hotentry/{category}.rss"
 SEARCH_URL = "https://b.hatena.ne.jp/search.rss"
-TAG_SEARCH_URL = "https://b.hatena.ne.jp/search/tag"
+TAG_SEARCH_URL = "https://b.hatena.ne.jp/q/{tag}"
+
+# 母数優先: ニッチタグは users>=3 だと月 1 件レベルまで痩せる。品質・ジャンル
+# の選別は LLM 採点の仕事なので、fetcher は広く拾う。
+DEFAULT_MIN_USERS = 1
 
 
 @register("hatena")
@@ -36,7 +45,10 @@ def fetch(source: cfg.SourceConfig) -> list[dict[str, Any]]:
     tags_raw = source.extra.get("tags") or source.extra.get("tag")
     category = (source.extra.get("category") or "").strip()
     query = (source.extra.get("query") or "").strip()
-    min_users = int(source.extra.get("min_users", 5))
+    min_users = int(source.extra.get("min_users", DEFAULT_MIN_USERS))
+    date_begin = str(
+        source.extra.get("date_begin") or source.extra.get("since_date") or ""
+    ).strip()
 
     # Normalize tags into a list of clean strings.
     tags: list[str] = []
@@ -46,7 +58,7 @@ def fetch(source: cfg.SourceConfig) -> list[dict[str, Any]]:
         tags = [str(t).strip() for t in tags_raw if str(t).strip()]
 
     if tags:
-        return _fetch_tags(tags, min_users)
+        return _fetch_tags(tags, min_users, date_begin or None)
     if query:
         try:
             raw = http.get_bytes(
@@ -70,20 +82,33 @@ def fetch(source: cfg.SourceConfig) -> list[dict[str, Any]]:
     return []
 
 
-def _fetch_tags(tags: list[str], min_users: int) -> list[dict[str, Any]]:
-    """Fetch one RSS feed per tag and merge, dropping per-URL duplicates."""
+def _fetch_tags(
+    tags: list[str],
+    min_users: int,
+    date_begin: str | None = None,
+) -> list[dict[str, Any]]:
+    """Fetch one RSS feed per tag and merge, dropping per-URL duplicates.
+
+    Hits `/q/<tag>` directly — the legacy `search/tag` endpoint redirects
+    here anyway but drops every filter param on the way.
+    """
+    from urllib.parse import quote
+
     seen_urls: set[str] = set()
     merged: list[dict[str, Any]] = []
     for tag in tags:
+        params: dict[str, str] = {
+            "target": "tag",
+            "mode": "rss",
+            "users": str(min_users),
+            "sort": "recent",
+        }
+        if date_begin:
+            params["date_begin"] = date_begin
         try:
             raw = http.get_bytes(
-                TAG_SEARCH_URL,
-                params={
-                    "q": tag,
-                    "mode": "rss",
-                    "users": str(min_users),
-                    "sort": "recent",
-                },
+                TAG_SEARCH_URL.format(tag=quote(tag, safe="")),
+                params=params,
             )
         except http.HttpError as exc:
             logger.warning("daily-podcast hatena tag=%s: %s", tag, exc)

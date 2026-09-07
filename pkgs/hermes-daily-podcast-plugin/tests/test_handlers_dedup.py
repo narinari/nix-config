@@ -47,6 +47,86 @@ def _run_with_candidates(
     return reached
 
 
+class TestSinceInjection:
+    """handlers は「前回生成日 − 2 日」を since_date として全 source に注入
+    する (hatena が date_begin に使う)。重複取得は dedup が吸収する。"""
+
+    def _capture_sources(self, monkeypatch) -> list[Any]:
+        captured: list[Any] = []
+
+        def fake_fetch_all(sources, *a, **kw):
+            captured.extend(sources)
+            return []  # "no candidates" で早期 return させる
+
+        monkeypatch.setattr(handlers.cfg, "find_topic", lambda slug: TOPIC)
+        monkeypatch.setattr(handlers.sources_mod, "fetch_all", fake_fetch_all)
+        return captured
+
+    def test_since_is_last_episode_minus_overlap(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("DAILY_PODCAST_STATE_DIR", str(tmp_path))
+        state_mod.upsert_episode(
+            state_mod.EpisodeRow(
+                id="hobby-models:2026-09-01",
+                topic="hobby-models",
+                episode_date="2026-09-01",
+                title="t",
+                audio_path="/x.mp3",
+                audio_url="http://x/x.mp3",
+                duration_seconds=1,
+                size_bytes=1,
+                summary=None,
+                script=None,
+                created_at="2026-09-01T00:00:00+00:00",
+            )
+        )
+        captured = self._capture_sources(monkeypatch)
+        handlers.generate_daily_episode(
+            topic_slug="hobby-models", target_date="2026-09-07"
+        )
+        assert captured[0].extra["since_date"] == "2026-08-30"
+
+    def test_since_defaults_to_30_days_without_history(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("DAILY_PODCAST_STATE_DIR", str(tmp_path))
+        captured = self._capture_sources(monkeypatch)
+        handlers.generate_daily_episode(
+            topic_slug="hobby-models", target_date="2026-09-07"
+        )
+        assert captured[0].extra["since_date"] == "2026-08-08"
+
+    def test_since_is_clamped_to_60_days(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("DAILY_PODCAST_STATE_DIR", str(tmp_path))
+        state_mod.upsert_episode(
+            state_mod.EpisodeRow(
+                id="hobby-models:2026-01-01",
+                topic="hobby-models",
+                episode_date="2026-01-01",
+                title="t",
+                audio_path="/x.mp3",
+                audio_url="http://x/x.mp3",
+                duration_seconds=1,
+                size_bytes=1,
+                summary=None,
+                script=None,
+                created_at="2026-01-01T00:00:00+00:00",
+            )
+        )
+        captured = self._capture_sources(monkeypatch)
+        handlers.generate_daily_episode(
+            topic_slug="hobby-models", target_date="2026-09-07"
+        )
+        assert captured[0].extra["since_date"] == "2026-07-09"
+
+    def test_explicit_source_config_is_not_overwritten(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("DAILY_PODCAST_STATE_DIR", str(tmp_path))
+        captured = self._capture_sources(monkeypatch)
+        handlers.generate_daily_episode(
+            topic_slug="hobby-models", target_date="2026-09-07"
+        )
+        # 元 TopicConfig の extra (tags) は保持される
+        assert captured[0].extra["tags"] == ["模型"]
+        assert captured[0].type == "hatena"
+
+
 class TestScoreUnavailable:
     def test_score_unavailable_returns_error_envelope(self, tmp_path, monkeypatch):
         """採点 LLM が死んでいる夜はクラッシュでも配信でもなく error を返す。"""
