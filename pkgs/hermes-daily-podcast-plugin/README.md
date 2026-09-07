@@ -202,7 +202,8 @@ iPhone (Tailscale 接続) から購読・再生できる。
 ## トラブルシュート
 
 - **音声が空白**: VOICEVOX engine が落ちている可能性。`systemctl status podman-voicevox-engine` と `curl http://127.0.0.1:50021/version` を確認。
-- **LLM がタイムアウト**: hail-mary の Ollama が pull 中 / busy。`ollama list | grep qwen3` で tag を確認、必要なら `HERMES_DAILY_PODCAST_SCORE_MODEL` / `HERMES_DAILY_PODCAST_SUMMARIZE_MODEL` を別 tag に差し替え (採点と要約で独立して切替え可)。
+- **LLM がタイムアウト**: hail-mary の Ollama が pull 中 / busy。`ollama list | grep qwen3` で tag を確認、必要なら `HERMES_DAILY_PODCAST_SCORE_MODEL` / `HERMES_DAILY_PODCAST_SUMMARIZE_MODEL` を別 tag に差し替え (採点と要約で独立して切替え可)。タイムアウトを含む全ての transport エラーは `LlmError` に正規化される (`src/llm.py:_post`) ので、topic ごとクラッシュではなくログ + error envelope になるのが正しい挙動。
+- **採点 LLM が空応答を返す**: qwen3 系の thinking がトークン枠を食い潰すケース。採点パスは `disable_thinking=True` (`/no_think` + Ollama `think:false`) と `max_tokens=8192` で呼んでおり、`<think>...</think>` がコンテンツに漏れた場合も `chat_json` が除去する。それでも空なら `journalctl -u hermes-agent | grep "valid JSON"` でモデルの生応答を確認。
 - **重複が抑制されない**: `sqlite3 /var/lib/hermes-podcast/state.sqlite 'select count(*) from sources_seen'` で件数確認。タイトル類似度の閾値は `src/dedupe.py:TITLE_SIMILARITY_THRESHOLD`。
 - **Bluesky が常に空**: `BLUESKY_HANDLE` / `BLUESKY_APP_PASSWORD` env または `atproto` パッケージが無効。Phase 1 デフォルトでは無効で OK。
 - **Reddit が 429**: vendor http が Retry-After 尊重で 2 回まで自動 retry する。それでも継続的に 429 なら巡回間隔を空ける (topic を分割するか `cron` schedule を調整)。
@@ -225,7 +226,8 @@ Plugin 単体テスト (vendor http + 並列 fetch_all + 既存 config/dedupe �
 ```bash
 cd pkgs/hermes-daily-podcast-plugin
 nix shell nixpkgs#python313Packages.pytest -c \
-  python -m pytest tests/test_http_vendor.py tests/test_fetch_all_parallel.py tests/test_config.py -q
+  python -m pytest tests/test_http_vendor.py tests/test_fetch_all_parallel.py \
+    tests/test_config.py tests/test_llm.py -q
 ```
 
 `test_dedupe.py` / `test_score.py` / `test_script.py` は `feedparser` / `rapidfuzz` /

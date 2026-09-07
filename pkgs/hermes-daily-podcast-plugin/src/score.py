@@ -72,7 +72,10 @@ def score_candidates(
             messages,
             model=cfg.score_model(),
             temperature=0.1,
-            max_tokens=4096,
+            # thinking がコンテンツ/トークン枠を食い潰して空応答になる事故が
+            # あったため、採点パスでは思考を切り、枠にも余裕を持たせる。
+            max_tokens=8192,
+            disable_thinking=True,
         )
     except llm.LlmError as exc:
         # Make the failure mode obvious in logs — silently falling back to
