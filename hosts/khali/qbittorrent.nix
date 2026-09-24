@@ -44,6 +44,9 @@ in
         AuthSubnetWhitelistEnabled = true;
         AuthSubnetWhitelist = "100.64.0.0/10, 127.0.0.0/8";
         LocalHostAuth = false;
+        # tailscale serve (https://khali.taild10c60.ts.net -> 127.0.0.1:8080)
+        # 経由のアクセスを Host ヘッダ検証で弾かないようにする
+        ServerDomains = "khali.taild10c60.ts.net";
       };
     };
   };
