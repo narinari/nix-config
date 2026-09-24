@@ -72,32 +72,47 @@
     };
   };
 
-  # jarvisのSamba共有をマウント
-  fileSystems."/mnt/tanabe-media" = {
-    device = "//jarvis.local/tanabe-media";
-    fsType = "cifs";
-    options =
-      let
-        automount_opts = "x-systemd.automount,noauto,x-systemd.idle-timeout=60,x-systemd.device-timeout=5s,x-systemd.mount-timeout=5s";
-      in
-      [
-        "${automount_opts},iocharset=utf8,uid=narinari,gid=wheel,guest,nosetuids,noperm,rw"
-      ];
-  };
+  # jarvisの認証付きSamba共有用 credentials (agenix 経由)
+  age.secrets."jarvis-smb-credentials".file =
+    "${inputs.my-secrets}/private/jarvis-smb-credentials.age";
 
-  # jarvisのNFS共有をマウント
-  fileSystems."/mnt/nas" = {
-    device = "jarvis.local:/fx-trading";
-    fsType = "nfs";
-    options = [
-      "x-systemd.automount"
-      "noauto"
-      "x-systemd.idle-timeout=60"
-      "x-systemd.device-timeout=5s"
-      "x-systemd.mount-timeout=5s"
-      "nfsvers=4"
-    ];
-  };
+  # jarvisの共有をマウント
+  fileSystems =
+    let
+      automount_opts = "x-systemd.automount,noauto,x-systemd.idle-timeout=60,x-systemd.device-timeout=5s,x-systemd.mount-timeout=5s";
+      cifs_opts = "${automount_opts},iocharset=utf8,uid=narinari,gid=wheel,nosetuids,noperm,rw";
+    in
+    {
+      # Samba共有 (ゲスト)
+      "/mnt/tanabe-media" = {
+        device = "//jarvis.local/tanabe-media";
+        fsType = "cifs";
+        options = [ "${cifs_opts},guest" ];
+      };
+
+      # Samba共有 (認証付き)
+      "/mnt/xxx" = {
+        device = "//jarvis.local/xxx";
+        fsType = "cifs";
+        options = [
+          "${cifs_opts},credentials=${config.age.secrets."jarvis-smb-credentials".path}"
+        ];
+      };
+
+      # NFS共有
+      "/mnt/nas" = {
+        device = "jarvis.local:/fx-trading";
+        fsType = "nfs";
+        options = [
+          "x-systemd.automount"
+          "noauto"
+          "x-systemd.idle-timeout=60"
+          "x-systemd.device-timeout=5s"
+          "x-systemd.mount-timeout=5s"
+          "nfsvers=4"
+        ];
+      };
+    };
 
   programs = {
     # Hyprland (Wayland コンポジタ)
