@@ -17,6 +17,7 @@
     ./voicevox.nix
     ./podcast-nginx.nix
     ./podcast-timer.nix
+    ./qbittorrent.nix
     ../common/global
     ../common/linux
     ../common/linux/home-network.nix

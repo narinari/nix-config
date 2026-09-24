@@ -42,6 +42,7 @@ in
       "git"
       "libvirtd"
       "deluge"
+      "qbittorrent"
     ];
   };
 
