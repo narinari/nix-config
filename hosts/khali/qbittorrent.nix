@@ -62,4 +62,8 @@ in
   systemd.tmpfiles.rules = [
     "d ${downloadDir} 2775 qbittorrent qbittorrent -"
   ];
+
+  # 作成されるファイル/ディレクトリにグループ書き込み権を付ける (664/775)。
+  # これがないと qbittorrent グループのユーザーがファイルを移動・削除できない。
+  systemd.services.qbittorrent.serviceConfig.UMask = "0002";
 }
