@@ -72,9 +72,15 @@ $PY $S --revoke   # Google 側の token 失効 + ローカル token 削除
 
 ## 使い方 (Hermes 側)
 
-Hermes は依頼に応じて skill を自動ロードする。skill 側ルールで「メール送信・イベント作成/削除は
-実行前にユーザー確認必須」となっている。Gmail 検索構文は skill の
-`references/gmail-search-syntax.md` を参照。
+Hermes の skill は progressive disclosure 設計で、モデルが `skills_list()` → `skill_view()` を
+呼ばない限り内容を知らない (system prompt への自動注入は無い)。qwen3.8:27b はこの探索を
+飛ばして curl で即興アクセスしようとするため、`hosts/khali/hermes-agent.nix` の
+`system_prompt_prefix` に「スキル優先ルール」(外部サービス操作前に skills_list を確認、
+認証付きサービスへの curl 禁止) を入れて誘導している。
+
+確実に発動させたい場合はスラッシュコマンドで skill を明示指定できる (`/google-workspace 今日の予定は?`)。
+skill 側ルールで「メール送信・イベント作成/削除は実行前にユーザー確認必須」となっている。
+Gmail 検索構文は skill の `references/gmail-search-syntax.md` を参照。
 
 ## セキュリティ上の注意
 
