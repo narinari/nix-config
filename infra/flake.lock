@@ -28,7 +28,9 @@
     "codex-cli-nix": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
         "lastModified": 1782875821,
@@ -198,11 +200,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1781137971,
-        "narHash": "sha256-IwRIBiZmvXVUEwDeHWrjlEs/MtesFl+FeHrUdzLDbZ8=",
+        "lastModified": 1790390275,
+        "narHash": "sha256-Td7tfamwea7CRfurPThEyYJ4kSd5vMTE9+UTIZxrjz4=",
         "ref": "main",
-        "rev": "b90f6a8263d297254f493e32e1cbd618261c794e",
-        "revCount": 50,
+        "rev": "7f374072369d231fed968b8d3373319dd0135fd2",
+        "revCount": 52,
         "type": "git",
         "url": "ssh://git@github.com/narinari/nix-secrets"
       },
@@ -238,7 +240,7 @@
     },
     "nix-openclaw-tools": {
       "inputs": {
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs"
       },
       "locked": {
         "lastModified": 1778060041,
@@ -292,7 +294,9 @@
     },
     "nixos-hardware": {
       "inputs": {
-        "nixpkgs": "nixpkgs_3"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
         "lastModified": 1782562157,
@@ -310,11 +314,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1782760764,
-        "narHash": "sha256-N66fYdUuZ9hpdM7jsQ7CUWtLJduqGDyTGCaLR62CXaQ=",
+        "lastModified": 1767364772,
+        "narHash": "sha256-fFUnEYMla8b7UKjijLnMe+oVFOz6HjijGGNS1l7dYaQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "7a1a64774a5fd0b0cd39ac95d0e170ace8b266a0",
+        "rev": "16c7794d0a28b5a37904d55bcca36003b9109aaa",
         "type": "github"
       },
       "original": {
@@ -361,35 +365,6 @@
       }
     },
     "nixpkgs_2": {
-      "locked": {
-        "lastModified": 1767364772,
-        "narHash": "sha256-fFUnEYMla8b7UKjijLnMe+oVFOz6HjijGGNS1l7dYaQ=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "16c7794d0a28b5a37904d55bcca36003b9109aaa",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixpkgs-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_3": {
-      "locked": {
-        "lastModified": 1767892417,
-        "narHash": "sha256-8bW3q88CEg2u4hSP66Vf4lpbLonHz7hqDNBMcCY7E9U=",
-        "rev": "3497aa5c9457a9d88d71fa93a4a8368816fbeeba",
-        "type": "tarball",
-        "url": "https://releases.nixos.org/nixos/unstable/nixos-26.05pre924538.3497aa5c9457/nixexprs.tar.xz"
-      },
-      "original": {
-        "type": "tarball",
-        "url": "https://channels.nixos.org/nixos-unstable/nixexprs.tar.xz"
-      }
-    },
-    "nixpkgs_4": {
       "locked": {
         "lastModified": 1782723713,
         "narHash": "sha256-oPXCU/SSUokcGaJREHibG1CBX3+s/W7orDWQOZDsEeQ=",
@@ -442,7 +417,7 @@
         "nix-openclaw": "nix-openclaw",
         "nixos-generators": "nixos-generators",
         "nixos-hardware": "nixos-hardware",
-        "nixpkgs": "nixpkgs_4",
+        "nixpkgs": "nixpkgs_2",
         "nixpkgs-firefox-darwin": "nixpkgs-firefox-darwin",
         "sops-nix": "sops-nix"
       }

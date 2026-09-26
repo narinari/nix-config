@@ -123,6 +123,18 @@ in
     "daily-podcast-env" = {
       file = "${inputs.my-secrets}/private/hermes-daily-podcast-env.age";
     };
+
+    # ── Google Workspace (bundled skill: productivity/google-workspace) ──────
+    # GCP OAuth Desktop クライアントの client_secret と、初回認可で得た
+    # refresh_token 入り token のスナップショット。hermes-agent-credentials が
+    # /var/lib/hermes/.hermes/ に seed する (token は refresh で書き換わるため初回のみ)。
+    # 再認可の手順は docs/hermes-google-workspace.md を参照。
+    "hermes-google-client-secret" = {
+      file = "${inputs.my-secrets}/private/hermes-google-client-secret.json.age";
+    };
+    "hermes-google-token" = {
+      file = "${inputs.my-secrets}/private/hermes-google-token.json.age";
+    };
   };
 
   services.hermes-agent = {
@@ -422,6 +434,24 @@ in
         ${pkgs.coreutils}/bin/install -m 0600 -o hermes -g hermes \
           ${config.age.secrets."hermes-claude-credentials".path} \
           "$dst/.credentials.json"
+      fi
+
+      # ── Google Workspace skill credentials (bundled skill が参照するパス) ──
+      # client_secret / token とも skill の setup.py・token refresh が書き換えるため
+      # 初回のみ seed する (claude credentials と同じ方針)。
+      ghome=/var/lib/hermes/.hermes
+      # fresh install では hermes-agent.service 起動前で .hermes が無い可能性がある。
+      # 既存ディレクトリの mode (2770, setgid) には触らない。
+      [ -d "$ghome" ] || ${pkgs.coreutils}/bin/install -d -m 2770 -o hermes -g hermes "$ghome"
+      if [ ! -f "$ghome/google_client_secret.json" ]; then
+        ${pkgs.coreutils}/bin/install -m 0660 -o hermes -g hermes \
+          ${config.age.secrets."hermes-google-client-secret".path} \
+          "$ghome/google_client_secret.json"
+      fi
+      if [ ! -f "$ghome/google_token.json" ]; then
+        ${pkgs.coreutils}/bin/install -m 0660 -o hermes -g hermes \
+          ${config.age.secrets."hermes-google-token".path} \
+          "$ghome/google_token.json"
       fi
     '';
   };
