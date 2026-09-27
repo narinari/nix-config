@@ -310,6 +310,19 @@ in
       pkgs.ripgrep
       pkgs.fd
 
+      # google-workspace bundled skill (scripts/google_api.py) 用の python。
+      # hermes-agent-env 内の python は terminal ツールの PATH に出ないため、
+      # skill が期待する `python`/`python3` を google API ライブラリ入りで提供する。
+      # (無いとモデルが skill 手順を実行できず curl 即興に流れる)
+      (pkgs.python3.withPackages (ps: [
+        ps.google-api-python-client
+        ps.google-auth-oauthlib
+        ps.google-auth-httplib2
+      ]))
+      # SKILL.md のコマンド例は `python` 表記のため alias を用意 (python3 のみだと
+      # 小型モデルが which python の失敗で迷走する)
+      (pkgs.writeShellScriptBin "python" ''exec python3 "$@"'')
+
       # daily-podcast plugin: VOICEVOX wav の連結・mp3 エンコードに使う
       pkgs.ffmpeg-headless
       # daily-podcast plugin: YouTube source (sources/youtube.py) が subprocess で

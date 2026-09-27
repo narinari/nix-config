@@ -7,7 +7,9 @@ Hermes 同梱の bundled skill `productivity/google-workspace` を使う (MCP �
 
 - **skill**: `/var/lib/hermes/.hermes/skills/productivity/google-workspace/` (Hermes 0.21.0 に標準 seed)
 - **実行系**: skill の `scripts/google_api.py` を Hermes の terminal ツールが実行する。
-  Python 依存 (google-api-python-client / google-auth-oauthlib) は hermes-agent-env に同梱済みで追加パッケージ不要
+  terminal の PATH には hermes-agent-env の python が出ないため、`extraPackages` で
+  google API ライブラリ入りの `python3` (+ `python` alias) を別途供給している
+  (無いと `which: no python3` で skill 手順が失敗し、モデルが curl 即興に流れる)
 - **認証**: GCP OAuth 2.0 Desktop クライアント + PKCE。token は自動 refresh
 - **credential 配置** (いずれも `hermes` group が read/write できること):
 
@@ -40,7 +42,8 @@ Drive/Sheets/Docs/People は API 未有効化のため呼んでも 403)。
 hermes group に属するユーザーで khali 上で実行:
 
 ```bash
-PY=$(ls -d /nix/store/*hermes-agent-env*/bin/python3 | head -1)   # または hermes サービスと同じ env
+PY=python3   # google ライブラリ入り (hermes-agent.nix の extraPackages で供給。
+             # narinari 環境に無ければ /nix/store/*hermes-agent-env*/bin/python3 でも可)
 export HERMES_HOME=/var/lib/hermes/.hermes
 S=$HERMES_HOME/skills/productivity/google-workspace/scripts/setup.py
 umask 007
