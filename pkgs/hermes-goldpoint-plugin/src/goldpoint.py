@@ -1,0 +1,187 @@
+"""GOLD POINT CARD+ 明細取得 (ログイン → CSV fetch → ログアウト)。
+
+サイト仕様 (2026-09-27 実機確認、リバースエンジニアリング済みの確定情報。
+変更禁止):
+
+- ログインページ: https://secure.goldpoint.co.jp/gpm/authentication/index.html
+  フォーム: <form id="form" action=".../gpm/authentication/login.html" method="post">
+- ID欄 `#authenticateDO\\.authKey` はページロード直後 type=hidden で、サイトの
+  JS が後から type=text に書き換える (bot 対策)。type が text かつ
+  offsetWidth>0 になるまで poll してから値を入れること。
+- パスワード欄 `#authenticateDO\\.password` (type=password)。
+- 送信は `#loginButton` (input type=image) の click()。
+- hidden に乱数16進名トークン2つ + serializedBase64 があり、サイトの JS が
+  埋める。HTTP直叩きでの再現は不可 — 実ブラウザ (headless Chromium + CDP) で
+  フォーム入力する必要がある (headless=new で成功実績はまだ無く、headed CDP
+  では成功済み)。
+- 値の入力は JS で: el.value = <json文字列>; input/change イベントを
+  dispatchEvent する。
+- ログイン成功時は https://secure.goldpoint.co.jp/gpm/membertop.html に遷移する。
+- 明細ページ: https://secure.goldpoint.co.jp/memx/web_meisai/top/index.html?p01=YYYYMM
+  を先に開いてから (Referer / セッション文脈のため) CSV API を叩くこと。
+- CSV API: GET https://secure.goldpoint.co.jp/memapi/jaxrs/dl/web_meisai/
+  web_meisai_csv_exec/v1?downloadKey=1&seikyuym=YYYYMM&sk=&downloadtype=csv&mk=1
+  をページ内 `fetch(url, {credentials:"include"})` で叩くと 200 が返る
+  (content-type: application/force-download;charset=Windows-31J)。
+  戻り値は arrayBuffer → Uint8Array → 0x8000 要素ずつ chunk して
+  String.fromCharCode.apply → btoa で base64 化し、CDP の Runtime.evaluate
+  戻り値として受け取る (大きい CSV でも引数過多にならないための chunk 単位)。
+- CSV は Shift_JIS (Windows-31J) / CRLF。1行目はカード名義ヘッダ。
+  変換せず、そのままバイト列で保存する。
+- 請求月セレクタ `#vp-view-VC0502-003_RS0001_p01` に直近18ヶ月分の
+  YYYYMM が入っている (今回は使わず、呼び出し側が seikyuym を直接指定する)。
+- ログアウトは https://secure.goldpoint.co.jp/gpm/logout.html への遷移のみ。
+
+セキュリティ: password / CSV バイト列は、ここでは戻り値にも例外メッセージ
+にもログにも出さない。ログイン失敗時の CDP 例外 (exceptionDetails.text) は
+入力値混入のリスクがあるため、下位の生メッセージをそのまま伝播させず
+自前の汎用メッセージに変換する。
+"""
+
+from __future__ import annotations
+
+import asyncio
+import base64
+import json
+import logging
+
+from . import cdp
+
+logger = logging.getLogger(__name__)
+
+LOGIN_URL = "https://secure.goldpoint.co.jp/gpm/authentication/index.html"
+MEMBER_TOP_URL = "https://secure.goldpoint.co.jp/gpm/membertop.html"
+MEISAI_PAGE_URL_TMPL = (
+    "https://secure.goldpoint.co.jp/memx/web_meisai/top/index.html?p01={seikyuym}"
+)
+CSV_API_URL_TMPL = (
+    "https://secure.goldpoint.co.jp/memapi/jaxrs/dl/web_meisai/"
+    "web_meisai_csv_exec/v1?downloadKey=1&seikyuym={seikyuym}&sk=&downloadtype=csv&mk=1"
+)
+LOGOUT_URL = "https://secure.goldpoint.co.jp/gpm/logout.html"
+
+LOGIN_FIELD_POLL_TIMEOUT_SECONDS = 15
+LOGIN_NAV_TIMEOUT_SECONDS = 20
+# 大きい CSV でも `String.fromCharCode.apply` が引数過多で落ちないための chunk 単位。
+CSV_FETCH_CHUNK_SIZE = 0x8000
+
+
+class GoldpointError(Exception):
+    """ログイン失敗 / CSV 取得失敗など。パスワードや CSV 内容は含めない。"""
+
+
+def fetch_statement_csv(*, auth_key: str, password: str, seikyuym: str) -> bytes:
+    """ログイン → 明細ページ → CSV fetch → ログアウト を行い、CSV の生バイト列を返す。
+
+    handler は sync なので asyncio.run() でラップする。
+    """
+    return asyncio.run(
+        _fetch_statement_csv_async(
+            auth_key=auth_key, password=password, seikyuym=seikyuym
+        )
+    )
+
+
+async def _fetch_statement_csv_async(
+    *, auth_key: str, password: str, seikyuym: str
+) -> bytes:
+    async with cdp.CdpSession() as session:
+        await session.goto(LOGIN_URL)
+        await _fill_login_form(session, auth_key=auth_key, password=password)
+        await _submit_login(session)
+        await _wait_for_login_success(session)
+
+        await session.goto(MEISAI_PAGE_URL_TMPL.format(seikyuym=seikyuym))
+        csv_bytes = await _fetch_csv_via_page(session, seikyuym=seikyuym)
+
+        # ログアウトはベストエフォート。失敗しても取得済み CSV は返す。
+        try:
+            await session.goto(LOGOUT_URL)
+        except cdp.CdpError:
+            logger.warning("goldpoint: logout navigation failed (non-fatal)")
+
+    return csv_bytes
+
+
+async def _fill_login_form(
+    session: cdp.CdpSession, *, auth_key: str, password: str
+) -> None:
+    # bot 対策: authKey 欄は type=hidden で始まり、サイト JS が type=text に
+    # 書き換えるまで待つ必要がある (offsetWidth>0 で「表示された」を判定)。
+    ready_expr = (
+        "(() => {"
+        "const el = document.getElementById('authenticateDO.authKey');"
+        "return !!el && el.type === 'text' && el.offsetWidth > 0;"
+        "})()"
+    )
+    try:
+        await session.poll_js(ready_expr, timeout=LOGIN_FIELD_POLL_TIMEOUT_SECONDS)
+        await session.eval_js(_set_value_js("authenticateDO.authKey", auth_key))
+        await session.eval_js(_set_value_js("authenticateDO.password", password))
+    except cdp.CdpError:
+        # exceptionDetails.text に入力値の一部が混入するリスクがあるため、
+        # 元例外の文字列は伝播させず汎用メッセージに変換する。
+        raise GoldpointError(
+            "failed to fill login form (site markup may have changed)"
+        ) from None
+
+
+async def _submit_login(session: cdp.CdpSession) -> None:
+    await session.eval_js("document.getElementById('loginButton').click(); true")
+
+
+async def _wait_for_login_success(session: cdp.CdpSession) -> None:
+    try:
+        await session.poll_js(
+            f"location.href.indexOf({json.dumps(MEMBER_TOP_URL)}) === 0",
+            timeout=LOGIN_NAV_TIMEOUT_SECONDS,
+        )
+    except cdp.CdpError:
+        raise GoldpointError(
+            "login failed: did not reach membertop.html "
+            "(auth key/password mismatch, or site markup changed)"
+        ) from None
+
+
+async def _fetch_csv_via_page(session: cdp.CdpSession, *, seikyuym: str) -> bytes:
+    url = CSV_API_URL_TMPL.format(seikyuym=seikyuym)
+    result = await session.eval_js(_csv_fetch_js(url))
+    if not isinstance(result, dict) or not result.get("ok"):
+        status = result.get("status") if isinstance(result, dict) else None
+        raise GoldpointError(f"CSV API request failed (status={status})")
+    b64 = result.get("data_base64")
+    if not isinstance(b64, str) or not b64:
+        raise GoldpointError("CSV API returned no data")
+    return base64.b64decode(b64)
+
+
+def _set_value_js(element_id: str, value: str) -> str:
+    """value 代入 + input/change イベント発火 (サイト JS のバリデーションが拾えるように)。"""
+    return (
+        "(() => {"
+        f"const el = document.getElementById({json.dumps(element_id)});"
+        f"el.value = {json.dumps(value)};"
+        "el.dispatchEvent(new Event('input', {bubbles: true}));"
+        "el.dispatchEvent(new Event('change', {bubbles: true}));"
+        "return true;"
+        "})()"
+    )
+
+
+def _csv_fetch_js(url: str) -> str:
+    """ページ内 fetch → arrayBuffer → base64 化 (0x8000 要素ずつ chunk)。"""
+    return (
+        "(async () => {"
+        f"const res = await fetch({json.dumps(url)}, {{credentials: 'include'}});"
+        "if (!res.ok) { return {ok: false, status: res.status}; }"
+        "const buf = await res.arrayBuffer();"
+        "const bytes = new Uint8Array(buf);"
+        f"const chunkSize = {CSV_FETCH_CHUNK_SIZE};"
+        "let binary = '';"
+        "for (let i = 0; i < bytes.length; i += chunkSize) {"
+        "  const chunk = bytes.subarray(i, i + chunkSize);"
+        "  binary += String.fromCharCode.apply(null, chunk);"
+        "}"
+        "return {ok: true, status: res.status, data_base64: btoa(binary)};"
+        "})()"
+    )

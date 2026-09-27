@@ -1,0 +1,6 @@
+name: goldpoint-meisai
+version: 0.1.0
+description: "GOLD POINT CARD + の利用明細CSVを取得して Google Drive にアップロードする。ログインは headless Chromium + CDP で実ブラウザ相当のフォーム入力を行い、認証情報は Bitwarden Secrets Manager (bws CLI) から実行時に取得する (モデルには渡らない)。"
+author: narinari
+provides_tools:
+  - goldpoint_fetch_statement

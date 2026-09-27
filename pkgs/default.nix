@@ -12,6 +12,7 @@ in
   hermes-family-inventory-plugin = pkgs.callPackage ./hermes-family-inventory-plugin { };
   hermes-daily-podcast-plugin = pkgs.callPackage ./hermes-daily-podcast-plugin { };
   plamo-html = pkgs.callPackage ./plamo-html { };
+  hermes-goldpoint-plugin = pkgs.callPackage ./hermes-goldpoint-plugin { };
   lsec2 = pkgs.callPackage ./lsec2 { };
   berkeley-mono = pkgs.callPackage ./font-berkeley-mono { };
   berkeley-mono-nerdfonts = pkgs.callPackage ./font-berkeley-mono-nerdfonts { };

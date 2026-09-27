@@ -17,6 +17,7 @@
     ./voicevox.nix
     ./podcast-nginx.nix
     ./podcast-timer.nix
+    ./goldpoint-timer.nix
     ./qbittorrent.nix
     ./net-monitor.nix
     ../common/global
