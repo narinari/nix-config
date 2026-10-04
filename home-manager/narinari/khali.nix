@@ -35,6 +35,8 @@
   home.packages = with pkgs; [
     wl-clipboard # Wayland クリップボード
 
+    vlc # メディアプレイヤー (VAAPI は hosts/khali/default.nix の hardware.graphics で有効)
+
     # 対話 shell から `hermes` CLI を起動したときに browser_navigate が動くよう、
     # tools/browser_tool.py::_find_agent_browser() が PATH で agent-browser を
     # 発見できるようにする。これが無いと npx フォールバックが走り、generic Linux 向けの
