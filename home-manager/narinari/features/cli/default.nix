@@ -162,7 +162,8 @@
     navi.enable = true;
     sqls.enable = true;
 
-    bashmount.enable = true;
+    # bashmount は udisks / cryptsetup (Linux 専用) に依存し darwin では評価拒否される
+    bashmount.enable = pkgs.stdenv.hostPlatform.isLinux;
 
     tealdeer.enable = true;
     zoxide.enable = true;
