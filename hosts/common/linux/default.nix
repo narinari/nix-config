@@ -20,7 +20,30 @@
   #};
 
   environment = {
-    enableAllTerminfo = true;
+    # enableAllTerminfo = true は nixos/modules/config/terminfo.nix の固定リストを
+    # 丸ごと引き込むが、gcc 16 移行でそのうち 2 つが上流でビルド不能になっている:
+    #   - rxvt-unicode-unwrapped(-emoji): 独自 lerp が C++20 の std::lerp と衝突
+    #     (nixpkgs#568896 / 未マージ PR #568978)
+    #   - contour: vtbackend/Image.cpp が旧 std::simd 名 (native_simd 等) を使用
+    #     (gcc 16 一括追跡: nixpkgs#569854)
+    # どちらもバイナリキャッシュに無くローカルビルドで落ちるため、同リストから
+    # この 2 つを除いたものを自前で列挙する。上流修正後は enableAllTerminfo に戻す。
+    enableAllTerminfo = false;
+    systemPackages = map (x: x.terminfo) (
+      with pkgs.pkgsBuildBuild;
+      [
+        alacritty
+        foot
+        ghostty
+        kitty
+        mtm
+        rio
+        st
+        tmux
+        wezterm
+        yaft
+      ]
+    );
     shells = with pkgs; [
       zsh
       bashInteractive
