@@ -124,7 +124,10 @@ Q4 系の品質低下は Terminal-Bench 等で BF16 とほぼ同等という評�
    ssh hail-mary.local 'cd ~/nix-config && git pull --ff-only && darwin-rebuild switch --flake ~/nix-config#hail-mary'
    ```
 3. 上記「反映確認」で `launchctl getenv` を確認 → Ollama.app を再起動
-4. モデル tag を変えた場合は hail-mary で `ollama pull <tag>` し、`curl -s http://ai/v1/models` に出ることを確認。
+4. モデル tag を変えた場合は hail-mary で `ollama pull <tag>` した後、**aperture 管理画面
+   (aperture.tailscale.com) でモデルルートを追加** する (Nix 管理外・手動)。aperture は Ollama の
+   新 tag を自動検出しないため、追加前は `no route found for model "<tag>"` になる。
+   `curl -s http://ai/v1/models | jq -r '.data[].id'` に出ることを確認。
    切替が安定したら旧 tag を `ollama rm <old-tag>` で解放する (27b-mxfp8 は 31GB)
 5. khali 側 (`hosts/khali/hermes-agent.nix`) は `sudo nixos-rebuild switch --flake ~/nix-config#khali`
 
@@ -136,6 +139,7 @@ Q4 系の品質低下は Terminal-Bench 等で BF16 とほぼ同等という評�
 | `osascript -e 'quit app "Ollama"'` が「ユーザによってキャンセル」で失敗 | Ollama.app が quit を拒否 | `pkill -x Ollama && sleep 3 && open -a Ollama` で再起動 |
 | `launchctl list` に `homebrew.mxcl.ollama` が exit 78 で残る | 旧 brew formula の LaunchAgent plist (formula 未インストール) | `launchctl bootout gui/$(id -u)/homebrew.mxcl.ollama && rm ~/Library/LaunchAgents/homebrew.mxcl.ollama.plist` |
 | `[METAL] Insufficient Memory` / ロード切替で OOM | 複数モデル同居 | `ollama ps` で確認、`OLLAMA_MAX_LOADED_MODELS` を下げる、ワークフロー内でモデルを統一 |
+| aperture 経由で `no route found for model "<tag>"` | aperture のモデルルート未追加 (hail-mary に pull 済みでも出ない) | aperture 管理画面でルートを追加 → `/v1/models` で確認 |
 | 生成が 14 tok/s 前後で頭打ち | 8bit dense の帯域律速 (正常動作) | 4bit tag か MoE tag へ |
 | `ollama ps` の PROCESSOR が `100% GPU` 以外 | GGUF tag で VRAM 不足 → CPU オフロード | MLX tag を使う / 小さい量子化へ |
 | GPU 利用率 50〜70% で遅い (Ollama 0.40.0) | MLX runner の regression ([#18754](https://github.com/ollama/ollama/issues/18754)) | 0.35.x に留める / 修正版へ更新 |
