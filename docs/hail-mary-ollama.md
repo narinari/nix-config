@@ -54,19 +54,29 @@ GUI app は shell の env を引き継がないため、`home.sessionVariables` 
 走っていること** まで確認する。2026-10 の調査では commit 後 4 ヶ月 rebuild されておらず、
 再起動後に `OLLAMA_KEEP_ALIVE=5m` (既定) に戻っていた。
 
-反映確認:
+反映確認 (**ssh 越しの `launchctl getenv` は使わない**、下記「ドメインの罠」参照):
 
 ```sh
-ls ~/Library/LaunchAgents/ | grep ollama-env          # org.nix-community.home.ollama-env.plist
-launchctl list | grep narinari.ollama-env             # 登録済みか
-launchctl getenv OLLAMA_KEEP_ALIVE                    # 24h
-grep -E 'OLLAMA_KEEP_ALIVE' ~/.ollama/logs/server.log | tail -1   # 起動時の実効値
+ls ~/Library/LaunchAgents/ | grep ollama-env                     # com.narinari.ollama-env.plist
+launchctl print gui/$(id -u)/com.narinari.ollama-env | grep -E 'runs|last exit'   # 実行済み・exit 0
+launchctl print gui/$(id -u) | grep -E 'OLLAMA_'                 # GUI ドメインの環境に 3 変数
+ps eww -o command= -p "$(pgrep -f 'ollama serve')" | tr ' ' '\n' | grep '^OLLAMA_'   # 実プロセスの env
+grep -E 'OLLAMA_KEEP_ALIVE' ~/.ollama/logs/server.log | tail -1  # 起動時の実効値 (24h0m0s)
 ```
+
+### launchd ドメインの罠 (2026-10-04 実測)
+
+`launchctl setenv` / `getenv` は **呼び出し元プロセスが属するドメイン** に作用する。
+- `ollama-env` agent (gui/UID) と Ollama.app (gui/UID) は同じドメイン → 正しく届く
+- **ssh ログインセッションは user/UID (Background) ドメイン** → ssh から `launchctl getenv
+  OLLAMA_KEEP_ALIVE` を叩くと **空に見える** (偽陰性)。逆に ssh から `launchctl setenv` しても
+  GUI アプリには届かない
+- 確認は `launchctl print gui/$(id -u)` か、`ollama serve` プロセスの `ps eww` で行う
 
 `launchctl setenv` は **新規 spawn プロセスにしか効かない** ので、rebuild 後は Ollama.app を再起動する:
 
 ```sh
-osascript -e 'quit app "Ollama"' && sleep 3 && open -a Ollama
+pkill -x Ollama && sleep 3 && open -a Ollama   # osascript quit は拒否されることがある
 ```
 
 ## モデル tag の選定
@@ -122,7 +132,8 @@ Q4 系の品質低下は Terminal-Bench 等で BF16 とほぼ同等という評�
 
 | 症状 | 原因 | 対処 |
 |---|---|---|
-| 1 時間ごとの Hermes ジョブで毎回 10 秒待つ / aperture 502 | `OLLAMA_KEEP_ALIVE` が既定 5m に戻っている | `launchctl getenv OLLAMA_KEEP_ALIVE` が空なら rebuild → Ollama.app 再起動 |
+| 1 時間ごとの Hermes ジョブで毎回 10 秒待つ / aperture 502 | `OLLAMA_KEEP_ALIVE` が既定 5m に戻っている | `launchctl print gui/$(id -u) \| grep OLLAMA` が空なら rebuild → `launchctl kickstart -k gui/$(id -u)/com.narinari.ollama-env` → Ollama.app 再起動 |
+| `osascript -e 'quit app "Ollama"'` が「ユーザによってキャンセル」で失敗 | Ollama.app が quit を拒否 | `pkill -x Ollama && sleep 3 && open -a Ollama` で再起動 |
 | `launchctl list` に `homebrew.mxcl.ollama` が exit 78 で残る | 旧 brew formula の LaunchAgent plist (formula 未インストール) | `launchctl bootout gui/$(id -u)/homebrew.mxcl.ollama && rm ~/Library/LaunchAgents/homebrew.mxcl.ollama.plist` |
 | `[METAL] Insufficient Memory` / ロード切替で OOM | 複数モデル同居 | `ollama ps` で確認、`OLLAMA_MAX_LOADED_MODELS` を下げる、ワークフロー内でモデルを統一 |
 | 生成が 14 tok/s 前後で頭打ち | 8bit dense の帯域律速 (正常動作) | 4bit tag か MoE tag へ |

@@ -46,6 +46,9 @@ in
   # 注意: launchctl setenv は揮発的 (再起動で消える) なので、この agent の
   # RunAtLoad が唯一の永続化手段。rebuild 後は Ollama.app の再起動も必要
   # (setenv は新規 spawn プロセスにしか効かない)。
+  # setenv/getenv は呼び出し元の launchd ドメインに作用する。agent と GUI app は
+  # gui/UID で一致するが、ssh セッションは user/UID なので ssh から getenv しても
+  # 空に見える (偽陰性)。確認は `launchctl print gui/$(id -u) | grep OLLAMA_`。
   launchd.agents.ollama-env = {
     enable = true;
     config = {
