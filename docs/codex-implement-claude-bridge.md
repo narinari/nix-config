@@ -23,7 +23,7 @@ codex-cli (narinari user, $HOME/.codex/*.config.toml)
 Tailscale Aperture (Tailscale identity 認証, ダミー API key)
     │
     ▼
-hail-mary (Ollama, qwen3.8:27b-mxfp8 on MLX backend)
+hail-mary (Ollama, qwen3.8:27b-mlx on MLX backend)
 ```
 
 実装場所:
@@ -69,7 +69,7 @@ khali / hail-mary 上の Claude / codex は aperture (`http://ai/v1`) 経由で 
 
 ```bash
 # hail-mary 側で
-ollama pull qwen3.8:27b-mxfp8
+ollama pull qwen3.8:27b-mlx
 ollama list | grep qwen3.8
 ```
 
@@ -88,7 +88,7 @@ home-manager switch --flake .#narinari@khali
 
 ```bash
 # codex 側
-grep '^model = ' ~/.codex/config.toml             # qwen3.8:27b-mxfp8 になる
+grep '^model = ' ~/.codex/config.toml             # qwen3.8:27b-mlx になる
 cat ~/.codex/local_qwen3_8_coding.config.toml    # profile は独立ファイル (下記参照)
 ! grep -q '^\[profiles\.' ~/.codex/config.toml && echo "OK: legacy profile テーブルなし"
 
@@ -135,8 +135,8 @@ cat hello.txt   # → "hello from qwen"
 
 | profile | model | 用途 |
 |---|---|---|
-| (profile なし = base config) | `qwen3.8:27b-mxfp8` | `--profile` を省いたときのデフォルト |
-| `local_qwen3_8_coding` | `qwen3.8:27b-mxfp8` | 実装委譲のメイン経路。`codex-implement` skill から呼ばれる |
+| (profile なし = base config) | `qwen3.8:27b-mlx` | `--profile` を省いたときのデフォルト |
+| `local_qwen3_8_coding` | `qwen3.8:27b-mlx` | 実装委譲のメイン経路。`codex-implement` skill から呼ばれる |
 | `local_gemma4` | `gemma4:26b-a4b-it-q8_0` | 汎用対話 / 指示追従重視 (速度優先) |
 
 profile 切り替えは `codex --profile <name> ...` で都度指定。`~/.codex/config.toml` のトップレベル `model = ...` を書き換えるとデフォルトが変わる。
@@ -176,7 +176,7 @@ Hermes Agent は逆方向 (`services.hermes-agent` → Claude Opus, hermes user)
 | 症状 | 原因 | 対処 |
 |---|---|---|
 | `codex: error: connection refused` to `http://ai/v1` | aperture が落ちている / tailnet 外 | Tailscale 状況を確認、Claude には fallback せず素直に報告させる |
-| `model not found: qwen3.8:27b-mxfp8` | hail-mary 側で tag 未 pull | セットアップ手順 1 を再実行 / `--profile local_gemma4` で暫定運用 |
+| `model not found: qwen3.8:27b-mlx` | hail-mary 側で tag 未 pull | セットアップ手順 1 を再実行 / `--profile local_gemma4` で暫定運用 |
 | `--profile <name> cannot be used while ... contains legacy [profiles.<name>]` (かつ exit 0) | `config.toml` に旧形式の `[profiles.*]` が残っている | 「profile は独立ファイル方式」節を参照。`codex.nix` の `codexFiles` に profile を移す |
 | codex hangs 5 min 超 | 初回ロード / context 過大 | `timeout 300 codex exec ...` で wrap、spec を縮めて再投入 |
 | `--json` が空 / 非 JSON 出力 | codex-cli が 0.130 未満 | `codex --version` 確認、`inputs.codex-cli-nix` 更新 |

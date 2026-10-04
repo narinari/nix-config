@@ -1,6 +1,6 @@
 # Hermes Agent ⇄ Claude Code Bridge
 
-khali ホストで動いている **Hermes Agent** (NousResearch / `services.hermes-agent`) から、複雑な設計・アーキテクチャ判断・大規模リファクタリング計画などの **重い推論タスク** を **Claude Code (Opus 4.7)** に委譲する仕組み。Hermes は対話・スケジューリング・tool 実行の土台 (qwen3.6 via Aperture) を担い、設計判断は外部 LLM サブエージェントに任せる。
+khali ホストで動いている **Hermes Agent** (NousResearch / `services.hermes-agent`) から、複雑な設計・アーキテクチャ判断・大規模リファクタリング計画などの **重い推論タスク** を **Claude Code (Opus 4.7)** に委譲する仕組み。Hermes は対話・スケジューリング・tool 実行の土台 (qwen3.8:27b-mlx via Aperture) を担い、設計判断は外部 LLM サブエージェントに任せる。
 
 関連ドキュメント:
 - 計画ドキュメント: `~/.claude/plans/hermes-agent-claude-code-hermes-claude-c-misty-milner.md`
@@ -12,7 +12,7 @@ khali ホストで動いている **Hermes Agent** (NousResearch / `services.her
 narinari (terminal)
     │
     ▼ hermes CLI (PATH=...claude-code...)
-hermes-agent.service (systemd, qwen3.6 via Aperture)
+hermes-agent.service (systemd, qwen3.8:27b-mlx via Aperture)
     │
     │ tool: claude_code(task, working_directory, context_files, ...)
     ▼

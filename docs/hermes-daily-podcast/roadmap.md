@@ -255,8 +255,10 @@ Phase 4 で取り込まなかった last30days-skill の adapter / パターン:
 
 - VOICEVOX engine は公式 Docker (`virtualisation.oci-containers`) で運用。nixpkgs
   パッケージはモジュール化未成熟、Docker の方が更新頻度・対応プラットフォームで優位
-- LLM 採点 + 要約は `qwen3.6:35b-mlx` (aperture 経由 hail-mary Ollama)。
-  hermes-agent default model と同じ
+- LLM 採点 + 要約は `qwen3.8:27b-mlx` (aperture 経由 hail-mary Ollama)。
+  hermes-agent default model と同じ (モデル切替で Metal OOM を避けるため同一 tag に統一。
+  上記「多段モデル化」節の qwen3.5/3.6 の記述は実装当時の値、現行値は
+  `hosts/khali/hermes-agent.nix` の `HERMES_DAILY_PODCAST_*_MODEL` を参照)
 - 定期実行は Hermes 内蔵 cron (`hermes cron`)。systemd timer ではなく Discord 経由で
   動的に管理可能
 - トピック追加は `add_topic` ツール経由で `/var/lib/hermes-podcast/topics.toml` に

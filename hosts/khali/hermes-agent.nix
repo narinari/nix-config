@@ -1,7 +1,7 @@
 # Hermes Agent (Nous Research) — Tailscale Aperture 経由で hail-mary Ollama を利用
 #
 # 設計:
-#   - 推論バックエンドは hail-mary 上の Ollama (qwen3.6:35b-a3b-coding-mxfp8)
+#   - 推論バックエンドは hail-mary 上の Ollama (qwen3.8:27b-mlx, MLX 4bit)
 #   - 直接接続ではなく Tailscale Aperture (http://ai/v1) を経由
 #     → 認証は Aperture が Tailscale identity で代行 (実 API キー不要)
 #   - 既存 Codex CLI 構成 (home-manager/narinari/features/llm/codex.nix) と同経路
@@ -153,7 +153,8 @@ in
           # http://ai は Tailscale MagicDNS 短縮名のため Hermes の is_local_endpoint()
           # (agent/model_metadata.py:344) が False を返し、デフォルトの 300s stale /
           # 1800s request timeout が適用される。Aperture 経由でも hail-mary 側の
-          # cold-load (MLX 35B で 30-120s) 中の応答待ちで Hermes 側が自切断しないよう
+          # cold-load (27B 4bit で ~10s。OLLAMA_KEEP_ALIVE=24h なので通常は発生しない)
+          # 中の応答待ちで Hermes 側が自切断しないよう
           # 明示的に伸ばす。stream 側は providers config では制御できないため
           # services.hermes-agent.environment.HERMES_STREAM_STALE_TIMEOUT で別途設定。
           request_timeout_seconds = 1800;
@@ -162,7 +163,7 @@ in
       };
       model = {
         provider = "aperture";
-        default = "qwen3.8:27b-mxfp8";
+        default = "qwen3.8:27b-mlx";
       };
       # 端末コマンド実行はホスト直接実行 (SmolVM サンドボックス連携は Phase 2)
       terminal = {
@@ -180,7 +181,7 @@ in
         };
       };
 
-      # 応答言語の強制 (qwen3.6 は default 英語応答するため) +
+      # 応答言語の強制 (qwen3.x は default 英語応答するため) +
       # claude_code delegate の運用方針
       agent = {
         personality = "kawaii";
@@ -377,7 +378,7 @@ in
       FAMILY_INVENTORY_AGENT_ACTOR = "narinari";
 
       # daily-podcast plugin の非機密設定。
-      # ・LLM は 2 段構成: 採点 (score) は軽量モデル、要約 (summarize) は 35B。
+      # ・LLM は採点 (score) / 要約 (summarize) とも qwen3.8:27b-mlx に統一。
       #   どちらも hail-mary 上の Ollama (MLX backend) を aperture 経由で叩く。
       # ・VOICEVOX engine は voicevox.nix の oci-containers で 127.0.0.1:50021 に listen。
       # ・公開 URL は podcast-nginx.nix の vhost (http://khali/podcasts/)。
@@ -403,15 +404,15 @@ in
       # - qwen3.5:4b-mlx は thinking を止められず (/no_think, think:false 無効)、
       #   長い候補リストで reasoning が max_tokens を食い潰して空応答になる
       # - 別モデルにするとロード切替が発生し hail-mary (64GB) で Metal OOM を誘発
-      # 27B は reasoning が短く収束し、40 候補一括で実測 ~260s。plugin 側の
+      # 27B は reasoning が短く収束し、40 候補一括で実測 ~260s (mxfp8 時点)。plugin 側の
       # 採点タイムアウトは 600s (score.py:SCORE_TIMEOUT_SECONDS) に延長済み。
-      HERMES_DAILY_PODCAST_SCORE_MODEL = "qwen3.8:27b-mxfp8";
-      # 要約・翻訳: 本文を読んで日本語に書き起こす重い作業 → 35B 維持。
-      # 素のチャットチューニングで要約・翻訳向き、coding tuned (mxfp8) より自然。
-      HERMES_DAILY_PODCAST_SUMMARIZE_MODEL = "qwen3.8:27b-mxfp8";
+      HERMES_DAILY_PODCAST_SCORE_MODEL = "qwen3.8:27b-mlx";
+      # 要約・翻訳: 本文を読んで日本語に書き起こす重い作業も同じ 27B で行う。
+      # 別モデルにするとロード切替が発生するため、採点と同一 tag に揃えている。
+      HERMES_DAILY_PODCAST_SUMMARIZE_MODEL = "qwen3.8:27b-mlx";
       # 旧 LLM_MODEL は SCORE/SUMMARIZE 未設定時の fallback として効く後方互換。
       # 新規キーが両方セット済みなので参考値扱いで残しておく (削除しても挙動は同じ)。
-      HERMES_DAILY_PODCAST_LLM_MODEL = "qwen3.8:27b-mxfp8";
+      HERMES_DAILY_PODCAST_LLM_MODEL = "qwen3.8:27b-mlx";
     };
   };
 

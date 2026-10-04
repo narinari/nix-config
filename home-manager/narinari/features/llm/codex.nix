@@ -36,7 +36,7 @@ let
       # 他用途は profile を明示すること: `codex --profile local_gemma4 ...`
       # Claude Code の codex-implement skill から呼ばれる主要経路でもある
       # (関連: docs/codex-implement-claude-bridge.md)
-      model = "qwen3.8:27b-mxfp8"
+      model = "qwen3.8:27b-mlx"
       model_provider = "tailscale-aperture"
       model_context_window = 262144
 
@@ -61,7 +61,7 @@ let
     '';
 
     # 実装委譲用のメイン profile (Claude codex-implement skill から呼ばれる主用途)
-    "local_qwen3_8_coding.config.toml" = mkProfile "qwen3.8:27b-mxfp8";
+    "local_qwen3_8_coding.config.toml" = mkProfile "qwen3.8:27b-mlx";
 
     # フォールバック: 汎用対話 / 指示追従重視のとき
     "local_gemma4.config.toml" = mkProfile "gemma4:26b-a4b-it-q8_0";

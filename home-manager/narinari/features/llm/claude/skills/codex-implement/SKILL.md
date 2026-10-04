@@ -1,6 +1,6 @@
 ---
 name: codex-implement
-description: Delegate the implementation phase of a designed task to the local codex CLI (qwen3.6 via Tailscale Aperture), then review the produced diff yourself before accepting. Use when the design is settled and you want a cheap, fast local executor for the mechanical edits while keeping design and final review on Claude.
+description: Delegate the implementation phase of a designed task to the local codex CLI (qwen3.8 via Tailscale Aperture), then review the produced diff yourself before accepting. Use when the design is settled and you want a cheap, fast local executor for the mechanical edits while keeping design and final review on Claude.
 origin: nix-config (home-manager features/llm)
 version: "0.1.0"
 allowed-tools: Read Grep Glob Edit Write Bash(codex:*) Bash(git diff:*) Bash(git status:*) Bash(git stash:*) Bash(jq:*)
@@ -40,7 +40,7 @@ If any of (1)-(5) is unclear, **stop and call `AskUserQuestion`**.
 ```bash
 codex exec \
   --json \
-  --profile local_qwen3_6_coding \
+  --profile local_qwen3_8_coding \
   -C "<absolute repo root>" \
   --sandbox workspace-write \
   --output-last-message /tmp/codex-last-$$.md \
@@ -50,7 +50,7 @@ codex exec \
 Flag rationale:
 
 - `--json` — JSON Lines on stdout (parse with `jq` if needed).
-- `--profile local_qwen3_6_coding` — pinned to `qwen3.6:35b-a3b-coding-mxfp8` via Aperture (`http://ai/v1`). Defined in `~/.codex/config.toml`. (profile 名にドットを入れると TOML が table 階層として解釈してしまうのでアンダースコア区切り。)
+- `--profile local_qwen3_8_coding` — pinned to `qwen3.8:27b-mlx` via Aperture (`http://ai/v1`). Defined in `~/.codex/config.toml`. (profile 名にドットを入れると TOML が table 階層として解釈してしまうのでアンダースコア区切り。)
 - `-C` — repo root, not the shell pwd, so codex resolves relative paths consistently.
 - `--sandbox workspace-write` — codex may edit files inside `-C` but not the wider system. Never use `danger-full-access` from this skill.
 - `--output-last-message` — write only the final agent message to a temp file. Easier to read back than scrolling the JSON stream.
@@ -59,7 +59,7 @@ Variants:
 
 - Need read access outside `-C` → add `--add-dir <other-repo>`.
 - Read-only dry-run → `--sandbox read-only` (codex will explain what it *would* do without writing).
-- Fallback model → `--profile local_gemma4` (faster, general) or `--profile local_qwen3_5` (older coding tune).
+- Fallback model → `--profile local_gemma4` (general-purpose MoE, instruction-following). `local_qwen3_5` は廃止済み (profile 未定義)。
 
 ### Phase 3 — Review (Claude, mandatory)
 
@@ -83,7 +83,7 @@ After codex returns:
 | Symptom | Likely cause | Action |
 |---|---|---|
 | `codex: error: connection refused` to `http://ai/v1` | Aperture down / not on tailnet | Tell the user. Do **not** silently fall back to a different model. |
-| `model not found: qwen3.6:35b-a3b-coding-mxfp8` | hail-mary side hasn't pulled the tag | Suggest `curl -s http://ai/v1/models` to confirm, then either pull on hail-mary or fall back to `--profile local_qwen3_5`. |
+| `model not found: qwen3.8:27b-mlx` | hail-mary side hasn't pulled the tag | Suggest `curl -s http://ai/v1/models` to confirm, then either pull on hail-mary or fall back to `--profile local_gemma4`. |
 | codex hangs > 5 min | first-call model load / context too large | Wrap with `timeout 300 codex exec ...`, shrink the spec, retry. |
 | `--json` returns empty / non-JSON on stdout | version skew (`codex-cli` < 0.130) | Check `codex --version`; this skill assumes ≥ 0.130. |
 | Patch produced but `git diff` shows zero changes | codex ran in `--sandbox read-only` by mistake, or `-C` pointed at the wrong dir | Re-run with explicit `--sandbox workspace-write` and correct repo root. |

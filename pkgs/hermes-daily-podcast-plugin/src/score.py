@@ -36,7 +36,7 @@ LABEL_TO_SCORE: dict[str, float] = {
 
 MIN_SELECTION_SCORE = 3.0
 
-# 27B (qwen3.8:27b-mxfp8) で候補 40 件の一括採点は実測 ~260s。llm.py の
+# 27B (qwen3.8:27b-mxfp8 時点の実測、現行 tag は 27b-mlx) で候補 40 件の一括採点は ~260s。llm.py の
 # デフォルト 300s では夜間の揺らぎで届かないことがあるため余裕を持たせる。
 SCORE_TIMEOUT_SECONDS = 600.0
 
