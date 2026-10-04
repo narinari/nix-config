@@ -23,8 +23,8 @@ let
       effortLevel = "high";
       showThinkingSummaries = true;
       enabledPlugins = {
-        "code-simplifier@claude-plugins-official" = true;
-        "code-review@claude-plugins-official" = true;
+        "code-simplifier@claude-plugins-official" = false;
+        "code-review@claude-plugins-official" = false;
       };
       language = "japanese";
       alwaysThinkingEnabled = true;
