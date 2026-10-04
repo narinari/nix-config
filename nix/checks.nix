@@ -16,7 +16,7 @@ with pkgs;
     hooks = {
       actionlint.enable = true;
       # luacheck.enable = true;
-      nixfmt-rfc-style = {
+      nixfmt = {
         enable = true;
         excludes = [ "hardware-configuration.*.nix" ];
       };

@@ -20,12 +20,10 @@
     };
 
     agenix = {
+      # 現行 agenix の input は nixpkgs のみ (darwin / home-manager / systems は上流で削除済み)。
+      # 存在しない input に follows を書くと "override for a non-existent input" 警告になる。
       url = "github:ryantm/agenix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        darwin.follows = "darwin";
-        home-manager.follows = "home-manager";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     emacs-overlay = {

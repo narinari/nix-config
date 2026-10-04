@@ -15,7 +15,7 @@
   };
 
   # Linux用: services.gpg-agentを使用（systemd統合）
-  services.gpg-agent = lib.mkIf pkgs.stdenv.isLinux {
+  services.gpg-agent = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     enable = true;
     enableExtraSocket = true;
     enableZshIntegration = true;

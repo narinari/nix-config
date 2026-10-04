@@ -6,6 +6,13 @@
   ...
 }:
 
+let
+  # Map registries to channels
+  # Very useful when using legacy commands
+  nixPathFromRegistry = lib.mapAttrsToList (
+    key: value: "${key}=${value.to.path}"
+  ) config.nix.registry;
+in
 {
   nix = {
     settings = {
@@ -29,7 +36,10 @@
         "@admin"
         "narinari"
       ];
-    };
+    }
+    # NixOS では nix.nixPath が nix.settings.nix-path に rename された。
+    # nix-darwin は従来の nix.nixPath のままなので下の optionalAttrs で分岐する。
+    // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux { nix-path = nixPathFromRegistry; };
 
     # Deduplicate and optimize nix store
     optimise.automatic = true;
@@ -37,10 +47,6 @@
     # Add each flake input as a registry
     # To make nix3 commands consistent with the flake
     registry = lib.mapAttrs (_: value: { flake = value; }) inputs;
-
-    # Map registries to channels
-    # Very useful when using legacy commands
-    nixPath = lib.mapAttrsToList (key: value: "${key}=${value.to.path}") config.nix.registry;
 
     # Enable experimental nix command and flakes
     # nix.package = pkgs.nixUnstable;

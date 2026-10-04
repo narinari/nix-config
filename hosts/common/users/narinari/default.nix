@@ -16,10 +16,10 @@ in
     shell = lib.mkIf config.programs.zsh.enable pkgs.zsh;
     packages = [ pkgs.home-manager ];
   }
-  // lib.optionalAttrs pkgs.stdenv.isDarwin {
+  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
     home = "/Users/narinari"; # need only on macos https://github.com/LnL7/nix-darwin/issues/423
   }
-  // lib.optionalAttrs pkgs.stdenv.isLinux {
+  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
     isNormalUser = true;
     hashedPassword = "$y$j9T$AbwRaMzay7flkvu/RL/bI.$kk6PmwWypmDMbjWwNDfn3w/0eAdaovAL6c/UnvorReC";
 

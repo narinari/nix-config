@@ -38,7 +38,7 @@
         VerifyHostKeyDNS = "ask";
         VisualHostKey = "no";
       }
-      // lib.optionalAttrs pkgs.stdenv.isDarwin {
+      // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
         # for macos
         AddKeysToAgent = "yes";
         UseKeychain = "yes";

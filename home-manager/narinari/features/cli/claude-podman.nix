@@ -4,7 +4,7 @@
   ...
 }:
 let
-  inherit (pkgs.stdenv) isLinux;
+  inherit (pkgs.stdenv.hostPlatform) isLinux;
 
   claude-podman = pkgs.writeShellScriptBin "claude-podman" ''
     # claude-podman - Launch Claude Code in rootless Podman containers

@@ -15,7 +15,7 @@
 }:
 
 let
-  inherit (pkgs.stdenv) isLinux;
+  inherit (pkgs.stdenv.hostPlatform) isLinux;
 
   # profile ファイルの中身。base config (config.toml) の上にレイヤーされるので、
   # 差分になるキーだけ書けばよいが、base のデフォルトが変わっても profile の意味が

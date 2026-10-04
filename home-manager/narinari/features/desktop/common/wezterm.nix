@@ -9,8 +9,8 @@
     enable = true;
     # On macOS, use Homebrew cask version for code-signed app (required for notifications)
     # See: https://github.com/wezterm/wezterm/issues/6731
-    package = if pkgs.stdenv.isDarwin then pkgs.emptyDirectory else pkgs.wezterm;
-    enableZshIntegration = !pkgs.stdenv.isDarwin;
+    package = if pkgs.stdenv.hostPlatform.isDarwin then pkgs.emptyDirectory else pkgs.wezterm;
+    enableZshIntegration = !pkgs.stdenv.hostPlatform.isDarwin;
     extraConfig = ''
       local act = wezterm.action
 

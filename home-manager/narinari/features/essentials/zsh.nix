@@ -11,7 +11,7 @@
     autosuggestion.enable = true;
     enableCompletion = true;
     syntaxHighlighting.enable = true;
-    enableVteIntegration = pkgs.stdenv.isLinux;
+    enableVteIntegration = pkgs.stdenv.hostPlatform.isLinux;
     autocd = true;
     dotDir = "${config.xdg.configHome}/zsh";
     history = {

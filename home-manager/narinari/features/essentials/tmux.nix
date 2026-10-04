@@ -2,7 +2,7 @@
 {
 
   home.packages = with pkgs; [
-    (lib.mkIf stdenv.isLinux sysstat)
+    (lib.mkIf stdenv.hostPlatform.isLinux sysstat)
   ];
 
   programs.tmux = {

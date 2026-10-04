@@ -53,7 +53,8 @@ let
   # GUI版
   # darwin: emacs-macport (Mitsuharu Yamamoto port, Mac 最適化済み — emacs-plus 用パッチは不要/不適合)
   # Linux:  emacs-unstable-pgtk (Pure GTK / Wayland)
-  patchedEmacs = if stdenv.isDarwin then pkgs.emacs-macport else pkgs.emacs-unstable-pgtk;
+  patchedEmacs =
+    if stdenv.hostPlatform.isDarwin then pkgs.emacs-macport else pkgs.emacs-unstable-pgtk;
   guiEmacs = (pkgs.emacsPackagesFor patchedEmacs).emacsWithPackages commonEmacsPackages;
 
   # ターミナル版（emacs-nox）
@@ -82,11 +83,11 @@ in
 
         ## Module dependencies
         # :checkers spell
+        # en-computers / en-science は upstream URL がギャンブルサイトに乗っ取られたため
+        # nixpkgs から削除された (2026-09)。en のみ利用する。
         (aspellWithDicts (
           ds: with ds; [
             en
-            en-computers
-            en-science
           ]
         ))
         # :tools editorconfig

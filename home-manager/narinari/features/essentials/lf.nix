@@ -20,7 +20,7 @@
         }}
       '';
     }
-    // lib.optionalAttrs pkgs.stdenv.isLinux {
+    // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
       dragon-out = ''%${pkgs.dragon-drop}/bin/xdragon -a -x "$fx"'';
     };
     keybindings = {
