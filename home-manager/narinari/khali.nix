@@ -28,6 +28,7 @@
     ./features/desktop/menu.nix
     ./features/desktop/niri.nix
     ./features/desktop/noctalia.nix
+    ./features/desktop/picard.nix
     ./linux
   ];
 
