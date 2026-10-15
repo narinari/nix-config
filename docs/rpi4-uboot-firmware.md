@@ -120,6 +120,15 @@ jarvis は復旧経路が確認済み、silk は U-Boot が既に新しく低リ
 - `deploy` 用 `etc/ssh.config` は mDNS 名を使う。再起動直後は avahi が上がらず `.local` が引けないことがあるので
   `deploy --hostname <IP>` で回避できる。
 
+- **IPv6 が意図せず有効になり SMB にホスト名で繋がらない (iPad の Infuse)**: `networking.enableIPv6 = false`
+  でも NetworkManager 自動生成の有線プロファイル (ipv6.method = auto) が end0 の `disable_ipv6` を 0 に戻し、
+  グローバル IPv6 が付く。avahi が `publish-aaaa-on-ipv4` で AAAA を配り、IPv6 優先のクライアントが
+  IPv4 のみ待受の smbd へ IPv6 で繋ぎに行って失敗する (IP 指定なら成功)。しかも IPv6 無効前提で
+  ip6tables が無く、NFS / MySQL 等が IPv6 側で無防備になる。対策は `hosts/common/rpi4/default.nix` の
+  `networking.networkmanager.ensureProfiles.profiles.end0` (ipv6.method = disabled) と、ensure-profiles 後の
+  `nmcli connection up end0`。switch deploy 時は NM 再接続で deploy-rs の確認用 ssh が切れ「failed, rolled back」と
+  表示されるが実際には適用されるので、`readlink /run/current-system` と `ip -6 addr` で確認する。
+
 ### フォールバック
 
 - 新 U-Boot で起動しない: SD/SSD を作業機に挿し `dd if=firmware-backup-*.img of=<fw>` で FIRMWARE を丸ごと戻す。
