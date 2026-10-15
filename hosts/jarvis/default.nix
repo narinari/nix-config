@@ -39,11 +39,18 @@
         Type = "oneshot";
         RemainAfterExit = true;
       };
+      # mdadm 4.6 は内部で `sh -c "modprobe md_mod"` を呼ぶため kmod が必須
+      # (無いと "Can't load kernel module md_mod" で何も組めない)
       path = [
         pkgs.mdadm
         pkgs.lvm2
         pkgs.coreutils
+        pkgs.kmod
       ];
+      # 起動時専用。switch で再実行すると最大 180 秒ブロックし deploy-rs が
+      # タイムアウトしてロールバックするので、変更時に再起動しない
+      restartIfChanged = false;
+      stopIfChanged = false;
       script = ''
         for _ in $(seq 1 90); do
           mdadm --assemble --scan -v 2>&1 | grep -vE "^mdadm: (no RAID superblock|No super block|Cannot assemble mbr|no recogniseable superblock|looking for devices)" || true
@@ -66,6 +73,11 @@
   # 走らず (md_mod 未ロードのまま) データ領域が未マウントになった。
   # ARRAY を明示し、USB ディスク出現 (起動 50 秒前後) を待って assemble する
   # 保険サービスを置く。詳細: docs/rpi4-uboot-firmware.md
+  # udev の mdadm ルール (64-md-raid-assembly.rules) も同じ理由で modprobe を
+  # 必要とする。udev の PATH は最小構成なので kmod を足さないと起動時の
+  # incremental assembly が黙って失敗する (26.11 / mdadm 4.6 で発生)。
+  services.udev.path = [ pkgs.kmod ];
+
   boot.swraid.mdadmConf = ''
     HOMEHOST <ignore>
     ARRAY /dev/md/jarvis2:0 metadata=1.2 UUID=381016a8:87928dd5:59dc830f:78466863
