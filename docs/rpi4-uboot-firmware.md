@@ -85,6 +85,32 @@ jarvis は復旧経路が確認済み、silk は U-Boot が既に新しく低リ
 8. 任意: 旧ファイル `/boot/firmware/{u-boot-rpi4.bin,u-boot-rpi3.bin,armstub8-gic.bin}` を削除
    (activation script は DTB / overlays しか prune しない)。
 
+### 実施時に判明した注意点 (2026-10-15)
+
+- **switch inhibitor**: 26.05 → 26.11 のように dbus 実装が変わる更新では `deploy` (switch) が
+  「Pre-switch check 'switchInhibitors' failed」で拒否されロールバックされる。
+  `deploy .#<host> --boot --skip-checks` で次回起動用プロファイルだけ設定し、
+  **firmware 配置スクリプトを手動で実行してから**再起動する (boot モードでは activation script が走らない)。
+  ```sh
+  T=$(nix eval --raw .#nixosConfigurations.<host>.config.system.build.toplevel.outPath)
+  ssh <host> "grep -oE '/nix/store/[a-z0-9]{32}-install-rpi-firmware/bin/install-rpi-firmware' $T/activate | head -1"
+  ssh <host> sudo /nix/store/...-install-rpi-firmware/bin/install-rpi-firmware /boot/firmware
+  ```
+- 起動時の activation では `/boot/firmware` がまだマウントされておらず「not a mounted partition, skipping」になる。
+  firmware が更新されるのは `switch` 時だけ (想定どおり)。
+- `deploy-rs` の `remoteBuild = true` は各ターゲットが自前でビルドするため、3 台が同じ derivation を別々に
+  ビルドする。1 台 (jarvis) でビルドした後 `nix copy --from ssh-ng://narinari@jarvis.local --to ssh-ng://narinari@<host>.local --no-check-sigs <toplevel>`
+  で閉包を配ると他ホストはホスト固有分のビルドだけで済む。
+- `deploy` の事前 `nix flake check` は無関係なホスト (rin) の評価エラーでも止まるので `--skip-checks` を使う。
+- home-manager global の GUI 版 Emacs (emacs-unstable-pgtk、キャッシュ無し) は RPi4 で数時間のビルドになる。
+  サーバは `programs.emacs.terminal = true` (emacs-nox) にした。
+- 26.11 / linux 7.1.2 では RPi4 の有線 NIC が `eth0` → `end0` (predictable name) に変わる。
+  `interfaces = eth0` のような設定 (jarvis の samba) は要修正。
+- jarvis では再起動後に md RAID (USB 接続 4 台、raid6) が自動で組まれなかった (md_mod 未ロード、/proc/mdstat 無し)。
+  原因調査中。手動復旧は `mdadm --assemble --scan` → `vgchange -ay` → mount unit 起動。
+- `deploy` 用 `etc/ssh.config` は mDNS 名を使う。再起動直後は avahi が上がらず `.local` が引けないことがあるので
+  `deploy --hostname <IP>` で回避できる。
+
 ### フォールバック
 
 - 新 U-Boot で起動しない: SD/SSD を作業機に挿し `dd if=firmware-backup-*.img of=<fw>` で FIRMWARE を丸ごと戻す。
