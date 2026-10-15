@@ -47,6 +47,36 @@
     "noatime"
   ];
 
+  # NetworkManager は networking.enableIPv6 = false (sysctl all/default の
+  # disable_ipv6 = 1) でも、自動生成する有線プロファイルの ipv6.method = auto で
+  # end0 だけ disable_ipv6 = 0 に戻し、グローバル IPv6 が付いてしまう。
+  # その結果 avahi が AAAA を配り、IPv6 優先のクライアント (iPad の Infuse 等) が
+  # IPv4 にしか待受していない smbd へ IPv6 で繋ぎに行って失敗する。さらに
+  # IPv6 無効前提で ip6tables の firewall が無いため IPv6 側が無防備になる。
+  # 有線プロファイルを宣言して IPv6 を明示的に無効化する。
+  networking.networkmanager.ensureProfiles.profiles.end0 =
+    lib.mkIf config.networking.networkmanager.enable
+      {
+        connection = {
+          id = "end0";
+          type = "ethernet";
+          interface-name = "end0";
+          autoconnect = true;
+          autoconnect-priority = 10;
+        };
+        ipv4.method = "auto";
+        ipv6.method = "disabled";
+      };
+  # 自動生成の "Wired connection 1" が有効なままなら宣言したプロファイルへ切り替える
+  # (ensure-profiles は reload までしか行わない)
+  systemd.services.NetworkManager-ensure-profiles.script = lib.mkIf config.networking.networkmanager.enable (
+    lib.mkAfter ''
+      if [ "$(${pkgs.networkmanager}/bin/nmcli -g GENERAL.CONNECTION device show end0 2>/dev/null)" != "end0" ]; then
+        ${pkgs.networkmanager}/bin/nmcli connection up end0 || true
+      fi
+    ''
+  );
+
   # Required for the Wireless firmware
   hardware.enableRedistributableFirmware = true;
   hardware = {
