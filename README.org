@@ -49,6 +49,8 @@ nix-config/
 | workstations | khali     | x86_64-linux   | Desktop (Hyprland)    |
 | workstations | hail-mary | aarch64-darwin | MacBook               |
 
+RPi4 ホストのブート (U-Boot / firmware パーティション) の運用は [[file:docs/rpi4-uboot-firmware.md][docs/rpi4-uboot-firmware.md]] を参照。
+
 * Commands
 ** Install nix
 - Disable channel by default
