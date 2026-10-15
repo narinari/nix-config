@@ -106,8 +106,15 @@ jarvis は復旧経路が確認済み、silk は U-Boot が既に新しく低リ
   サーバは `programs.emacs.terminal = true` (emacs-nox) にした。
 - 26.11 / linux 7.1.2 では RPi4 の有線 NIC が `eth0` → `end0` (predictable name) に変わる。
   `interfaces = eth0` のような設定 (jarvis の samba) は要修正。
-- jarvis では再起動後に md RAID (USB 接続 4 台、raid6) が自動で組まれなかった (md_mod 未ロード、/proc/mdstat 無し)。
-  原因調査中。手動復旧は `mdadm --assemble --scan` → `vgchange -ay` → mount unit 起動。
+- jarvis では再起動後に md RAID (USB 接続 4 台、raid6 x2) が自動で組まれなかった (md_mod 未ロード、/proc/mdstat 無し、
+  udev ログにエラー無し)。udev 経由の incremental assembly が走らない原因は未特定。
+  `mdadm --assemble --scan` は modprobe 無しで成功したため、`hosts/jarvis/default.nix` に
+  `boot.swraid.mdadmConf` (HOMEHOST <ignore> + ARRAY 2 行) と、USB ディスク出現を最大 180 秒待って
+  assemble する oneshot `mdadm-assemble-late` (local-fs.target より前) を追加し、fileSystems に
+  `x-systemd.device-timeout=3min` を付けた。手動復旧は
+  `mdadm --assemble --scan` → `vgchange -ay` → `systemctl start mnt-data-xxx.mount 'mnt-data-tanabe\x2dmedia.mount'`。
+- avahi は再起動後 `/run/avahi-daemon/pid` が残って起動失敗することがある (`.local` が引けず deploy 不能)。
+  `sudo rm /run/avahi-daemon/pid && sudo systemctl restart avahi-daemon` で復旧。
 - `deploy` 用 `etc/ssh.config` は mDNS 名を使う。再起動直後は avahi が上がらず `.local` が引けないことがあるので
   `deploy --hostname <IP>` で回避できる。
 
