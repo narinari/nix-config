@@ -114,7 +114,7 @@
           "fruit:wipe_intentionally_left_blank_rfork" = "yes";
           "fruit:delete_empty_adfiles" = "yes";
 
-          interfaces = "eth0";
+          interfaces = "end0"; # 26.11 以降の predictable name (旧 eth0)
           "bind interfaces only" = true;
           "guest account" = "nobody";
           "map to guest" = "bad user";
