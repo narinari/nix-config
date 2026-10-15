@@ -46,7 +46,7 @@
       ];
       script = ''
         for _ in $(seq 1 90); do
-          mdadm --assemble --scan >/dev/null 2>&1 || true
+          mdadm --assemble --scan -v 2>&1 | grep -vE "^mdadm: (no RAID superblock|No super block|Cannot assemble mbr|no recogniseable superblock|looking for devices)" || true
           if [ -e /dev/disk/by-id/md-uuid-381016a8:87928dd5:59dc830f:78466863 ] \
              && [ -e /dev/disk/by-id/md-uuid-0e2a4c6b:8768554e:b66da20d:2c5ae66b ]; then
             vgchange -ay >/dev/null 2>&1 || true
