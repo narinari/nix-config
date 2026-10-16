@@ -25,7 +25,7 @@ administrator
 show config
 ```
 
-出力全文を khali 上に保存する (例: `~/rtx810-config-backup-YYYYMMDD.txt`)。
+出力全文を `docs/rtx810-config.txt` に上書きして commit する (日付ごとにファイルを増やさず git 履歴で差分を追う)。
 
 ## Step 1: フィルタ定義 (この時点では未適用なので無影響)
 

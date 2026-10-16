@@ -2,7 +2,7 @@
 # MAC Address : 00:a0:de:84:c1:be, 00:a0:de:84:c1:bf
 # Memory 128Mbytes, 2LAN
 # main:  RTX810 ver=00 serial=S3K052386 MAC-Address=00:a0:de:84:c1:be MAC-Address=00:a0:de:84:c1:bf
-# Reporting Date: Oct 16 09:43:05 2026
+# Reporting Date: Oct 16 09:46:35 2026
 administrator password encrypted *
 login user narinari *
 console character ascii
@@ -13,7 +13,7 @@ ip lan1 address 192.168.100.1/24
 ipv6 lan1 address ra-prefix@lan2::1/64
 ipv6 lan1 rtadv send 1 o_flag=off
 ipv6 lan2 address auto
-ipv6 lan2 secure filter in 101000 101001 101002 101003
+ipv6 lan2 secure filter in 101000 101001 101002 101003 101004
 ipv6 lan2 secure filter out 101099 dynamic 101080 101081 101082 101083 101084
 ipv6 lan2 dhcp service client ir=on
 provider lan1 name LAN:
@@ -68,6 +68,7 @@ ipv6 filter 101000 pass * * icmp6 * *
 ipv6 filter 101001 pass * * 4
 ipv6 filter 101002 pass * ra-prefix@lan2::/64 tcp * 50413
 ipv6 filter 101003 pass * ra-prefix@lan2::/64 udp * 50413
+ipv6 filter 101004 pass * * udp * 546
 ipv6 filter 101099 pass * * * * *
 ipv6 filter dynamic 101080 * * ftp
 ipv6 filter dynamic 101081 * * domain
