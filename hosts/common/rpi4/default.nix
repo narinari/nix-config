@@ -65,7 +65,8 @@
           autoconnect-priority = 10;
         };
         ipv4.method = "auto";
-        ipv6.method = "disabled";
+        # networking.enableIPv6 に連動。true にしたホストでは NM の既定 (auto) に戻る
+        ipv6.method = if config.networking.enableIPv6 then "auto" else "disabled";
       };
   # 自動生成の "Wired connection 1" が有効なままなら宣言したプロファイルへ切り替える
   # (ensure-profiles は reload までしか行わない)
