@@ -123,8 +123,9 @@ jarvis は復旧経路が確認済み、silk は U-Boot が既に新しく低リ
 - **IPv6 が意図せず有効になり SMB にホスト名で繋がらない (iPad の Infuse)**: `networking.enableIPv6 = false`
   でも NetworkManager 自動生成の有線プロファイル (ipv6.method = auto) が end0 の `disable_ipv6` を 0 に戻し、
   グローバル IPv6 が付く。avahi が `publish-aaaa-on-ipv4` で AAAA を配り、IPv6 優先のクライアントが
-  IPv4 のみ待受の smbd へ IPv6 で繋ぎに行って失敗する (IP 指定なら成功)。しかも IPv6 無効前提で
-  ip6tables が無く、NFS / MySQL 等が IPv6 側で無防備になる。対策は `hosts/common/rpi4/default.nix` の
+  IPv4 のみ待受の smbd へ IPv6 で繋ぎに行って失敗する (IP 指定なら成功)。IPv6 無効前提で
+  ip6tables も無い (外部からの IPv6 着信は RTX810 の `ipv6 lan2 secure filter in` が暗黙破棄で止めているが、
+  LAN 内からは無防備)。対策は `hosts/common/rpi4/default.nix` の
   `networking.networkmanager.ensureProfiles.profiles.end0` (ipv6.method = disabled) と、ensure-profiles 後の
   `nmcli connection up end0`。switch deploy 時は NM 再接続で deploy-rs の確認用 ssh が切れ「failed, rolled back」と
   表示されるが実際には適用されるので、`readlink /run/current-system` と `ip -6 addr` で確認する。

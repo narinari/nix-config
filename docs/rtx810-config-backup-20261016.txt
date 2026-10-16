@@ -1,0 +1,91 @@
+# RTX810 Rev.11.01.34 (Tue Nov 26 18:39:12 2019)
+# MAC Address : 00:a0:de:84:c1:be, 00:a0:de:84:c1:bf
+# Memory 128Mbytes, 2LAN
+# main:  RTX810 ver=00 serial=S3K052386 MAC-Address=00:a0:de:84:c1:be MAC-Address=00:a0:de:84:c1:bf
+# Reporting Date: Oct 16 09:43:05 2026
+administrator password encrypted *
+login user narinari *
+console character ascii
+login timer 1200
+ip route default gateway tunnel 1
+ipv6 prefix 1 ra-prefix@lan2::/64
+ip lan1 address 192.168.100.1/24
+ipv6 lan1 address ra-prefix@lan2::1/64
+ipv6 lan1 rtadv send 1 o_flag=off
+ipv6 lan2 address auto
+ipv6 lan2 secure filter in 101000 101001 101002 101003
+ipv6 lan2 secure filter out 101099 dynamic 101080 101081 101082 101083 101084
+ipv6 lan2 dhcp service client ir=on
+provider lan1 name LAN:
+provider ntpdate ntp.nict.jp
+tunnel select 1
+ tunnel encapsulation ipip
+ tunnel endpoint address 2404:8e00::feed:100
+ ip tunnel mtu 1460
+ ip tunnel secure filter in 200003 200020 200021 200022 200023 200024 200025 200030 200032 200099
+ ip tunnel secure filter out 200013 200020 200021 200022 200023 200024 200025 200026 200027 200099 dynamic 200080 200081 200082 200083 200084 200085 200098 200099
+ ip tunnel nat descriptor 20000
+ ip tunnel tcp mss limit auto
+ tunnel enable 1
+ip filter 200000 reject 10.0.0.0/8 * * * *
+ip filter 200001 reject 172.16.0.0/12 * * * *
+ip filter 200002 reject 192.168.0.0/16 * * * *
+ip filter 200003 reject 192.168.100.0/24 * * * *
+ip filter 200010 reject * 10.0.0.0/8 * * *
+ip filter 200011 reject * 172.16.0.0/12 * * *
+ip filter 200012 reject * 192.168.0.0/16 * * *
+ip filter 200013 reject * 192.168.100.0/24 * * *
+ip filter 200020 reject * * udp,tcp 135 *
+ip filter 200021 reject * * udp,tcp * 135
+ip filter 200022 reject * * udp,tcp netbios_ns-netbios_ssn *
+ip filter 200023 reject * * udp,tcp * netbios_ns-netbios_ssn
+ip filter 200024 reject * * udp,tcp 445 *
+ip filter 200025 reject * * udp,tcp * 445
+ip filter 200026 restrict * * tcpfin * www,21,nntp
+ip filter 200027 restrict * * tcprst * www,21,nntp
+ip filter 200030 pass * 192.168.100.0/24 icmp * *
+ip filter 200031 pass * 192.168.100.0/24 established * *
+ip filter 200032 pass * 192.168.100.0/24 tcp * ident
+ip filter 200033 pass * 192.168.100.0/24 tcp ftpdata *
+ip filter 200034 pass * 192.168.100.0/24 tcp,udp * domain
+ip filter 200035 pass * 192.168.100.0/24 udp domain *
+ip filter 200036 pass * 192.168.100.0/24 udp * ntp
+ip filter 200037 pass * 192.168.100.0/24 udp ntp *
+ip filter 200098 reject-nolog * * established
+ip filter 200099 pass * * * * *
+ip filter dynamic 200080 * * ftp
+ip filter dynamic 200081 * * domain
+ip filter dynamic 200082 * * www
+ip filter dynamic 200083 * * smtp
+ip filter dynamic 200084 * * pop3
+ip filter dynamic 200085 * * submission
+ip filter dynamic 200098 * * tcp
+ip filter dynamic 200099 * * udp
+nat descriptor type 20000 masquerade
+ipsec use off
+ipsec auto refresh off
+ipv6 filter 101000 pass * * icmp6 * *
+ipv6 filter 101001 pass * * 4
+ipv6 filter 101002 pass * ra-prefix@lan2::/64 tcp * 50413
+ipv6 filter 101003 pass * ra-prefix@lan2::/64 udp * 50413
+ipv6 filter 101099 pass * * * * *
+ipv6 filter dynamic 101080 * * ftp
+ipv6 filter dynamic 101081 * * domain
+ipv6 filter dynamic 101082 * * www
+ipv6 filter dynamic 101083 * * tcp
+ipv6 filter dynamic 101084 * * udp
+syslog info off
+dhcp service server
+dhcp server rfc2131 compliant except remain-silent
+dhcp scope 1 192.168.100.2-192.168.100.191/24
+dhcp scope bind 1 192.168.100.6 84:3e:1d:8a:4a:69
+dhcp scope bind 1 192.168.100.14 04:92:26:c2:56:9f
+dhcp scope bind 1 192.168.100.22 e4:5f:01:0c:87:87
+dhcp scope bind 1 192.168.100.24 dc:a6:32:cd:3d:a8
+dhcp scope bind 2 192.168.100.2 58:27:8c:48:41:d0
+dns server dhcp lan2
+dns private address spoof on
+schedule at 1 */19 01:10 * ntpdate ntp.nict.jp
+sshd service on
+sshd host key generate *
+#
