@@ -15,6 +15,7 @@
     ./lf.nix
     ./less.nix
     ./ssh.nix
+    ./herdr.nix
     ./tmux.nix
     ./zsh.nix
   ];

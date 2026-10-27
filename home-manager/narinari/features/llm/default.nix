@@ -17,6 +17,8 @@ let
     cd "$CLAUDE_PROJECT_DIR"
     ${pkgs.fd}/bin/fd --hidden | ${pkgs.fzf}/bin/fzf --filter="$query" | head -20
   '';
+  herdrIntegrations = pkgs.callPackage ../../../../pkgs/herdr-integrations { };
+  herdrClaudeHook = "${config.home.homeDirectory}/.claude/hooks/herdr-agent-state.sh";
   claudeSettingsFile = pkgs.writeText "claude-settings.json" (
     builtins.toJSON {
       model = "opus";
@@ -103,6 +105,19 @@ let
             ];
           }
         ];
+        # herdr のペインに agent 状態を通知する (`herdr integration install claude` と同じ内容)
+        SessionStart = [
+          {
+            matcher = "^(startup|resume|clear|compact|fork)$";
+            hooks = [
+              {
+                type = "command";
+                command = "bash '${herdrClaudeHook}' session";
+                timeout = 10;
+              }
+            ];
+          }
+        ];
       };
       statusLine = {
         type = "command";
@@ -116,26 +131,34 @@ let
   );
 in
 {
-  home.packages = with pkgs; [
-    uv # for serena
-  ];
-
   programs.claude-code = {
     enable = true;
   };
 
-  home.activation.claudeSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    settings="$HOME/.claude/settings.json"
-    run mkdir -p "$HOME/.claude"
-    if [ -f "$settings" ]; then
-      current=$(${pkgs.jq}/bin/jq --sort-keys . "$settings")
-      desired=$(${pkgs.jq}/bin/jq --sort-keys . "${claudeSettingsFile}")
-      if [ "$current" != "$desired" ]; then
-        echo "claude: settings.json has changed:"
-        ${pkgs.diffutils}/bin/diff -u <(echo "$current") <(echo "$desired") || true
+  home = {
+    packages = with pkgs; [
+      uv # for serena
+    ];
+
+    # herdr が手動 install で置いた同名ファイルを置き換える
+    file.".claude/hooks/herdr-agent-state.sh" = {
+      source = "${herdrIntegrations.generated}/claude/herdr-agent-state.sh";
+      force = true;
+    };
+
+    activation.claudeSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      settings="$HOME/.claude/settings.json"
+      run mkdir -p "$HOME/.claude"
+      if [ -f "$settings" ]; then
+        current=$(${pkgs.jq}/bin/jq --sort-keys . "$settings")
+        desired=$(${pkgs.jq}/bin/jq --sort-keys . "${claudeSettingsFile}")
+        if [ "$current" != "$desired" ]; then
+          echo "claude: settings.json has changed:"
+          ${pkgs.diffutils}/bin/diff -u <(echo "$current") <(echo "$desired") || true
+        fi
       fi
-    fi
-    run cp -f "${claudeSettingsFile}" "$settings"
-    run chmod 644 "$settings"
-  '';
+      run cp -f "${claudeSettingsFile}" "$settings"
+      run chmod 644 "$settings"
+    '';
+  };
 }

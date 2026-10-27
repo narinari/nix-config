@@ -8,6 +8,7 @@
 # - Tailscale identity によるゼロキー認証
 # - http://ai/v1 の統一エンドポイント
 {
+  config,
   pkgs,
   lib,
   inputs,
@@ -58,7 +59,26 @@ let
       # (CONFIG_PROFILE_V2) に変わり、config.toml に legacy な [profiles.*] が残っていると
       # `--profile <name>` がエラーになる。しかも exit code 0 を返すため silent failure に
       # なる。profile は下の codexFiles に <name>.config.toml として足すこと。
+
+      # hooks.json (herdr の agent 状態通知) を有効にする
+      [features]
+      hooks = true
     '';
+
+    # `herdr integration install codex` と同じ内容
+    "hooks.json" = builtins.toJSON {
+      hooks.SessionStart = [
+        {
+          hooks = [
+            {
+              type = "command";
+              command = "bash '${config.home.homeDirectory}/.codex/herdr-agent-state.sh' session";
+              timeout = 10;
+            }
+          ];
+        }
+      ];
+    };
 
     # 実装委譲用のメイン profile (Claude codex-implement skill から呼ばれる主用途)
     "local_qwen3_8_coding.config.toml" = mkProfile "qwen3.8:27b-mlx";
@@ -67,28 +87,38 @@ let
     "local_gemma4.config.toml" = mkProfile "gemma4:26b-a4b-it-q8_0";
   };
 
+  herdrIntegrations = pkgs.callPackage ../../../../pkgs/herdr-integrations { };
+
   codexFilePkgs = lib.mapAttrs (name: text: pkgs.writeText "codex-${name}" text) codexFiles;
 in
 {
-  # Linux: nix パッケージからインストール (macOS: Homebrew cask で管理)
-  home.packages = lib.optionals isLinux [
-    inputs.codex-cli-nix.packages.${pkgs.stdenv.hostPlatform.system}.default
-  ];
+  home = {
+    # Linux: nix パッケージからインストール (macOS: Homebrew cask で管理)
+    packages = lib.optionals isLinux [
+      inputs.codex-cli-nix.packages.${pkgs.stdenv.hostPlatform.system}.default
+    ];
 
-  home.activation.codexConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-    ''
-      run mkdir -p "$HOME/.codex"
-    ''
-    + lib.concatStrings (
-      lib.mapAttrsToList (name: file: ''
-        dst="$HOME/.codex/${name}"
-        if [ -f "$dst" ] && ! ${pkgs.diffutils}/bin/diff -q "$dst" "${file}" > /dev/null 2>&1; then
-          echo "codex: ${name} has changed:"
-          ${pkgs.diffutils}/bin/diff -u "$dst" "${file}" || true
-        fi
-        run cp -f "${file}" "$dst"
-        run chmod 644 "$dst"
-      '') codexFilePkgs
-    )
-  );
+    # herdr が手動 install で置いた同名ファイルを置き換える
+    file.".codex/herdr-agent-state.sh" = {
+      source = "${herdrIntegrations.generated}/codex/herdr-agent-state.sh";
+      force = true;
+    };
+
+    activation.codexConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+      ''
+        run mkdir -p "$HOME/.codex"
+      ''
+      + lib.concatStrings (
+        lib.mapAttrsToList (name: file: ''
+          dst="$HOME/.codex/${name}"
+          if [ -f "$dst" ] && ! ${pkgs.diffutils}/bin/diff -q "$dst" "${file}" > /dev/null 2>&1; then
+            echo "codex: ${name} has changed:"
+            ${pkgs.diffutils}/bin/diff -u "$dst" "${file}" || true
+          fi
+          run cp -f "${file}" "$dst"
+          run chmod 644 "$dst"
+        '') codexFilePkgs
+      )
+    );
+  };
 }

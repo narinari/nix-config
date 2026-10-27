@@ -55,6 +55,9 @@ let
   # 配信は podcast-nginx.nix の vhost (Tailscale 内のみ)。
   hermesDailyPodcastPlugin = pkgs.callPackage ../../pkgs/hermes-daily-podcast-plugin { };
 
+  # herdr のペインに agent 状態を通知する plugin (`herdr integration install hermes` の生成物)
+  herdrHermesPlugin = (pkgs.callPackage ../../pkgs/herdr-integrations { }).hermesPlugin;
+
   # hermes user 用の Claude Code 設定。narinari の global `~/.claude/CLAUDE.md` 等と
   # 干渉しないよう CLAUDE_CONFIG_DIR=/var/lib/hermes/.claude で隔離した上で、
   # delegate 専用の絞り込んだ permissions を配備する。
@@ -264,6 +267,7 @@ in
         "claude-code"
         "family-inventory"
         "daily-podcast"
+        "herdr-agent-state"
       ];
 
       # Bundled skill `autonomous-ai-agents/claude-code` (v2.2.0) は「Hermes terminal で
@@ -336,6 +340,7 @@ in
       hermesClaudeCodePlugin
       hermesFamilyInventoryPlugin
       hermesDailyPodcastPlugin
+      herdrHermesPlugin
     ];
 
     # listOf str 型のため toString で /nix/store パスに変換

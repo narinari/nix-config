@@ -8,6 +8,7 @@
 {
   imports = [
     ./firefox.nix
+    ./ghostty.nix
     ./wezterm.nix
   ];
 

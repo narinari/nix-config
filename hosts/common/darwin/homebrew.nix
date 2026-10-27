@@ -36,6 +36,7 @@
     casks = [
       "ollama-app"
       "wezterm"
+      "ghostty"
       "keycastr"
       "the-unarchiver"
       "xquartz"
