@@ -46,6 +46,22 @@
   #   };
   # };
 
+  # herdr 0.9.x (nixpkgs-unstable): zig 製の libghostty-vt を ld.bfd がリンクできず失敗する
+  # (".eh_frame_hdr refers to overlapping FDEs")。lld でリンクする。
+  # infra (nixos-unstable) の 0.7.1 はキャッシュ済みで壊れていないので触らない。
+  herdr-overlay = final: prev: {
+    herdr =
+      if prev.stdenv.hostPlatform.isLinux && prev.lib.versionAtLeast prev.herdr.version "0.9" then
+        prev.herdr.overrideAttrs (old: {
+          nativeBuildInputs = old.nativeBuildInputs ++ [ final.lld ];
+          env = (old.env or { }) // {
+            RUSTFLAGS = "-C link-arg=-fuse-ld=lld";
+          };
+        })
+      else
+        prev.herdr;
+  };
+
   # mycli: sqlglot 28.x との依存関係の問題を解消
   mycli-overlay = final: prev: {
     mycli = prev.mycli.overridePythonAttrs (old: {
