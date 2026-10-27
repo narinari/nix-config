@@ -31,6 +31,7 @@ in
       "wheel"
       "video"
       "audio"
+      "dialout" # USB シリアル (/dev/ttyUSB*, ttyACM*) 用。M5Stack (スタックチャン) への書き込みなど
     ]
     ++ ifTheyExist [
       "network"
