@@ -2,7 +2,7 @@
 # MAC Address : 00:a0:de:84:c1:be, 00:a0:de:84:c1:bf
 # Memory 128Mbytes, 2LAN
 # main:  RTX810 ver=00 serial=S3K052386 MAC-Address=00:a0:de:84:c1:be MAC-Address=00:a0:de:84:c1:bf
-# Reporting Date: Oct 16 09:46:35 2026
+# Reporting Date: Nov 4 10:05:30 2026
 administrator password encrypted *
 login user narinari *
 console character ascii
@@ -75,7 +75,8 @@ ipv6 filter dynamic 101081 * * domain
 ipv6 filter dynamic 101082 * * www
 ipv6 filter dynamic 101083 * * tcp
 ipv6 filter dynamic 101084 * * udp
-syslog info off
+syslog host 192.168.100.14
+syslog info on
 dhcp service server
 dhcp server rfc2131 compliant except remain-silent
 dhcp scope 1 192.168.100.2-192.168.100.191/24
@@ -86,6 +87,8 @@ dhcp scope bind 1 192.168.100.24 dc:a6:32:cd:3d:a8
 dhcp scope bind 2 192.168.100.2 58:27:8c:48:41:d0
 dns server dhcp lan2
 dns private address spoof on
+snmpv2c host 192.168.100.14 rtxmon
+snmp yriftunneldisplayatmib2 on
 schedule at 1 */19 01:10 * ntpdate ntp.nict.jp
 sshd service on
 sshd host key generate *

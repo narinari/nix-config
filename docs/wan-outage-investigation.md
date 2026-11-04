@@ -1,0 +1,81 @@
+# WAN 断 (朝夕) の原因切り分け — 調査記録と監視構成
+
+対象: 自宅 LAN (RTX810 Rev.11.01.34 / IIJmio ひかり + transix DS-Lite / **VDSL: NTT VH-100 4 E S**)
+症状: 毎日 07–08 時と 18–19 時頃にインターネットが繋がりにくくなる。
+初回調査: 2026-11-04 (khali から読み取りのみ)。
+
+## 1. 確定した事実 (2026-11-04 時点)
+
+| 項目 | 内容 |
+|---|---|
+| 回線 | VDSL (VH-100 4 E S) → RTX810 LAN2。上限 100 Mbps。LAN2 が 100BASE-TX でリンクするのは正常 |
+| 障害の時系列 | khali journal 30 日分 (tailscaled の失敗と hermes の DNS 失敗という独立した 2 シグナル) で 33 エピソード。ほぼ毎日 07:10–08:20 (20–50 分) と 17:00–18:40 (10–25 分)、まれに 10:00–10:30 / 21–23 時。週末は 08:40–09:50 に遅れる |
+| 故障範囲 | エピソード中は IPv4 (DS-Lite 経由の DNS→8.8.8.8) と IPv6 (ネイティブ tcp6→Tailscale controlplane/DERP) が同時に失敗。tailscaled NetInfo も一時 `ipv6=false udp=false icmpv4=false`。→ AFTR 単独ではなく RTX810 WAN 以下 (VDSL / NGN / transix IPoE GW) の断 |
+| カナリア端末 | 192.168.100.6 `tg7100c` (MAC 84:3e:1d:8a:4a:69 = Hui Zhou Gaoshengda 製モジュール、Alibaba Cloud 47.236.42.97:1883 (MQTT) のみに接続) が 33 エピソード中 32 で DHCP 再取得 (他端末は 0)。クラウド断 → Wi‑Fi 再接続という IoT の挙動で、**結果であって原因ではない** |
+| RTX810 の状態 | CPU 1–11%、Memory 8%、tunnel 1 は 2026-04-09 から連続 Online、LAN1 Receive overflow 4,332,680 / LAN2 30,301 (累積)、LAN2 link down のログ無し。VDSL 再トレーニングではモデムの Ethernet は落ちないので RTX からは見えない |
+| 現在の基準値 | RTX LAN 0.3 ms / NGN 端 `2409:10:ae00:6400::fffe` 4.7 ms / transix v6 GW `2404:8e00:feed:ff1c::2` / AFTR v6 `2404:8e00::feed:100` 4.3 ms / AFTR v4 側 `14.0.9.197` 4.9 ms。v4 PMTU 1460 (RTX が ICMP Frag-Needed を正しく返す)、v6 PMTU 1500 |
+| khali の DNS | resolved に eno1 の DNS が入らず (dhcpcd 連携不全)、FallbackDNS 8.8.8.8/1.1.1.1 を IPv4 (DS-Lite) 経由でのみ使用していた。v4 だけ落ちると名前解決が全滅する → IPv6 resolver を追加 (本リポジトリで修正) |
+| RTX810 の DNS | EDNS 非対応で `+edns=0` に FORMERR。LAN 端末が router DNS を使うと大きな応答で問題になりうる (時間帯依存ではない) |
+
+経路 (2026-11-04 09 時台):
+
+```
+v4: khali → 192.168.100.1 (pmtu 1460) → 14.0.9.197 (ike-cr000.transix.jp) → 210.173.176.127 → 103.22.201.123 → …
+v6: khali → 2409:10:ae00:6400::1 → 2409:10:ae00:6400::fffe (NGN) → … → 2404:8e00:feed:ff1c::2 (transix) → 2001:7fa:7:1:… (JPIX) → Cloudflare
+```
+
+## 2. 仮説 (優先順)
+
+1. **VDSL 区間の品質劣化 / 再トレーニング** — 集合住宅で他世帯の利用が増える朝夕にクロストーク・ノイズ増、または建物共有上り帯域の輻輳。時刻の揺らぎ (週末遅れ) とも整合
+2. transix IPoE GW / NGN の輻輳 — v4/v6 両方が通る地点
+3. RTX810 の処理飽和 — LAN バースト時の Receive overflow、同一 /64 の ND プロキシ、IPIP 処理
+4. 宅内機器・家電の電気ノイズが電話線 (VDSL) に混入
+
+## 3. 監視構成
+
+- khali `hosts/khali/net-monitor.nix`: node (9002) / smokeping (9374) / blackbox (9115) / snmp (9116) exporter と `udp514-journal` (RTX syslog 受信)
+- friday `hosts/friday/default.nix`: Prometheus の scrape job (`khali-node`, `khali-smokeping`, `khali-blackbox`, `rtx810-snmp`) と Grafana ダッシュボード `WAN Health` (`hosts/friday/dashboards/wan-health.json`)
+- RTX810: `snmpv2c host 192.168.100.14 rtxmon` / `snmp yriftunneldisplayatmib2 on` / `syslog host 192.168.100.14` / `syslog info on` (`docs/rtx810-config.txt` に反映)
+
+smokeping のターゲットと意味:
+
+| ターゲット | 区間 |
+|---|---|
+| 192.168.100.1 | RTX810 自身 (LAN) |
+| 2409:10:ae00:6400::fffe | VDSL を越えた NGN 端ルーター |
+| 2404:8e00:feed:ff1c::2 | transix IPv6 ゲートウェイ |
+| 2404:8e00::feed:100 | transix AFTR (IPv6 側) |
+| 14.0.9.197 | AFTR の IPv4 側 = DS-Lite トンネル経由 |
+| 1.1.1.1 / 8.8.8.8 | 外部 IPv4 (DS-Lite 経由) |
+| 2606:4700:4700::1111 / 2001:4860:4860::8888 | 外部 IPv6 (ネイティブ) |
+
+RTX の syslog は khali で `journalctl SYSLOG_IDENTIFIER=192.168.100.1` (unit は `udp514-journal.service`) で khali 側ログと同じ時刻軸で参照できる。確認済 (2026-11-04 10:10、`Login succeeded for SSH` が到達)。
+
+## 4. 判定表 (エピソード中の観測 → 結論 → 次の行動)
+
+| 観測 | 結論 | 次の行動 |
+|---|---|---|
+| RTX LAN ping OK、`::fffe` から先が全滅、RTX CPU 低 | VDSL/NGN アクセス区間 | モデムの LED (VDSL LINK 点滅 = 再トレーニング) を目視、NTT 113 の回線試験、電話線の分岐・ノイズ源の点検、管理組合に VDSL 集合装置の状況・光配線化を確認、IIJ/NTT に時刻付きで申告 |
+| `::fffe` OK、transix GW / AFTR / 外部が失敗 | transix 側 | IIJ サポートに smokeping の時刻付きデータで申告。暫定で PPPoE 併用テスト |
+| RTX CPU ≥ 80% または LAN2 ≈ 90 Mbps と同期 | 帯域飽和 / RTX 処理飽和 | `show ip connection` と node/snmp で重い端末を特定、RTX QoS や端末側スケジュール調整 |
+| RTX LAN ping まで失敗 | RTX810 自身 | syslog/CPU を確認、再起動・ファーム・機器更新を検討 |
+
+## 5. `tg7100c` (192.168.100.6) の特定方法
+
+1. スマホの家電アプリ (Alibaba Cloud IoT を使う国内ブランドの家電・照明・空調等) のデバイス情報で MAC `84:3e:1d:8a:4a:69` を照合
+2. 疑わしい機器の電源を順に抜き、`ping 192.168.100.6` の応答消失で確定
+3. RTX で `show ip connection` を見て `47.236.42.97:1883` のセッションが消えることで確認
+
+## 6. RTX810 への読み取りアクセス手順
+
+- `ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -c aes256-ctr -o HostKeyAlgorithms=+ssh-rsa narinari@192.168.100.1`
+- パスワードはリポジトリ直下の `rtx810_password.txt` (git 管理外)。`nix shell nixpkgs#sshpass -c sshpass -f rtx810_password.txt ssh ...` で渡す
+- exec チャネル非対応 (`Channel request 'exec' is not supported`) → `-tt` で対話セッションを開き stdin にコマンドを流す
+- `---more---` の改ページはスペース送出で進める (長い `show log` は 300〜400 回)
+- 役に立った show コマンド: `show environment` (CPU/メモリ)、`show status lan1|lan2` (Receive overflow、リンク速度)、`show status tunnel 1`、`show status ipv6 dhcp`、`show ipv6 route`、`show ip connection` (端末ごとのセッション)、`show ipv6 neighbor cache`、`show log`
+
+## 7. 観測結果 (追記欄)
+
+| 日付 | エピソード | RTX LAN | ::fffe | transix GW | AFTR | 外部 v4 | 外部 v6 | RTX CPU / LAN2 bps | 判定 |
+|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | |

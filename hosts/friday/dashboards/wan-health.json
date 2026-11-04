@@ -1,0 +1,374 @@
+{
+  "title": "WAN Health",
+  "uid": "wan-health",
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "schemaVersion": 39,
+  "editable": true,
+  "tags": [
+    "wan"
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "区間別 RTT (smokeping p50)",
+      "datasource": {
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le, host) (rate(smokeping_response_duration_seconds_bucket[1m])))",
+          "legendFormat": "{{host}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "区間別 RTT (smokeping p99)",
+      "datasource": {
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "histogram_quantile(0.99, sum by (le, host) (rate(smokeping_response_duration_seconds_bucket[1m])))",
+          "legendFormat": "{{host}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "区間別パケットロス率",
+      "datasource": {
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "1 - (sum by (host) (rate(smokeping_response_duration_seconds_count[1m])) / sum by (host) (rate(smokeping_requests_total[1m])))",
+          "legendFormat": "{{host}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "DNS/HTTP プローブ成否",
+      "datasource": {
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "probe_success{job=\"khali-blackbox\"}",
+          "legendFormat": "{{module}} {{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "プローブ所要時間",
+      "datasource": {
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "probe_duration_seconds{job=\"khali-blackbox\"}",
+          "legendFormat": "{{module}} {{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "RTX810 CPU %",
+      "datasource": {
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "yrhCpuUtil5sec{job=\"rtx810-snmp\"}",
+          "legendFormat": "5sec"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "yrhCpuUtil1min{job=\"rtx810-snmp\"}",
+          "legendFormat": "1min"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "yrhCpuUtil5min{job=\"rtx810-snmp\"}",
+          "legendFormat": "5min"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "RTX810 WAN (LAN2) スループット",
+      "datasource": {
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "rate(ifInOctets{job=\"rtx810-snmp\",ifDescr=~\"LAN2.*\"}[1m])*8",
+          "legendFormat": "LAN2 in"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "rate(ifOutOctets{job=\"rtx810-snmp\",ifDescr=~\"LAN2.*\"}[1m])*8",
+          "legendFormat": "LAN2 out"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "RTX810 IF 廃棄/エラー (増分/分)",
+      "datasource": {
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "increase(ifInDiscards{job=\"rtx810-snmp\"}[1m])",
+          "legendFormat": "{{ifDescr}} {{__name__}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "increase(ifInErrors{job=\"rtx810-snmp\"}[1m])",
+          "legendFormat": "{{ifDescr}} {{__name__}}"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "increase(ifOutDiscards{job=\"rtx810-snmp\"}[1m])",
+          "legendFormat": "{{ifDescr}} {{__name__}}"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "increase(ifOutErrors{job=\"rtx810-snmp\"}[1m])",
+          "legendFormat": "{{ifDescr}} {{__name__}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "khali eno1 スループット",
+      "datasource": {
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "rate(node_network_receive_bytes_total{job=\"khali-node\",device=\"eno1\"}[1m])*8",
+          "legendFormat": "rx"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "rate(node_network_transmit_bytes_total{job=\"khali-node\",device=\"eno1\"}[1m])*8",
+          "legendFormat": "tx"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "RTX810 メモリ %",
+      "datasource": {
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus"
+          },
+          "expr": "yrhMemoryUtil{job=\"rtx810-snmp\"}",
+          "legendFormat": "memory"
+        }
+      ]
+    }
+  ]
+}

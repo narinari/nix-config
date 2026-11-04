@@ -18,6 +18,7 @@
     ./podcast-nginx.nix
     ./podcast-timer.nix
     ./qbittorrent.nix
+    ./net-monitor.nix
     ../common/global
     ../common/linux
     ../common/linux/home-network.nix

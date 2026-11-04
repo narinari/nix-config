@@ -88,6 +88,90 @@ in
             }
           ];
         }
+        {
+          job_name = "khali-node";
+          static_configs = [ { targets = [ "khali.local:9002" ]; } ];
+        }
+        {
+          job_name = "khali-smokeping";
+          scrape_interval = "15s";
+          static_configs = [ { targets = [ "khali.local:9374" ]; } ];
+        }
+        {
+          job_name = "khali-blackbox";
+          metrics_path = "/probe";
+          scrape_interval = "15s";
+          static_configs = [
+            {
+              targets = [
+                "8.8.8.8"
+                "1.1.1.1"
+              ];
+              labels.module = "dns_v4";
+            }
+            {
+              targets = [
+                "2001:4860:4860::8888"
+                "2606:4700:4700::1111"
+              ];
+              labels.module = "dns_v6";
+            }
+            {
+              targets = [ "192.168.100.1" ];
+              labels.module = "dns_rtx";
+            }
+            {
+              targets = [ "https://www.google.com/generate_204" ];
+              labels.module = "http_v4";
+            }
+            {
+              targets = [ "https://www.google.com/generate_204" ];
+              labels.module = "http_v6";
+            }
+          ];
+          relabel_configs = [
+            {
+              source_labels = [ "__address__" ];
+              target_label = "__param_target";
+            }
+            {
+              source_labels = [ "module" ];
+              target_label = "__param_module";
+            }
+            {
+              source_labels = [ "__param_target" ];
+              target_label = "instance";
+            }
+            {
+              target_label = "__address__";
+              replacement = "khali.local:9115";
+            }
+          ];
+        }
+        {
+          job_name = "rtx810-snmp";
+          metrics_path = "/snmp";
+          scrape_interval = "15s";
+          params = {
+            module = [ "yamaha" ];
+            auth = [ "yamaha_v2" ];
+          };
+          static_configs = [ { targets = [ "192.168.100.1" ]; } ];
+          relabel_configs = [
+            {
+              source_labels = [ "__address__" ];
+              target_label = "__param_target";
+            }
+            {
+              target_label = "instance";
+              replacement = "rtx810";
+            }
+            {
+              target_label = "__address__";
+              replacement = "khali.local:9116";
+            }
+          ];
+        }
       ];
     };
 
@@ -103,6 +187,15 @@ in
           serve_from_sub_path = true;
         };
         security.secret_key = "$__file{${config.sops.secrets.grafana-secret-key.path}}";
+      };
+      provision = {
+        enable = true;
+        dashboards.settings.providers = [
+          {
+            name = "wan-health";
+            options.path = ./dashboards;
+          }
+        ];
       };
     };
 
