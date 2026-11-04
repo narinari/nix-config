@@ -283,7 +283,11 @@
 
   # ファイアウォール
   networking.firewall = {
-    allowedTCPPorts = [ 22 ];
+    allowedTCPPorts = [
+      22 # ssh
+      16688 # hub-server(stackchan)
+      16689 # hub-server(stackchan)
+    ];
     allowedUDPPorts = [ config.services.tailscale.port ]; # Tailscale WireGuard
     trustedInterfaces = [ "tailscale0" ]; # tailnet 内トラフィックを許可
   };
