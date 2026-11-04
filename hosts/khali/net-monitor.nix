@@ -94,7 +94,7 @@ in
       hosts = [
         "192.168.100.1" # RTX810 LAN 側
         "2409:10:ae00:6400::fffe" # VDSL 越しの NGN 端ルーター (v6 tracepath 2 hop 目)
-        "2404:8e00:feed:ff1c::2" # transix IPv6 ゲートウェイ
+        "2001:7fa:7:1:0:1:3335:1" # transix を抜けた直後の JPIX ホップ (transix GW 2404:8e00:feed:ff1c::2 は echo 非応答)
         "2404:8e00::feed:100" # transix AFTR (IPv6)
         "14.0.9.197" # AFTR の IPv4 側 (DS-Lite トンネル経由、v4 tracepath 2 hop 目)
         "1.1.1.1" # 外部 IPv4 (DS-Lite 経由)

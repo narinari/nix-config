@@ -43,7 +43,7 @@ smokeping のターゲットと意味:
 |---|---|
 | 192.168.100.1 | RTX810 自身 (LAN) |
 | 2409:10:ae00:6400::fffe | VDSL を越えた NGN 端ルーター |
-| 2404:8e00:feed:ff1c::2 | transix IPv6 ゲートウェイ |
+| 2001:7fa:7:1:0:1:3335:1 | transix を抜けた直後の JPIX ホップ (transix GW `2404:8e00:feed:ff1c::2` は echo 非応答のため代替) |
 | 2404:8e00::feed:100 | transix AFTR (IPv6 側) |
 | 14.0.9.197 | AFTR の IPv4 側 = DS-Lite トンネル経由 |
 | 1.1.1.1 / 8.8.8.8 | 外部 IPv4 (DS-Lite 経由) |
