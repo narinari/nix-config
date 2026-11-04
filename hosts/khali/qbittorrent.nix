@@ -16,7 +16,8 @@ let
 in
 {
   # common/linux の mkDefault false (RTX810 の EDNS 非対応対策) を上書き。
-  # khali の DNS は systemd-resolved + 1.1.1.1 直でルーター非経由のため影響なし。
+  # khali の DNS は resolved 経由で外部 resolver (IPv6 優先、default.nix の
+  # services.resolved 参照) を使い、RTX810 の DNS (EDNS 非対応) は経由しないため影響なし。
   networking.enableIPv6 = true;
 
   services.qbittorrent = {

@@ -14,3 +14,5 @@ ssh_host_*_key
 ssh_host_*_key.pub
 builder_*
 
+# RTX810 のログインパスワード (ローカル専用)
+rtx810_password.txt

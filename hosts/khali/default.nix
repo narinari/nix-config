@@ -160,10 +160,19 @@
     # resolved があると tailscaled は D-Bus 経由で tailscale0 link に MagicDNS を
     # split DNS で登録し、DHCP 由来の DNS (RTX810 = 192.168.100.1) と共存できる。
     # 参考: https://wiki.nixos.org/wiki/Tailscale, Tailscale FAQ "dns-resolv-conf"
+    # eno1 の DHCP DNS が resolved に渡らず Fallback (IPv4 のみ) に落ちていたため、
+    # DS-Lite の IPv4 経路断でも名前解決できるよう IPv6 resolver を先頭に明示する
+    # (2026-11-04 WAN 断調査、docs/wan-outage-investigation.md)。
     resolved = {
       enable = true;
       settings.Resolve = {
         DNSSEC = false; # RTX810 が EDNS 非対応のため
+        DNS = [
+          "2606:4700:4700::1111"
+          "2001:4860:4860::8888"
+          "1.1.1.1"
+          "8.8.8.8"
+        ];
         FallbackDNS = [
           "1.1.1.1"
           "8.8.8.8"
