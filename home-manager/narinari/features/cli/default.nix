@@ -77,7 +77,7 @@
     # josm
     # ntp
     #
-    ltex-ls # Spell checking LSP
+    ltex-ls-plus # Spell checking LSP (ltex-ls は upstream archive で削除)
 
     # aws
     awscli2
