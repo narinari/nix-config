@@ -130,20 +130,6 @@
     ssh.startAgent = true;
   };
 
-  # noctalia (Quickshell ベースのデスクトップシェル) の binary cache。
-  # Quickshell のローカルビルドを回避するため。
-  nix.settings = {
-    substituters = [ "https://noctalia.cachix.org" ];
-    trusted-public-keys = [ "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4=" ];
-  };
-
-  # NixOS 統合の home-manager にも noctalia の HM module を渡す
-  # (hosts/common/users/narinari で home-manager.users.narinari に
-  #  khali.nix を import しているため、ここで sharedModules を渡す必要がある)。
-  home-manager.sharedModules = [
-    inputs.noctalia.homeModules.default
-  ];
-
   # Intel iGPU primary + NVIDIA PRIME offload 用セッション変数
   environment.sessionVariables = {
     LD_LIBRARY_PATH = "/run/opengl-driver/lib"; # pip版PyTorch等がlibcuda.soを見つけるために必要

@@ -49,17 +49,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # v5 は alpha (TOML 設定・ネイティブ実装) のため安定版 v4.7.7 (Quickshell 版) にピン。
-    # programs.noctalia-shell + JSON 設定 (~/.config/noctalia/settings.json) を提供する。
-    # nixpkgs は follows しない: v4.7.7 が使う noctalia-qs (quickshell fork, 2026-05 で更新停止) は
-    # Qt 6.12 で "Meta Types must be fully defined" のコンパイルエラーになる。上流 lock の
-    # nixpkgs (Qt 6.11) でビルドさせ、noctalia.cachix.org のキャッシュも当たるようにする。
-    # rev は v4.7.7 の flake.lock と同じもの。v5 へ移行したらこの例外は不要。
-    noctalia = {
-      url = "github:noctalia-dev/noctalia/v4.7.7";
-      inputs.nixpkgs.url = "github:nixos/nixpkgs/da5ad661ba4e5ef59ba743f0d112cbc30e474f32";
-    };
-
     codex-cli-nix = {
       url = "github:sadjow/codex-cli-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -138,7 +127,6 @@
             ../home-manager/narinari/khali.nix
             inputs.sops-nix.homeManagerModule
             inputs.agenix.homeManagerModules.default
-            inputs.noctalia.homeModules.default
           ];
           pkgs = pkgsFor "x86_64-linux";
           extraSpecialArgs = { inherit inputs outputs; };

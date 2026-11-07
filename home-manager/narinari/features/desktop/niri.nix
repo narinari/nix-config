@@ -56,7 +56,20 @@
     }
 
     spawn-at-startup "xwayland-satellite"
-    spawn-at-startup "noctalia-shell"
+    spawn-at-startup "noctalia"
+
+    // noctalia の設定ウィンドウは floating で開く。
+    window-rule {
+        match app-id="dev.noctalia.Noctalia"
+        open-floating true
+        default-column-width { fixed 1080; }
+        default-window-height { fixed 920; }
+    }
+
+    // 通知のアクションから noctalia がウィンドウを前面に出せるようにする。
+    debug {
+        honor-xdg-activation-with-invalid-serial
+    }
 
     binds {
         Mod+Return       { spawn "wezterm"; }
@@ -64,8 +77,8 @@
         // menu-browser / menu-emacs を起動)。Hyprland 側と同じ操作感に揃える。
         Mod+D            { spawn "menu-browser"; }
         Mod+Semicolon    { spawn "menu-emacs"; }
-        // noctalia-shell の launcher は Mod+Space に退避。
-        Mod+Space        { spawn "noctalia-shell" "ipc" "call" "launcher" "toggle"; }
+        // noctalia の launcher は Mod+Space に退避。
+        Mod+Space        { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
         Mod+Q            { close-window; }
         Mod+Shift+Q      { quit; }
 

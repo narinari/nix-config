@@ -1,0 +1,64 @@
+# noctalia v5 の設定。項目の説明は https://docs.noctalia.dev/noctalia/configuration/ を参照。
+
+[shell]
+font_family = "DejaVu Sans"
+avatar_path = "~/.face"
+
+[theme]
+mode = "auto"
+source = "builtin"
+builtin = "Dracula"
+
+[location]
+address = "Tokyo"
+
+[weather]
+enabled = true
+unit = "celsius"
+
+[wallpaper]
+enabled = true
+directory = "/home/narinari/Pictures/Wallpapers"
+transition = ["fade", "disc", "stripes", "wipe", "pixel", "honeycomb"]
+
+[bar.main]
+position = "left"
+margin_edge = 4
+margin_ends = 4
+background_opacity = 0.93
+widget_spacing = 6
+capsule = true
+start = ["control-center", "workspaces", "launcher", "media"]
+center = []
+end = ["notifications", "volume", "clock", "tray"]
+
+[widget.clock]
+format = "{:%m/%d %a %H:%M}"
+vertical_format = "{:%m\n%d\n%H\n%M}"
+tooltip_format = "{:%m/%d %a %H:%M}"
+
+[dock]
+enabled = true
+position = "bottom"
+auto_hide = true
+
+[osd]
+position = "bottom_center"
+
+[idle]
+pre_action_fade_seconds = 5.0
+
+[idle.behavior.lock]
+timeout = 600
+action = "lock"
+enabled = false
+
+[idle.behavior.screen-off]
+timeout = 600
+action = "screen_off"
+enabled = true
+
+[nightlight]
+enabled = false
+temperature_day = 6500
+temperature_night = 4000

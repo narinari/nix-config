@@ -110,7 +110,7 @@ in
         # コンポジタから直接起動する。systemd unit 化すると
         # graphical-session.target が Hyprland / niri 双方で発火して
         # 二重起動するため採用しない (upstream でも deprecated)。
-        "noctalia-shell"
+        "noctalia"
       ];
     };
   };
