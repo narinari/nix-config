@@ -41,6 +41,7 @@ tooltip_format = "{:%m/%d %a %H:%M}"
 enabled = true
 position = "bottom"
 auto_hide = true
+reserve_space = false
 
 [osd]
 position = "bottom_center"
