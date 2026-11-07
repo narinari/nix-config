@@ -1,5 +1,6 @@
 {
   lib,
+  options,
   pkgs,
   inputs,
   ...
@@ -75,10 +76,26 @@
   services.avahi = {
     enable = true;
     nssmdns4 = true;
-    publish = {
-      enable = true;
-      userServices = true;
-      addresses = true;
-    };
-  };
+  }
+  # 新しい nixpkgs (workstations) は settings.publish、古い nixpkgs (infra) は publish.* のみ持つ。
+  # 旧オプションは新 nixpkgs で非推奨警告になるため、存在する方を使う。
+  # infra の nixpkgs が settings 対応版に上がったら else 側を削除する。
+  // (
+    if options.services.avahi ? settings then
+      {
+        settings.publish = {
+          disable-publishing = false;
+          disable-user-service-publishing = false;
+          publish-addresses = true;
+        };
+      }
+    else
+      {
+        publish = {
+          enable = true;
+          userServices = true;
+          addresses = true;
+        };
+      }
+  );
 }
