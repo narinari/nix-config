@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "plamo-html"
+version = "0.1.0"
+description = "Translate English-heavy static HTML into Japanese with a local PLaMo 3 Translate llama-server"
+requires-python = ">=3.11"
+dependencies = ["lxml"]
+
+[project.scripts]
+plamo-html = "plamo_html.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
