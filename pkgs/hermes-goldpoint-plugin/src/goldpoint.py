@@ -6,8 +6,9 @@
 - ログインページ: https://secure.goldpoint.co.jp/gpm/authentication/index.html
   フォーム: <form id="form" action=".../gpm/authentication/login.html" method="post">
 - ID欄 `#authenticateDO\\.authKey` はページロード直後 type=hidden で、サイトの
-  JS が後から type=text に書き換える (bot 対策)。type が text かつ
-  offsetWidth>0 になるまで poll してから値を入れること。
+  JS が後から type=text に書き換える。ただし前回の ID を記憶している場合
+  (永続プロファイル) は hidden のまま値が入っており、パスワードだけを入れる
+  (2026-11-10 確認)。_AUTH_KEY_STATE_JS で 2 状態を判別する。
 - パスワード欄 `#authenticateDO\\.password` (type=password)。
 - 送信は `#loginButton` (input type=image) の click()。
 - hidden に乱数16進名トークン2つ + serializedBase64 があり、サイトの JS が
@@ -224,6 +225,17 @@ async def _logout_best_effort(session: cdp.CdpSession) -> None:
         logger.warning("goldpoint: logout navigation failed (non-fatal)")
 
 
+_AUTH_KEY_STATE_JS = (
+    "(() => {"
+    "const el = document.getElementById('authenticateDO.authKey');"
+    "if (!el) return null;"
+    "if (el.type === 'text' && el.offsetWidth > 0) return 'input';"
+    "if (el.type === 'hidden' && el.value.length > 0) return 'remembered';"
+    "return null;"
+    "})()"
+)
+
+
 async def _fill_login_form(
     session: cdp.CdpSession,
     human: human_input.HumanInput,
@@ -231,20 +243,19 @@ async def _fill_login_form(
     auth_key: str,
     password: str,
 ) -> None:
-    # bot 対策: authKey 欄は type=hidden で始まり、サイト JS が type=text に
-    # 書き換えるまで待つ必要がある (offsetWidth>0 で「表示された」を判定)。
-    ready_expr = (
-        "(() => {"
-        "const el = document.getElementById('authenticateDO.authKey');"
-        "return !!el && el.type === 'text' && el.offsetWidth > 0;"
-        "})()"
-    )
+    # authKey 欄の状態は 2 通り:
+    # - "input": 表示された text 欄 (ID 未記憶)。サイト JS が hidden から切り替える。
+    # - "remembered": hidden のまま値が入っている (プロファイルが前回の ID を記憶)。
+    #   この場合 ID 入力は省略し、パスワードだけ入れる。値そのものは読まない。
     try:
-        await session.poll_js(ready_expr, timeout=LOGIN_FIELD_POLL_TIMEOUT_SECONDS)
+        state = await session.poll_js(
+            _AUTH_KEY_STATE_JS, timeout=LOGIN_FIELD_POLL_TIMEOUT_SECONDS
+        )
         await human.pause(*LOGIN_DWELL_RANGE_SECONDS)
-        await human.click_element("authenticateDO.authKey")
-        await human.type_text(auth_key)
-        await human.pause(*FIELD_GAP_RANGE_SECONDS)
+        if state == "input":
+            await human.click_element("authenticateDO.authKey")
+            await human.type_text(auth_key)
+            await human.pause(*FIELD_GAP_RANGE_SECONDS)
         await human.click_element("authenticateDO.password")
         await human.type_text(password)
         await human.pause(*FIELD_GAP_RANGE_SECONDS)
