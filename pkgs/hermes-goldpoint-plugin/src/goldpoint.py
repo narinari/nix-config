@@ -72,6 +72,8 @@ SEIKYUYM_VALUE_PATTERN = re.compile(r"^\d{6}$")
 LOGIN_FIELD_POLL_TIMEOUT_SECONDS = 15
 LOGIN_NAV_TIMEOUT_SECONDS = 20
 LOGIN_FAILURE_TEXT_LIMIT = 300  # 診断用エラー文言の最大長
+# 明細ページ (JS で後から描画) の請求月セレクタに選択肢が入るまで待つ上限。
+MONTH_SELECT_POLL_TIMEOUT_SECONDS = 30
 # ボット対策 JS がページ上の計測を送り終えるまで、入力前に滞在する時間。
 LOGIN_DWELL_RANGE_SECONDS = (4.0, 7.0)
 # 欄の移動やボタンを押す前の「考える」間。
@@ -167,19 +169,41 @@ def parse_available_months(raw_values: list[object]) -> list[str]:
 
 
 async def _read_available_months(session: cdp.CdpSession) -> list[str]:
+    """請求月セレクタの option 値を読む。明細ページは JS で後から描画されるため poll する。"""
     expr = (
         "(() => {"
         f"const sel = document.getElementById({json.dumps(MONTH_SELECT_ID)});"
-        "return sel ? Array.from(sel.options).map(o => o.value) : null;"
+        "if (!sel) return null;"
+        "const vals = Array.from(sel.options).map(o => o.value);"
+        "return vals.some(v => /^\\d{6}$/.test(v)) ? vals : null;"
         "})()"
     )
-    raw = await session.eval_js(expr)
+    try:
+        raw = await session.poll_js(expr, timeout=MONTH_SELECT_POLL_TIMEOUT_SECONDS)
+    except cdp.CdpError:
+        raw = None
     months = parse_available_months(raw) if isinstance(raw, list) else []
     if not months:
+        where = await _describe_meisai_page(session)
         raise GoldpointError(
-            "statement month selector not found (site markup may have changed)"
+            "statement month selector not found (site markup may have changed) "
+            f"[{where}]"
         )
     return months
+
+
+async def _describe_meisai_page(session: cdp.CdpSession) -> str:
+    """診断: 現在のパス・タイトルと、ページ上の select 要素の id 一覧 (値は読まない)。"""
+    expr = (
+        "(() => location.pathname + ' title=' + document.title + ' selects='"
+        " + Array.from(document.querySelectorAll('select')).map(s => s.id || '?')"
+        f".join(',').slice(0, {LOGIN_FAILURE_TEXT_LIMIT}))()"
+    )
+    try:
+        value = await session.eval_js(expr)
+    except cdp.CdpError:
+        return "page state unavailable"
+    return str(value) if value else "page state unavailable"
 
 
 async def _logout_best_effort(session: cdp.CdpSession) -> None:
