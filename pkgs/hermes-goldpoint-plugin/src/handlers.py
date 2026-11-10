@@ -2,10 +2,10 @@
 
 GOLD POINT CARD+ の利用明細 CSV を取得して Drive にアップロードする。
 サイト仕様の詳細 (bot 対策・CDP 手順など) は goldpoint.py の docstring を
-参照。ここでは資格情報の取り出し (bws) → 取得 (goldpoint) → 保存/アップ
+参照。ここでは資格情報の取り出し (bw) → 取得 (goldpoint) → 保存/アップ
 ロード (gdrive) のオーケストレーションだけを行う。
 
-セキュリティ: password / BWS secret 値 / CSV バイト列そのものは、戻り値
+セキュリティ: password / Bitwarden item の値 / CSV バイト列そのものは、戻り値
 にも例外メッセージにも含めない。
 """
 
@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from . import bws
+from . import bw
 from . import config as cfg
 from . import gdrive
 from . import goldpoint
@@ -31,7 +31,7 @@ CSV_MIMETYPE = "text/csv"
 
 
 class _MissingSecretConfig(Exception):
-    """GOLDPOINT_BWS_SECRET_ID / GOLDPOINT_BWS_SECRET_PASSWORD 未設定。"""
+    """GOLDPOINT_BW_ITEM_ID 未設定。"""
 
 
 def fetch_statement(
@@ -51,12 +51,12 @@ def fetch_statement(
 
     try:
         auth_key, password = _load_credentials()
-    except (bws.BwsError, _MissingSecretConfig) as exc:
+    except (bw.BwError, _MissingSecretConfig) as exc:
         return {
             "error": f"failed to load credentials: {exc}",
             "hint": (
-                "GOLDPOINT_BWS_SECRET_ID / GOLDPOINT_BWS_SECRET_PASSWORD / "
-                "BWS_ACCESS_TOKEN の設定 (agenix) を確認してください"
+                "GOLDPOINT_BW_ITEM_ID / HERMES_BW_PASSWORD_FILE の設定と、"
+                "hermes-bw-login (bw login 済み) の状態を確認してください"
             ),
         }
 
@@ -103,15 +103,11 @@ def fetch_statement(
 
 
 def _load_credentials() -> tuple[str, str]:
-    secret_id_auth = cfg.bws_secret_id()
-    secret_id_password = cfg.bws_secret_password()
-    if not secret_id_auth or not secret_id_password:
-        raise _MissingSecretConfig(
-            "GOLDPOINT_BWS_SECRET_ID / GOLDPOINT_BWS_SECRET_PASSWORD is not set"
-        )
-    auth_key = bws.get_secret_value(secret_id_auth)
-    password = bws.get_secret_value(secret_id_password)
-    return auth_key, password
+    item_id = cfg.bw_item_id()
+    if not item_id:
+        raise _MissingSecretConfig("GOLDPOINT_BW_ITEM_ID is not set")
+    credential = bw.get_login(item_id)
+    return credential.username, credential.password
 
 
 def _current_seikyuym() -> str:

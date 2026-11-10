@@ -59,8 +59,8 @@ let
   herdrHermesPlugin = (pkgs.callPackage ../../pkgs/herdr-integrations { }).hermesPlugin;
 
   # goldpoint-meisai plugin (pkgs/hermes-goldpoint-plugin/)。
-  # GOLD POINT CARD+ の利用明細CSVを毎月自動取得し (bws 経由の認証情報 →
-  # headless Chromium ログイン → CSV ダウンロード)、Google Drive の
+  # GOLD POINT CARD+ の利用明細CSVを毎月自動取得し (Bitwarden エージェント
+  # アカウント経由の認証情報 → headless Chromium ログイン → CSV ダウンロード)、Google Drive の
   # 家計/goldpoint/YYYY-MM.csv にアップロードする。詳細は docs/hermes-goldpoint-meisai.md。
   hermesGoldpointPlugin = pkgs.callPackage ../../pkgs/hermes-goldpoint-plugin { };
 
@@ -143,14 +143,6 @@ in
     };
     "hermes-google-token" = {
       file = "${inputs.my-secrets}/private/hermes-google-token.json.age";
-    };
-
-    # ── goldpoint-meisai plugin の認証情報 (環境変数) ─────────────────────
-    # 中身は BWS_ACCESS_TOKEN (bws CLI 認証用) / GOLDPOINT_BWS_SECRET_ID /
-    # GOLDPOINT_BWS_SECRET_PASSWORD (Bitwarden Secrets Manager 上の ID/パスワード
-    # シークレットの UUID)。作成手順は docs/hermes-goldpoint-meisai.md を参照。
-    "goldpoint-env" = {
-      file = "${inputs.my-secrets}/private/goldpoint-env.age";
     };
   };
 
@@ -350,10 +342,6 @@ in
       # 起動する yt-dlp。`ytsearch{N}:{query} --dump-json --skip-download` で
       # 検索結果の metadata を抜くだけで、動画本体はダウンロードしない。
       pkgs.yt-dlp
-
-      # goldpoint-meisai plugin: bws.py が `bws secret get <id> --output json` を
-      # subprocess で呼び、Bitwarden Secrets Manager からログイン ID/パスワードを取得する。
-      pkgs.bws
     ];
 
     extraPlugins = [
@@ -370,7 +358,6 @@ in
       config.age.secrets."friday-hermes-env".path
       config.age.secrets."family-inventory-agent-env".path
       config.age.secrets."daily-podcast-env".path
-      config.age.secrets."goldpoint-env".path
     ];
 
     # 非機密 env (HERMES_HOME/.env にマージされる)
@@ -441,8 +428,11 @@ in
       # 新規キーが両方セット済みなので参考値扱いで残しておく (削除しても挙動は同じ)。
       HERMES_DAILY_PODCAST_LLM_MODEL = "qwen3.8:27b-mlx";
 
-      # goldpoint-meisai plugin の非機密設定。BWS アクセストークンやシークレット ID は
-      # age.secrets."goldpoint-env" (environmentFiles) 経由。
+      # goldpoint-meisai plugin の設定 (いずれも非機密)。ログイン ID/パスワードは
+      # Bitwarden の collection `hermes-agent` にあるアイテムから bw.py が実行時に取得する
+      # (bw CLI とマスターパスワードファイルは hermes-bitwarden.nix が供給)。
+      # アイテム ID は `bw list items --search goldpoint | jq -r '.[].id'` で確認。
+      GOLDPOINT_BW_ITEM_ID = "TODO-set-after-bitwarden-setup";
       GOLDPOINT_STATE_DIR = "/var/lib/hermes-goldpoint"; # CSV 保存先 + gdrive_token.json
       GOLDPOINT_DRIVE_FOLDER = "家計/goldpoint"; # アップロード先 Google Drive フォルダ (マイドライブ直下から相対)
     };

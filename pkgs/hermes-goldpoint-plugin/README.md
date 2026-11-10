@@ -8,10 +8,10 @@ Hermes Agent プラグイン。GOLD POINT CARD+ (ヨドバシ) の利用明細 C
 
 ## 設計方針
 
-- **認証情報はモデルに渡さない**: パスワード・ID は Bitwarden Secrets
-  Manager (`bws` CLI) から実行時に取得する。tool の呼び出しパラメータには
+- **認証情報はモデルに渡さない**: パスワード・ID は Bitwarden
+  Password Manager (`bw` CLI) から実行時に取得する。tool の呼び出しパラメータには
   含まれない。
-- **CSV 内容 / パスワード / BWS トークンはログにも戻り値にも出さない**。
+- **CSV 内容 / パスワード / bw session key / マスターパスワードはログにも戻り値にも出さない**。
   ログイン失敗時の CDP 例外メッセージは入力値混入のリスクがあるため、
   自前の汎用メッセージに変換して伝播する (詳細: `goldpoint.py` docstring)。
 - **サイト仕様は貴重なリバースエンジニアリング成果物**: セレクタ・URL・
@@ -33,29 +33,30 @@ Hermes Agent プラグイン。GOLD POINT CARD+ (ヨドバシ) の利用明細 C
 | --- | --- | --- | --- |
 | `GOLDPOINT_STATE_DIR` | no | `/var/lib/hermes-goldpoint` | CSV (`csv/YYYY-MM.csv`) と `gdrive_token.json` を置くルート |
 | `GOLDPOINT_DRIVE_FOLDER` | no | `家計/goldpoint` | アップロード先の Drive フォルダパス (`/` 区切り、マイドライブ直下から) |
-| `GOLDPOINT_BWS_SECRET_ID` | yes | — | ログイン ID (authKey) を保持する Bitwarden Secrets Manager の secret UUID |
-| `GOLDPOINT_BWS_SECRET_PASSWORD` | yes | — | ログインパスワードを保持する secret UUID |
-| `BWS_ACCESS_TOKEN` | yes | — | `bws` CLI の認証トークン (agenix 経由で供給) |
+| `GOLDPOINT_BW_ITEM_ID` | yes | — | ログイン ID / パスワードを保持する Bitwarden login item の UUID |
+| `HERMES_BW_PASSWORD_FILE` | yes | — | agent アカウントのマスターパスワードを書いたファイルのパス (agenix 経由で供給。`bw unlock --passwordfile` に渡す) |
 | `GOLDPOINT_CHROMIUM` | no | `AGENT_BROWSER_EXECUTABLE_PATH` → `chromium` | headless Chromium バイナリの明示指定 |
 | `HERMES_HOME` | no | `~/.hermes` | `google_client_secret.json` の置き場所 (google-workspace skill と共用) |
 
 ## セットアップ手順
 
-### 1. Bitwarden Secrets Manager に ID / パスワードを登録
+### 1. Bitwarden に login item を登録して agent アカウントに共有
 
-Bitwarden Secrets Manager の Web UI (または `bws` CLI) で、GOLD POINT
-CARD+ のログイン ID と パスワードをそれぞれ別の secret として作成し、
-発行された UUID を控える。
+GOLD POINT CARD+ のログイン ID / パスワードを 1 つの login item として
+作成し、Families org の collection `hermes-agent` に入れて専用 agent
+アカウントへ共有する。agent アカウントは別の systemd oneshot
+(`hermes-bw-login`) が `bw login --apikey` 済みにしておく前提。
+
+item ID (UUID) は次のいずれかで取得する。
 
 ```bash
-# 例 (bws CLI がローカルにあれば)
-bws secret create <project-id> goldpoint-auth-key '<ログインID>'
-bws secret create <project-id> goldpoint-password '<パスワード>'
+# agent アカウントでログイン済みの bw から
+bw list items --search goldpoint | jq '.[].id'
+# または Web vault の item URL (…/vault?itemId=<UUID>) から
 ```
 
-得られた 2 つの secret UUID を `GOLDPOINT_BWS_SECRET_ID` /
-`GOLDPOINT_BWS_SECRET_PASSWORD` として Nix 側 (agenix env) に設定する。
-`BWS_ACCESS_TOKEN` は既存の `bws` CLI 認証セットアップに従う。
+得られた UUID を `GOLDPOINT_BW_ITEM_ID` として、マスターパスワードの
+ファイルパスを `HERMES_BW_PASSWORD_FILE` として Nix 側に設定する。
 
 ### 2. Google Drive の認可 (初回のみ)
 
@@ -96,9 +97,9 @@ refresh token で自動更新される (更新時に同ファイルへ書き戻�
   `extraPlugins` に追加
 - `toolsets` / `plugins.enabled` に `"goldpoint-meisai"` を追加
 - 非機密 env (`GOLDPOINT_STATE_DIR` 等) は `environment` に、
-  secret env (`GOLDPOINT_BWS_SECRET_ID` / `GOLDPOINT_BWS_SECRET_PASSWORD` /
-  `BWS_ACCESS_TOKEN`) は agenix 経由の `environmentFiles` に追加する
-- `extraPackages` に `bws` CLI と `chromium` (未追加であれば) を追加
+  `GOLDPOINT_BW_ITEM_ID` / `HERMES_BW_PASSWORD_FILE` (マスターパスワードは
+  agenix のファイルとして配置し、パスのみ env に渡す) を設定する
+- `extraPackages` に `bw` CLI と `chromium` (未追加であれば) を追加
 - Python 依存 (`websockets` / `google-api-python-client` / `google-auth-oauthlib`)
   は hermes-agent-env に同梱済みのため追加不要 (plugin handler は Hermes
   プロセス内で import する)
@@ -115,7 +116,7 @@ journalctl -u hermes-agent -f | grep -i goldpoint
 
 | 症状 | 原因の見当 |
 | --- | --- |
-| `failed to load credentials` | `GOLDPOINT_BWS_SECRET_ID` / `GOLDPOINT_BWS_SECRET_PASSWORD` / `BWS_ACCESS_TOKEN` の未設定、または `bws` バイナリが PATH に無い |
+| `failed to load credentials` | `GOLDPOINT_BW_ITEM_ID` / `HERMES_BW_PASSWORD_FILE` の未設定、`bw` バイナリが PATH に無い、または `bw is not logged in` (`hermes-bw-login` oneshot を実行) |
 | `login failed: did not reach membertop.html` | ログイン ID/パスワードの誤り、またはサイト側フォーム仕様の変更。パスワード自体はエラーメッセージに含まれない |
 | `failed to fill login form` | サイトの bot 対策 JS (`authenticateDO.authKey` の type 書き換え) がタイムアウト内に完了しなかった、またはページ構造が変わった |
 | `chromium binary not found` | `GOLDPOINT_CHROMIUM` / `AGENT_BROWSER_EXECUTABLE_PATH` が指す実行ファイルが存在しない |
@@ -132,7 +133,7 @@ hermes-goldpoint-plugin/
     ├── plugin.yaml       # Hermes plugin manifest
     ├── __init__.py       # register(ctx) + _safe_handler + tool schema
     ├── config.py         # env 読み (GOLDPOINT_STATE_DIR 等)
-    ├── bws.py            # bws secret get ラッパー
+    ├── bw.py             # bw (Password Manager CLI) で login item を取得するラッパー
     ├── cdp.py            # headless Chromium 起動 + CDP (websockets) クライアント
     ├── goldpoint.py      # ログイン → CSV fetch → ログアウト (サイト仕様の要約はここ)
     ├── gdrive.py         # Drive token 管理 + フォルダ確保 + アップロード

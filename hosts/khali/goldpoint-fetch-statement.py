@@ -11,7 +11,7 @@ daily-podcast-generate-all.py と同じ方針: プロンプトも呼ぶツール
 (--no-agent は stdout をそのまま deliver する。空 stdout = silent なので
 必ず 1 行以上出力する)。
 
-CSV の中身・認証情報 (BWS トークン、ログインパスワード等) は絶対に stdout /
+CSV の中身・認証情報 (bw session key / マスターパスワード、ログインパスワード等) は絶対に stdout /
 ログに出力しない。ログイン失敗等の例外メッセージも handlers 側で
 サニタイズ済みの前提で、そのまま日本語サマリに載せる。
 """

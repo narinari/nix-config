@@ -28,7 +28,7 @@ def _safe_handler(name: str, fn: Callable[..., dict[str, Any]]) -> Callable[...,
 
     Hermes tools must return strings; we encode dicts here and surface any
     uncaught exception as an `error` envelope so a single bad call doesn't
-    take down the whole tool surface. 下位モジュール (bws.py / goldpoint.py /
+    take down the whole tool surface. 下位モジュール (bw.py / goldpoint.py /
     gdrive.py) 側で既に secret 値を含まない安全なメッセージに変換済みの
     前提で、ここでは type/message をそのまま JSON 化するだけに留める。
     """
@@ -67,7 +67,7 @@ _TOOL_SCHEMAS: list[dict[str, Any]] = [
             "GOLD POINT CARD+ (ヨドバシ) の利用明細 CSV を取得し、"
             "$GOLDPOINT_STATE_DIR/csv/YYYY-MM.csv に保存した上で "
             "Google Drive の家計フォルダにアップロードする。"
-            "認証情報は Bitwarden Secrets Manager から実行時に取得するため、"
+            "認証情報は Bitwarden Password Manager (bw CLI) から実行時に取得するため、"
             "呼び出し側 (LLM) にパスワードを渡す必要はない。"
             "seikyuym を省略すると Asia/Tokyo の当月分を取得する "
             "(毎月10日に当月分が確定する運用前提)。"

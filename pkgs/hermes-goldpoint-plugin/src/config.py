@@ -1,7 +1,7 @@
 """Plugin configuration: env 読み。
 
-secret の実体 (ID/パスワード) はここでは持たない — 実行時に bws.py が
-Bitwarden Secrets Manager から取得する。ここは「どの env / secret id を
+secret の実体 (ID/パスワード) はここでは持たない — 実行時に bw.py が
+Bitwarden Password Manager (bw CLI) から取得する。ここは「どの env / item id を
 使うか」というマッピングだけを担当する。
 """
 
@@ -13,8 +13,7 @@ from pathlib import Path
 
 ENV_STATE_DIR = "GOLDPOINT_STATE_DIR"
 ENV_DRIVE_FOLDER = "GOLDPOINT_DRIVE_FOLDER"
-ENV_BWS_SECRET_ID = "GOLDPOINT_BWS_SECRET_ID"
-ENV_BWS_SECRET_PASSWORD = "GOLDPOINT_BWS_SECRET_PASSWORD"
+ENV_BW_ITEM_ID = "GOLDPOINT_BW_ITEM_ID"
 ENV_CHROMIUM = "GOLDPOINT_CHROMIUM"
 ENV_BROWSER_FALLBACK = "AGENT_BROWSER_EXECUTABLE_PATH"
 ENV_HERMES_HOME = "HERMES_HOME"
@@ -33,8 +32,7 @@ class GoldpointEnv:
     drive_folder: str
     chromium: str
     hermes_home: Path
-    bws_secret_id_configured: bool
-    bws_secret_password_configured: bool
+    bw_item_id_configured: bool
 
 
 def state_dir() -> Path:
@@ -72,12 +70,8 @@ def chromium_binary() -> str:
     return DEFAULT_CHROMIUM_BINARY
 
 
-def bws_secret_id() -> str | None:
-    return os.environ.get(ENV_BWS_SECRET_ID, "").strip() or None
-
-
-def bws_secret_password() -> str | None:
-    return os.environ.get(ENV_BWS_SECRET_PASSWORD, "").strip() or None
+def bw_item_id() -> str | None:
+    return os.environ.get(ENV_BW_ITEM_ID, "").strip() or None
 
 
 def snapshot() -> GoldpointEnv:
@@ -87,6 +81,5 @@ def snapshot() -> GoldpointEnv:
         drive_folder=drive_folder(),
         chromium=chromium_binary(),
         hermes_home=hermes_home(),
-        bws_secret_id_configured=bws_secret_id() is not None,
-        bws_secret_password_configured=bws_secret_password() is not None,
+        bw_item_id_configured=bw_item_id() is not None,
     )
