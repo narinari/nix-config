@@ -30,9 +30,9 @@
   戻り値として受け取る (大きい CSV でも引数過多にならないための chunk 単位)。
 - CSV は Shift_JIS (Windows-31J) / CRLF。1行目はカード名義ヘッダ。
   変換せず、そのままバイト列で保存する。
-- 請求月セレクタ `#vp-view-VC0502-003_RS0001_p01` に直近18ヶ月分の
-  YYYYMM が入っている。fetch_statements_csv() がこの option 値から取得可能な月を
-  読む。未確定の月 (当月など) は CSV API が 200 + 空ボディを返す。
+- 請求月セレクタ (id は変わる: 2026-11 時点 `#vp-view-VC0501002_RS0001_p01`) に
+  直近18ヶ月分の YYYYMM が入っている。明細ページは JS で後から描画される。
+  fetch_statements_csv() はページ上の select から YYYYMM の option 値を集める。未確定の月 (当月など) は CSV API が 200 + 空ボディを返す。
 - ログアウトは https://secure.goldpoint.co.jp/gpm/logout.html への遷移のみ。
 
 セキュリティ: password / CSV バイト列は、ここでは戻り値にも例外メッセージ
@@ -65,8 +65,9 @@ CSV_API_URL_TMPL = (
     "web_meisai_csv_exec/v1?downloadKey=1&seikyuym={seikyuym}&sk=&downloadtype=csv&mk=1"
 )
 LOGOUT_URL = "https://secure.goldpoint.co.jp/gpm/logout.html"
-# 明細ページの請求月セレクタ (option 値が YYYYMM)。
-MONTH_SELECT_ID = "vp-view-VC0502-003_RS0001_p01"
+# 請求月は「option 値が YYYYMM の select」から読む。select の id はサイト側で
+# 変わる (2026-09: vp-view-VC0502-003_RS0001_p01 → 2026-11: vp-view-VC0501002_RS0001_p01)
+# ため id には依存しない。
 SEIKYUYM_VALUE_PATTERN = re.compile(r"^\d{6}$")
 
 LOGIN_FIELD_POLL_TIMEOUT_SECONDS = 15
@@ -172,10 +173,10 @@ async def _read_available_months(session: cdp.CdpSession) -> list[str]:
     """請求月セレクタの option 値を読む。明細ページは JS で後から描画されるため poll する。"""
     expr = (
         "(() => {"
-        f"const sel = document.getElementById({json.dumps(MONTH_SELECT_ID)});"
-        "if (!sel) return null;"
-        "const vals = Array.from(sel.options).map(o => o.value);"
-        "return vals.some(v => /^\\d{6}$/.test(v)) ? vals : null;"
+        "const vals = Array.from(document.querySelectorAll('select'))"
+        ".flatMap(s => Array.from(s.options).map(o => o.value))"
+        ".filter(v => /^\\d{6}$/.test(v));"
+        "return vals.length ? vals : null;"
         "})()"
     )
     try:
