@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import shutil
 import subprocess
 import tempfile
@@ -39,10 +40,37 @@ CDP_WS_OPEN_TIMEOUT_SECONDS = 30
 CDP_WS_RESPONSE_TIMEOUT_SECONDS = 30
 NAVIGATION_POLL_TIMEOUT_SECONDS = 20
 NAVIGATION_POLL_INTERVAL_SECONDS = 0.2
+CHROMIUM_VERSION_TIMEOUT_SECONDS = 10
+# headless Chromium の既定 UA は "HeadlessChrome/<ver>" を含み、GOLD POINT CARD+
+# (Akamai) はこれを検出すると応答を返さず接続を保留し続ける。ユーザー本人の委任操作
+# なので、通常の Chrome と同じ UA を名乗る。
+USER_AGENT_TEMPLATE = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/{major}.0.0.0 Safari/537.36"
+)
+_VERSION_PATTERN = re.compile(r"(\d+)\.\d+\.\d+\.\d+")
 
 
 class CdpError(Exception):
     """Chromium 起動 / CDP 通信の失敗。"""
+
+
+def _user_agent(binary: str) -> str:
+    """`chromium --version` のメジャー版から通常 Chrome 相当の UA を組み立てる。"""
+    try:
+        proc = subprocess.run(
+            [binary, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=CHROMIUM_VERSION_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        raise CdpError(f"failed to query chromium version: {binary}") from exc
+    match = _VERSION_PATTERN.search(proc.stdout or "")
+    if proc.returncode != 0 or match is None:
+        raise CdpError(f"could not parse chromium version: {binary}")
+    return USER_AGENT_TEMPLATE.format(major=match.group(1))
 
 
 class ChromiumProcess:
@@ -69,6 +97,7 @@ class ChromiumProcess:
             f"--user-data-dir={self._user_data_dir}",
             "--no-first-run",
             "--disable-gpu",
+            f"--user-agent={_user_agent(resolved)}",
         ]
         try:
             self._proc = subprocess.Popen(
