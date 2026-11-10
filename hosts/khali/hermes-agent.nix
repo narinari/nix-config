@@ -439,6 +439,8 @@ in
       GOLDPOINT_BW_ITEM_ID = "190e484d-415b-4f47-8a7b-aa890067493d"; # Bitwarden アイテム "yodobashi.com"
       GOLDPOINT_STATE_DIR = "/var/lib/hermes-goldpoint"; # CSV 保存先 + gdrive_token.json
       GOLDPOINT_DRIVE_FOLDER = "家計/goldpoint"; # アップロード先 Google Drive フォルダ (マイドライブ直下から相対)
+      # 手動の `hermes cron run` はサービス外 (sudo の PATH) で動くため絶対パスで渡す。
+      GOLDPOINT_XVFB = "${pkgs.xvfb}/bin/Xvfb";
     };
   };
 
