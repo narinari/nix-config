@@ -44,11 +44,12 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import base64
 import json
 import logging
 import re
-from typing import Callable
+from typing import AsyncIterator, Callable
 
 from . import cdp
 from . import human_input
@@ -102,16 +103,9 @@ def fetch_statement_csv(*, auth_key: str, password: str, seikyuym: str) -> bytes
 async def _fetch_statement_csv_async(
     *, auth_key: str, password: str, seikyuym: str
 ) -> bytes:
-    async with cdp.CdpSession() as session:
-        await session.goto(LOGIN_URL)
-        human = human_input.HumanInput(session)
-        await _fill_login_form(session, human, auth_key=auth_key, password=password)
-        await _submit_login(human)
-        await _wait_for_login_success(session)
-
+    async with _logged_in_session(auth_key=auth_key, password=password) as session:
         await session.goto(MEISAI_PAGE_URL_TMPL.format(seikyuym=seikyuym))
         csv_bytes = await _fetch_csv_via_page(session, seikyuym=seikyuym)
-        await _logout_best_effort(session)
 
     if csv_bytes is None:
         raise GoldpointError("CSV API returned no data")
@@ -147,20 +141,35 @@ async def _fetch_statements_csv_async(
     wanted: Callable[[list[str]], list[str]],
 ) -> dict[str, bytes | None]:
     results: dict[str, bytes | None] = {}
-    async with cdp.CdpSession() as session:
-        await session.goto(LOGIN_URL)
-        human = human_input.HumanInput(session)
-        await _fill_login_form(session, human, auth_key=auth_key, password=password)
-        await _submit_login(human)
-        await _wait_for_login_success(session)
-
+    async with _logged_in_session(auth_key=auth_key, password=password) as session:
         await session.goto(MEISAI_PAGE_URL_TMPL.format(seikyuym=current_seikyuym))
         available = await _read_available_months(session)
         for seikyuym in wanted(available):
             await session.goto(MEISAI_PAGE_URL_TMPL.format(seikyuym=seikyuym))
             results[seikyuym] = await _fetch_csv_via_page(session, seikyuym=seikyuym)
-        await _logout_best_effort(session)
     return results
+
+
+@contextlib.asynccontextmanager
+async def _logged_in_session(
+    *, auth_key: str, password: str
+) -> AsyncIterator[cdp.CdpSession]:
+    """ログイン済みセッションを返し、抜けるとき (例外時も) 必ずログアウトする。
+
+    プロファイルを使い回すため、前回の失敗でログイン cookie が残っていると
+    ログインページにフォームが出ない。最初にログアウトして状態を揃える。
+    """
+    async with cdp.CdpSession() as session:
+        await _logout_best_effort(session)
+        await session.goto(LOGIN_URL)
+        human = human_input.HumanInput(session)
+        await _fill_login_form(session, human, auth_key=auth_key, password=password)
+        await _submit_login(human)
+        await _wait_for_login_success(session)
+        try:
+            yield session
+        finally:
+            await _logout_best_effort(session)
 
 
 def parse_available_months(raw_values: list[object]) -> list[str]:
