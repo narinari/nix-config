@@ -18,6 +18,7 @@
     ./podcast-nginx.nix
     ./podcast-timer.nix
     ./goldpoint-timer.nix
+    ./hermes-bitwarden.nix
     ./qbittorrent.nix
     ./net-monitor.nix
     ../common/global
