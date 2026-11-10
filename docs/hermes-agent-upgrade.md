@@ -80,9 +80,10 @@ v2026.5.7 → v2026.8.31 で NixOS module が生成する成果物のうち変�
 | 設定 | 場所 | 目的 |
 |---|---|---|
 | `browser.cdp_url = ""` | `settings` | `hermes setup` が書き込む死んだ CDP URL を deep_merge で打ち消し local mode を強制 |
+| `browser.executable_path` | `settings` | 上流が取得する Chromium は NixOS で動かないため Nix store の chromium を指す (v0.23.0 で `AGENT_BROWSER_EXECUTABLE_PATH` から移行) |
+| `sessions.auto_prune = false` | `settings` | v0.22.0 で既定 true (90 日超の終了セッションを自動削除) になったため、従来どおり履歴を残す |
 | `skills.disabled` の claude-code 系 3 件 | `settings` | bundled skill の旧仕様 (`terminal` で `claude -p` を呼べ) と plugin 経路の競合回避 |
 | `HERMES_STREAM_STALE_TIMEOUT = "1800"` | `environment` | `http://ai/v1` が MagicDNS 短縮名で local 判定されず、stream 側の既定 180s で自切断するのを防ぐ |
-| `AGENT_BROWSER_EXECUTABLE_PATH` | `hermesEnvFile` | Playwright が DL する Chromium は Nix sandbox で動かないため Nix store の chromium を指す |
 
 ## 上げた直後に確認する挙動リスク
 
@@ -94,6 +95,9 @@ v2026.5.7 → v2026.8.31 で NixOS module が生成する成果物のうち変�
 | cron job storage が per-profile に revert。既存 job のパスが移動している可能性 | v0.18.0 | 同上。消えていれば冪等 seed が再登録する |
 | subprocess の PYTHONHOME/PYTHONPATH 隔離により daily-podcast が呼ぶ `yt-dlp` が壊れる可能性 | v0.20.2 | `generate_daily_episode` を手動実行し youtube source を通す |
 | iteration limit の既定が 90 → 500 (v0.20.0)、さらに 250 iterations (v0.21.0) に変わり 1 ターンが長時間化しうる | v0.20.0 / v0.21.0 | `providers.aperture.request_timeout_seconds = 1800` で足りるか実測 |
+| 1 マシン 1 gateway に統合。CLI / cron / Discord がすべて hermes-agent.service の gateway に接続する。手動 `hermes cron run` もサービス内で動く可能性 | v0.22.0 / v0.23.0 | `hermes gateway status`、Discord で会話、`hermes cron list` / 手動 run。問題があれば `gateway.standalone: true` で一時回避 |
+| 旧 browser ツール (agent-browser / `browser_*` 10 本) を削除し `browser_exec` のみに | v0.23.0 | Discord で「〜のページを開いて内容を教えて」と依頼し browser_exec が動くか |
+| `browser_vault` (Bitwarden backend) は `bw` が PATH にあれば自動で有効。解錠は対話プロンプトのみで Discord / cron からは使えない | v0.22.0 | TUI から解錠できるか。headless のログインはサイト別 plugin で行う (docs/hermes-credential-vault.md) |
 | custom-endpoint probe が 1.5s 上限になり、cold 時の `http://ai/v1` が model picker に出ない可能性 (推論本体には無関係) | v0.20.0 | `hermes model` の一覧に aperture のモデルが出るか |
 
 ## バージョン履歴
@@ -102,3 +106,4 @@ v2026.5.7 → v2026.8.31 で NixOS module が生成する成果物のうち変�
 |---|---|
 | 2026-05-09 | v2026.5.7 (v0.13.0) にピン |
 | 2026-09-03 | v2026.8.31 (v0.21.0) へ更新 |
+| 2026-11-10 | v0.23.0 へ更新 (v2026.9.24 = v0.21.5 から)。agent-browser 撤去、`browser.executable_path` / `sessions.auto_prune` を追加 |

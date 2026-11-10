@@ -5,9 +5,9 @@
 #   - 直接接続ではなく Tailscale Aperture (http://ai/v1) を経由
 #     → 認証は Aperture が Tailscale identity で代行 (実 API キー不要)
 #   - 既存 Codex CLI 構成 (home-manager/narinari/features/llm/codex.nix) と同経路
-#   - browser ツールは agent-browser CLI が local Chromium を直接 spawn する
-#     (browser.cdp_url を設定しない = local mode、AGENT_BROWSER_EXECUTABLE_PATH で
-#      Nix の chromium を指定)
+#   - browser ツール (v0.23 以降は browser_exec のみ) は local Chromium を
+#     直接起動する (browser.cdp_url = "" で local mode、browser.executable_path で
+#     Nix の chromium を指定)
 #
 # テスト:
 #   systemctl status hermes-agent
@@ -22,9 +22,9 @@
 }:
 
 let
-  # agent-browser が spawn する local Chromium。
-  # Playwright が DL する Chromium は Nix sandbox 下で動かないため、Nix store の
-  # chromium バイナリを AGENT_BROWSER_EXECUTABLE_PATH 経由で渡す。
+  # browser_exec が起動する local Chromium。
+  # 上流が取得する Chromium は NixOS では動かないため、Nix store の chromium を
+  # settings.browser.executable_path で渡す。
   inherit (pkgs) chromium;
 
   # Aperture は Tailscale identity で認証するため実 API キーは不要だが、
@@ -35,8 +35,6 @@ let
 
     DISCORD_ALLOWED_ROLES=1028883038228189185
     DISCORD_HOME_CHANNEL=1500767462637961246
-
-    AGENT_BROWSER_EXECUTABLE_PATH=${chromium}/bin/chromium
   '';
 
   # Claude Code delegate plugin (pkgs/hermes-claude-code-plugin/)。
@@ -294,26 +292,28 @@ in
       # 詳細: https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search#searxng-free-self-hosted
       web.search_backend = "searxng";
 
-      # browser ツールは local mode で運用する (agent-browser が
-      # AGENT_BROWSER_EXECUTABLE_PATH の Chromium を spawn)。
+      # browser ツール (browser_exec) は local mode で運用し、Nix の chromium を使う。
+      # (v0.23.0 で agent-browser と旧 browser_* ツールは削除され、
+      #  AGENT_BROWSER_EXECUTABLE_PATH の代わりに browser.executable_path を使う)
+      browser.executable_path = "${chromium}/bin/chromium";
       # `hermes setup` の browser フローが過去に config.yaml へ
       # cdp_url: ws://127.0.0.1:9222/devtools/browser を書き込んだ事故があり、
       # 誰も listen していない 9222 ポートへの CDP WebSocket 接続で
       # "Connection refused (os error 111)" となって browser_navigate が壊れる。
       # 空文字を Nix 側から流し込むことで configMergeScript の deep_merge が
-      # 既存の cdp_url を上書きし、browser_tool.py:289 の
-      # `cdp_url or ""` 経路で local mode フォールバックが効く。
+      # 既存の cdp_url を上書きし、local mode を強制する (v0.23 でも既定は "")。
       browser.cdp_url = "";
+
+      # v0.22.0 で既定が true (終了から 90 日超のセッションを自動削除) になった。
+      # 従来どおり履歴を残す。
+      sessions.auto_prune = false;
     };
 
     extraPackages = [
       pkgs.curl
       pkgs.pandoc
       pkgs.imagemagick
-      # browser ツール (browser_tool.py) は agent-browser CLI を subprocess で起動する
-      # browser.cdp_url 未設定 = local mode → agent-browser が --session <uuid> で
-      # AGENT_BROWSER_EXECUTABLE_PATH の Chromium を spawn する
-      pkgs.agent-browser
+      # browser_exec (settings.browser.executable_path) と goldpoint plugin が使う Chromium
       chromium
 
       # claude_code delegate tool 用。subprocess で `claude --print --output-format stream-json` を起動する
@@ -441,6 +441,8 @@ in
       GOLDPOINT_DRIVE_FOLDER = "家計/goldpoint"; # アップロード先 Google Drive フォルダ (マイドライブ直下から相対)
       # 手動の `hermes cron run` はサービス外 (sudo の PATH) で動くため絶対パスで渡す。
       GOLDPOINT_XVFB = "${pkgs.xvfb}/bin/Xvfb";
+      # 旧 AGENT_BROWSER_EXECUTABLE_PATH (v0.23 で廃止) へのフォールバックに頼らず明示する。
+      GOLDPOINT_CHROMIUM = "${chromium}/bin/chromium";
     };
   };
 

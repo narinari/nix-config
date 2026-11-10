@@ -30,7 +30,7 @@ Nix 側は `hosts/khali/hermes-bitwarden.nix` に集約している
 | 経路 | 仕組み | 状態 |
 |---|---|---|
 | 定型ジョブ (`--no-agent` cron plugin) | plugin が `bw unlock` → `bw sync` → `bw get item <id>` で取得し、自前でフォームに入力。LLM は値を見ない | 稼働 (例: [goldpoint-meisai](hermes-goldpoint-meisai.md)) |
-| アドホック依頼 (Discord / cron のエージェント実行) | Hermes v0.22+ の `browser_vault`。ページに直接入力し、モデルには `{filled_fields, origin}` だけ返る | 未着手。v0.23 への更新と、無人解錠パッチが必要 (下記) |
+| 対話 (TUI) からのアドホック依頼 | Hermes v0.22+ の `browser_vault`。ページに直接入力し、モデルには `{filled_fields, origin}` だけ返る | v0.23.0 で利用可。Discord / cron からは解錠できない (下記) |
 
 ## セットアップ
 
@@ -80,11 +80,16 @@ EU リージョンや self-hosted を使う場合は、ログイン前に
 - bitwarden-cli 2026.10 は `bw login --apikey` でも解錠まで行い、`BW_SESSION` を stdout に出す。
   `hermes-bw-login` は出力を捨てて直後に `bw lock` する。手動でログインするときも出力を残さないこと。
 
-## browser_vault (フェーズ B) のメモ
+## browser_vault (フェーズ B) の結論 (2026-11-10)
 
-- Hermes v0.22.0 で `browser_vault` が入った。現在固定しているのは v0.21.5。
-- 組み込みの Bitwarden backend の解錠は、対話プロンプトしかない (`tools/browser_vault_tool.py` の `can_prompt_here()`)。
-  そのため Discord や cron からは `unlock_unavailable` になる。
-- 独自の login backend プラグインは、verified / official のカタログ品以外は登録を拒否される。
-- 対応方針: `agent/vault_backends/bitwarden.py` に「`vault.bitwarden.password_file` があれば自動で解錠する」パッチを当てる。
-  あわせて upstream にも提案する。
+- Hermes v0.22.0 で `browser_vault` が入り、v0.23.0 に更新済み。`bw` が PATH にあるため
+  Bitwarden backend は自動で有効になる (`vault.bitwarden.enabled` の既定は true)。
+- 組み込みの Bitwarden backend の解錠は対話プロンプトのみ (`tools/browser_vault_tool.py` の
+  `can_prompt_here()`)。Discord / cron からは `unlock_unavailable` になる。
+  TUI から使う場合は、エージェントアカウントのマスターパスワードで解錠する
+  (`bw` のデータは hermes ユーザーの HOME にあり、ログイン済みなのはエージェントアカウント)。
+- 無人解錠のパッチは採用しない (hermes の Nix パッケージは flake のソースから venv を作るため
+  fork が必要になる。上流への提案もしない)。独自 login backend plugin は verified / official の
+  カタログ品以外は登録を拒否される。
+- **方針**: Discord / cron からの Web ログインは、goldpoint と同じく「サイト別 plugin が
+  `bw` で取得し、自前でログインする」方式で作る (LLM はパスワードを見ない)。

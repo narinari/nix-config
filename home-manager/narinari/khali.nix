@@ -39,22 +39,10 @@
 
     vlc # メディアプレイヤー (VAAPI は hosts/khali/default.nix の hardware.graphics で有効)
 
-    # 対話 shell から `hermes` CLI を起動したときに browser_navigate が動くよう、
-    # tools/browser_tool.py::_find_agent_browser() が PATH で agent-browser を
-    # 発見できるようにする。これが無いと npx フォールバックが走り、generic Linux 向けの
-    # dynamic-linked バイナリが NixOS で起動できず "Could not start dynamically
-    # linked executable" で失敗する。systemd service 経路は
-    # hosts/khali/hermes-agent.nix の extraPackages 側で既に解決済み。
-    agent-browser
+    # hermes v0.23 以降は CLI も gateway (hermes-agent.service) に接続して動くため、
+    # 対話 shell 用の agent-browser / AGENT_BROWSER_EXECUTABLE_PATH は不要になった。
     chromium
   ];
-
-  # agent-browser が spawn する Chromium を Playwright DL ではなく Nix store の
-  # chromium に固定する。systemd service 側は hosts/khali/hermes-agent.nix の
-  # hermesEnvFile (AGENT_BROWSER_EXECUTABLE_PATH) で同等の値をセット済み。
-  home.sessionVariables = {
-    AGENT_BROWSER_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
-  };
 
   systemd.user.startServices = "sd-switch";
 }
