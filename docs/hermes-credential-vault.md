@@ -77,6 +77,8 @@ EU リージョンや self-hosted を使う場合は、ログイン前に
   プロンプトインジェクションで漏れうる範囲は **collection `hermes-agent` の中身** に限られる。
   銀行やメインの Google アカウントのような高価値アカウントと、その TOTP はこの collection に入れない。
 - マスターパスワードは agenix で復号されてディスク (tmpfs `/run/agenix`) 上にある。
+- bitwarden-cli 2026.10 は `bw login --apikey` でも解錠まで行い、`BW_SESSION` を stdout に出す。
+  `hermes-bw-login` は出力を捨てて直後に `bw lock` する。手動でログインするときも出力を残さないこと。
 
 ## browser_vault (フェーズ B) のメモ
 
