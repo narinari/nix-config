@@ -62,6 +62,7 @@ LOGOUT_URL = "https://secure.goldpoint.co.jp/gpm/logout.html"
 
 LOGIN_FIELD_POLL_TIMEOUT_SECONDS = 15
 LOGIN_NAV_TIMEOUT_SECONDS = 20
+LOGIN_FAILURE_TEXT_LIMIT = 300  # 診断用エラー文言の最大長
 # 大きい CSV でも `String.fromCharCode.apply` が引数過多で落ちないための chunk 単位。
 CSV_FETCH_CHUNK_SIZE = 0x8000
 
@@ -137,10 +138,32 @@ async def _wait_for_login_success(session: cdp.CdpSession) -> None:
             timeout=LOGIN_NAV_TIMEOUT_SECONDS,
         )
     except cdp.CdpError:
+        where = await _describe_login_failure(session)
         raise GoldpointError(
             "login failed: did not reach membertop.html "
-            "(auth key/password mismatch, or site markup changed)"
+            f"(auth key/password mismatch, or site markup changed) [{where}]"
         ) from None
+
+
+async def _describe_login_failure(session: cdp.CdpSession) -> str:
+    """失敗時の診断: 現在のパスとエラー表示らしき要素の文言だけを返す。
+
+    入力欄の値は読まない (エラー表示要素の innerText のみ、長さも制限する)。
+    """
+    expr = (
+        "(() => {"
+        "const errs = Array.from(document.querySelectorAll("
+        "'[class*=error], [class*=Error], [id*=error], [id*=Error], .alert'))"
+        ".map(e => (e.innerText || '').trim()).filter(t => t).join(' / ');"
+        "return location.pathname + ' title=' + document.title"
+        f" + ' errors=' + errs.slice(0, {LOGIN_FAILURE_TEXT_LIMIT});"
+        "})()"
+    )
+    try:
+        value = await session.eval_js(expr)
+    except cdp.CdpError:
+        return "page state unavailable"
+    return str(value) if value else "page state unavailable"
 
 
 async def _fetch_csv_via_page(session: cdp.CdpSession, *, seikyuym: str) -> bytes:
