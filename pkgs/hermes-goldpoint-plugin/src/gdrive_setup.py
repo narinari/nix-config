@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -64,6 +65,12 @@ else:
     from .gdrive import DRIVE_FILE_SCOPE
 
 REDIRECT_URI = "http://localhost:1"
+PENDING_FILENAME = "gdrive_auth_pending.json"
+
+
+def _pending_path():
+    # --auth-url で生成した PKCE code_verifier と state を --auth-code まで保持する。
+    return cfg.state_dir() / PENDING_FILENAME
 
 
 def _load_client_config() -> dict:
@@ -73,12 +80,12 @@ def _load_client_config() -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _build_flow() -> object:
+def _build_flow(**kwargs: object) -> object:
     from google_auth_oauthlib.flow import Flow
 
     client_config = _load_client_config()
     return Flow.from_client_config(
-        client_config, scopes=[DRIVE_FILE_SCOPE], redirect_uri=REDIRECT_URI
+        client_config, scopes=[DRIVE_FILE_SCOPE], redirect_uri=REDIRECT_URI, **kwargs
     )
 
 
@@ -93,7 +100,15 @@ def cmd_check() -> int:
 
 def cmd_auth_url() -> int:
     flow = _build_flow()
-    auth_url, _ = flow.authorization_url(access_type="offline", prompt="consent")
+    auth_url, state = flow.authorization_url(access_type="offline", prompt="consent")
+    pending = _pending_path()
+    pending.parent.mkdir(parents=True, exist_ok=True)
+    pending.touch(mode=0o600, exist_ok=True)
+    pending.chmod(0o600)
+    pending.write_text(
+        json.dumps({"state": state, "code_verifier": flow.code_verifier}),
+        encoding="utf-8",
+    )
     print(auth_url)
     print(
         "\nブラウザで上記 URL を開いて認可し、リダイレクト先の URL "
@@ -104,11 +119,21 @@ def cmd_auth_url() -> int:
 
 
 def cmd_auth_code(redirect_response: str) -> int:
-    flow = _build_flow()
+    pending = _pending_path()
+    if not pending.exists():
+        raise SystemExit("--auth-url を先に実行してください (PKCE 情報が見つかりません)")
+    saved = json.loads(pending.read_text(encoding="utf-8"))
+    # リダイレクト先は http://localhost:1 (到達しないループバック)。oauthlib は
+    # http を拒否するため、このプロセス内に限って許可する。
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+    flow = _build_flow(state=saved["state"], code_verifier=saved["code_verifier"])
     flow.fetch_token(authorization_response=redirect_response)
+    pending.unlink(missing_ok=True)
     creds = flow.credentials
     token_path = cfg.gdrive_token_path()
     token_path.parent.mkdir(parents=True, exist_ok=True)
+    token_path.touch(mode=0o600, exist_ok=True)
+    token_path.chmod(0o600)  # refresh_token を含むため
     token_path.write_text(creds.to_json(), encoding="utf-8")
     print(f"authorized. token saved to {token_path}")
     return 0

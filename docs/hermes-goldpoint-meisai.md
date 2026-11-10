@@ -73,24 +73,33 @@ goldpoint-meisai plugin は Gmail/Calendar 用の既存 token
    有効化されているため、追加で有効化が必要)。
 2. khali 上で `hermes` グループのユーザーとして認可 URL を発行する:
 
+   sudo の PATH の python には Google API ライブラリが無いため、hermes-agent の
+   PATH から googleapiclient を import できる python を探して使う:
+
    ```bash
-   sudo -u hermes env \
-     HERMES_HOME=/var/lib/hermes/.hermes \
-     GOLDPOINT_STATE_DIR=/var/lib/hermes-goldpoint \
-     python3 /var/lib/hermes/.hermes/plugins/nix-managed-hermes-goldpoint-plugin/gdrive_setup.py --auth-url
+   PY=$(for d in $(systemctl show hermes-agent -p Environment | tr ' ' '\n' \
+          | sed -n 's/^PATH=//p' | tr ':' '\n'); do
+          [ -x "$d/python3" ] && "$d/python3" -c 'import googleapiclient' 2>/dev/null \
+            && { echo "$d/python3"; break; }; done)
+   SETUP=/var/lib/hermes/.hermes/plugins/nix-managed-hermes-goldpoint-plugin/gdrive_setup.py
+   sudo -u hermes env HERMES_HOME=/var/lib/hermes/.hermes \
+     GOLDPOINT_STATE_DIR=/var/lib/hermes-goldpoint "$PY" "$SETUP" --auth-url
    ```
+
+   PKCE の code_verifier と state は `$GOLDPOINT_STATE_DIR/gdrive_auth_pending.json` (0600)
+   に保存され、次の `--auth-code` で使われる (成功後に削除)。
 
 3. 出力された URL をブラウザで開いて承認する。
 4. リダイレクト先の URL (ブラウザのアドレスバーに表示される、そのまま丸ごと) を使って
    認可コードを渡す:
 
    ```bash
-   sudo -u hermes env \
-     HERMES_HOME=/var/lib/hermes/.hermes \
-     GOLDPOINT_STATE_DIR=/var/lib/hermes-goldpoint \
-     python3 /var/lib/hermes/.hermes/plugins/nix-managed-hermes-goldpoint-plugin/gdrive_setup.py \
-       --auth-code '<リダイレクト先 URL をまるごと>'
+   sudo -u hermes env HERMES_HOME=/var/lib/hermes/.hermes \
+     GOLDPOINT_STATE_DIR=/var/lib/hermes-goldpoint "$PY" "$SETUP" \
+     --auth-code '<リダイレクト先 URL をまるごと>'
    ```
+
+   `--auth-url` を再実行すると code_verifier が更新されるので、URL とコードは同じ回のものを使う。
 
 5. `$GOLDPOINT_STATE_DIR/gdrive_token.json` が作成されれば完了
    (`--check` があれば状態確認に使う)。
