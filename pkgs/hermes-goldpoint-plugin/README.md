@@ -23,15 +23,24 @@ Hermes Agent プラグイン。GOLD POINT CARD+ (ヨドバシ) の利用明細 C
 | name | 役割 | 破壊性 |
 | --- | --- | --- |
 | `goldpoint_fetch_statement(seikyuym?)` | 指定請求月の明細 CSV を取得し保存 + Drive アップロード | CSV ファイル・Drive 上のファイルを上書き |
+| `goldpoint_fetch_missing_statements()` | サイトに表示される請求月のうちローカル未保存の月を全て取得し、Drive 未アップロードの CSV をまとめてアップロード | 既存の CSV は触らない (新規保存と未アップロード分の送信のみ) |
 
 `seikyuym` (YYYYMM, 6桁数字) を省略すると Asia/Tokyo の当月分になる
 (毎月10日に当月分が確定する運用前提)。
+
+`goldpoint_fetch_missing_statements` は 1 回のログインでセレクタの請求月を読み、
+`csv/` に無い月だけを取得する。CSV API が 200 + 空ボディを返す月 (未確定) は保存せず
+`skipped_not_ready` に入れ、次回に再試行する。アップロード済みのファイル名は
+`$GOLDPOINT_STATE_DIR/uploaded.txt` (1 行 1 件) に記録し、未記載の CSV だけを送る
+(Drive 失敗時は `upload_error` + `pending_upload` を返し、次回に再送)。
+戻り値: `fetched` / `skipped_not_ready` / `uploaded` / `pending_upload` / `drive_folder`。
+再取得は `csv/YYYY-MM.csv` を削除、再アップロードは `uploaded.txt` から該当行を削除する。
 
 ## 必要な環境変数
 
 | 変数 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- |
-| `GOLDPOINT_STATE_DIR` | no | `/var/lib/hermes-goldpoint` | CSV (`csv/YYYY-MM.csv`) と `gdrive_token.json` を置くルート |
+| `GOLDPOINT_STATE_DIR` | no | `/var/lib/hermes-goldpoint` | CSV (`csv/YYYY-MM.csv`)、アップロード済みマーカー (`uploaded.txt`)、`gdrive_token.json` を置くルート |
 | `GOLDPOINT_DRIVE_FOLDER` | no | `家計/goldpoint` | アップロード先の Drive フォルダパス (`/` 区切り、マイドライブ直下から) |
 | `GOLDPOINT_BW_ITEM_ID` | yes | — | ログイン ID / パスワードを保持する Bitwarden login item の UUID |
 | `HERMES_BW_PASSWORD_FILE` | yes | — | agent アカウントのマスターパスワードを書いたファイルのパス (agenix 経由で供給。`bw unlock --passwordfile` に渡す) |
@@ -144,5 +153,5 @@ hermes-goldpoint-plugin/
     ├── goldpoint.py      # ログイン → CSV fetch → ログアウト (サイト仕様の要約はここ)
     ├── gdrive.py         # Drive token 管理 + フォルダ確保 + アップロード
     ├── gdrive_setup.py   # 初回 Drive 認可 CLI (--check / --auth-url / --auth-code)
-    └── handlers.py       # goldpoint_fetch_statement ハンドラ
+    └── handlers.py       # goldpoint_fetch_statement / goldpoint_fetch_missing_statements ハンドラ
 ```

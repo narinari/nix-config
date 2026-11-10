@@ -81,6 +81,7 @@ def fetch_statement(
             content=csv_bytes,
             mimetype=CSV_MIMETYPE,
         )
+        _record_uploaded(saved_path.name)
     except gdrive.GDriveError as exc:
         return {
             "error": f"Drive upload failed: {exc}",
@@ -100,6 +101,123 @@ def fetch_statement(
         "bytes": len(csv_bytes),
         "rows": rows,
     }
+
+
+_CREDENTIALS_HINT = (
+    "GOLDPOINT_BW_ITEM_ID / HERMES_BW_PASSWORD_FILE の設定と、"
+    "hermes-bw-login (bw login 済み) の状態を確認してください"
+)
+_GDRIVE_HINT = "gdrive_setup.py --check / --auth-url を実行して認可してください"
+_CSV_FILENAME_PATTERN = re.compile(r"^(\d{4})-(\d{2})\.csv$")
+
+
+def fetch_missing_statements(**_: Any) -> dict[str, Any]:
+    """サイトに表示される請求月のうち未保存の月を全て取得し、未アップロード分を Drive へ送る。"""
+    try:
+        auth_key, password = _load_credentials()
+    except (bw.BwError, _MissingSecretConfig) as exc:
+        return {
+            "error": f"failed to load credentials: {exc}",
+            "hint": _CREDENTIALS_HINT,
+        }
+
+    existing = _local_seikyuym_set()
+    try:
+        results = goldpoint.fetch_statements_csv(
+            auth_key=auth_key,
+            password=password,
+            current_seikyuym=_current_seikyuym(),
+            wanted=lambda available: [m for m in available if m not in existing],
+        )
+    except goldpoint.GoldpointError as exc:
+        return {
+            "error": f"goldpoint statement fetch failed: {exc}",
+            "hint": "ログイン情報 / サイト側の仕様変更 / Chromium 起動失敗を確認してください",
+        }
+
+    fetched: list[str] = []
+    skipped: list[str] = []
+    for seikyuym in sorted(results):
+        content = results[seikyuym]
+        if content is None:
+            skipped.append(seikyuym)
+            continue
+        _save_csv(seikyuym, content)
+        fetched.append(seikyuym)
+
+    summary: dict[str, Any] = {
+        "fetched": fetched,
+        "skipped_not_ready": skipped,
+        "drive_folder": cfg.drive_folder(),
+    }
+    summary.update(_upload_pending())
+    return summary
+
+
+def _local_seikyuym_set() -> set[str]:
+    csv_dir = cfg.csv_dir()
+    if not csv_dir.is_dir():
+        return set()
+    months: set[str] = set()
+    for path in csv_dir.iterdir():
+        match = _CSV_FILENAME_PATTERN.match(path.name)
+        if match:
+            months.add(match.group(1) + match.group(2))
+    return months
+
+
+def _read_uploaded() -> set[str]:
+    path = cfg.uploaded_marker_path()
+    if not path.is_file():
+        return set()
+    return {line.strip() for line in path.read_text().splitlines() if line.strip()}
+
+
+def _record_uploaded(filename: str) -> None:
+    """アップロード済みマーカーに未記載のファイル名を追記する。"""
+    if filename in _read_uploaded():
+        return
+    path = cfg.uploaded_marker_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as fh:
+        fh.write(filename + "\n")
+
+
+def _pending_filenames() -> list[str]:
+    csv_dir = cfg.csv_dir()
+    if not csv_dir.is_dir():
+        return []
+    uploaded = _read_uploaded()
+    return sorted(
+        p.name
+        for p in csv_dir.iterdir()
+        if _CSV_FILENAME_PATTERN.match(p.name) and p.name not in uploaded
+    )
+
+
+def _upload_pending() -> dict[str, Any]:
+    """未アップロードの CSV を Drive へ送る。失敗時は upload_error を付けて残りを pending に残す。"""
+    pending = _pending_filenames()
+    uploaded: list[str] = []
+    result: dict[str, Any] = {"uploaded": uploaded, "pending_upload": pending}
+    if not pending:
+        return result
+    try:
+        folder_id = gdrive.ensure_folder_path(cfg.drive_folder())
+        for filename in list(pending):
+            gdrive.upload_or_replace(
+                folder_id=folder_id,
+                filename=filename,
+                content=(cfg.csv_dir() / filename).read_bytes(),
+                mimetype=CSV_MIMETYPE,
+            )
+            _record_uploaded(filename)
+            uploaded.append(filename)
+            pending.remove(filename)
+    except gdrive.GDriveError as exc:
+        result["upload_error"] = f"Drive upload failed: {exc}"
+        result["hint"] = _GDRIVE_HINT
+    return result
 
 
 def _load_credentials() -> tuple[str, str]:

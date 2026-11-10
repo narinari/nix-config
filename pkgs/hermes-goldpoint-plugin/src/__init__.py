@@ -5,6 +5,7 @@ Tools registered:
 | name                       | summary                                                |
 | -------------------------- | ------------------------------------------------------- |
 | goldpoint_fetch_statement  | GOLD POINT CARD+ の指定請求月の明細 CSV を取得し Drive に保存 |
+| goldpoint_fetch_missing_statements | 未取得の全請求月を取得し、未アップロード分を Drive に保存 |
 
 サイト仕様のリバースエンジニアリング詳細 (ログインフォームの bot 対策、
 CDP 経由のフォーム入力・CSV 取得手順など) は goldpoint.py の docstring を
@@ -83,6 +84,21 @@ _TOOL_SCHEMAS: list[dict[str, Any]] = [
             "additionalProperties": False,
         },
     },
+    {
+        "name": "goldpoint_fetch_missing_statements",
+        "description": (
+            "GOLD POINT CARD+ のサイトに表示されている請求月のうち、"
+            "$GOLDPOINT_STATE_DIR/csv/ にまだ保存していない月の明細 CSV をすべて取得して保存する。"
+            "未確定の月 (CSV が空) はスキップし、次回に再試行する。"
+            "Drive に未アップロードの CSV はまとめてアップロードする。"
+            "認証情報は Bitwarden から実行時に取得するため、パスワードを渡す必要はない。"
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": False,
+        },
+    },
 ]
 
 
@@ -100,6 +116,7 @@ def register(ctx) -> None:
 
     handler_map: dict[str, Callable[..., dict[str, Any]]] = {
         "goldpoint_fetch_statement": handlers.fetch_statement,
+        "goldpoint_fetch_missing_statements": handlers.fetch_missing_statements,
     }
 
     registered = 0

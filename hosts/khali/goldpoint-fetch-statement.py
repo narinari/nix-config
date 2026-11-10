@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""hermes cron --no-agent runner: handlers.fetch_statement() を直接呼ぶ。
+"""hermes cron --no-agent runner: handlers.fetch_missing_statements() を直接呼ぶ。
 
 hermes-goldpoint-seed.service が ~/.hermes/scripts/ にインストールし、
 `hermes cron create --no-agent --script` で毎月11日 09:00 JST に実行される
 (明細は毎月10日に確定する運用のため)。
+サイトに表示される請求月のうちローカル未保存の月を全て取得 (取りこぼしの追いつき) し、
+未確定の月 (CSV が空) はスキップして次回に回す。Drive 未アップロードの CSV
+(uploaded.txt に未記載) もまとめてアップロードする。
 
 daily-podcast-generate-all.py と同じ方針: プロンプトも呼ぶツールも固定の
 決定的なジョブなので、エージェント LLM の関与は無駄。このスクリプトは
@@ -52,9 +55,9 @@ def _load_handlers():
 def main() -> int:
     try:
         handlers = _load_handlers()
-        result = handlers.fetch_statement()
+        result = handlers.fetch_missing_statements()
     except Exception as exc:  # noqa: BLE001 - 配信サマリに載せて必ず可視化する
-        logging.getLogger(__name__).exception("fetch_statement crashed")
+        logging.getLogger(__name__).exception("fetch_missing_statements crashed")
         print(f"💳 goldpoint: クラッシュ — {type(exc).__name__}: {exc}")
         return 1
 
@@ -66,19 +69,35 @@ def main() -> int:
         print("\n".join(lines))
         return 1
 
-    seikyuym = result.get("seikyuym", "?")
-    rows = result.get("rows", "?")
-    drive_folder = result.get("drive_folder", "?")
-    drive_file = result.get("drive_file", "?")
-    saved_path = result.get("saved_path")
-
-    lines = [
-        f"💳 goldpoint: {seikyuym} 明細 {rows}行 を Drive {drive_folder}/{drive_file} にアップロードしました"
-    ]
-    if saved_path:
-        lines.append(f"   local: {saved_path}")
+    lines = _summary_lines(result)
+    upload_error = result.get("upload_error")
+    if upload_error:
+        lines.append(f"⚠️ goldpoint: {upload_error}")
+        hint = result.get("hint")
+        if hint:
+            lines.append(f"   hint: {hint}")
     print("\n".join(lines))
-    return 0
+    return 1 if upload_error else 0
+
+
+def _summary_lines(result: dict) -> list[str]:
+    fetched = result.get("fetched", [])
+    skipped = result.get("skipped_not_ready", [])
+    uploaded = result.get("uploaded", [])
+    pending = result.get("pending_upload", [])
+    if not (fetched or uploaded or pending):
+        return ["💳 goldpoint: 新しい明細はありません"]
+    folder = result.get("drive_folder", "?")
+    lines = ["💳 goldpoint: 明細を更新しました"]
+    if fetched:
+        lines.append(f"   取得: {', '.join(fetched)}")
+    if skipped:
+        lines.append(f"   未確定のためスキップ: {', '.join(skipped)}")
+    if uploaded:
+        lines.append(f"   Drive {folder} にアップロード: {', '.join(uploaded)}")
+    if pending:
+        lines.append(f"   未アップロード: {', '.join(pending)}")
+    return lines
 
 
 if __name__ == "__main__":

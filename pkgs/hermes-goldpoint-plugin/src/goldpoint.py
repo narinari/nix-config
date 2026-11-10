@@ -31,7 +31,8 @@
 - CSV は Shift_JIS (Windows-31J) / CRLF。1行目はカード名義ヘッダ。
   変換せず、そのままバイト列で保存する。
 - 請求月セレクタ `#vp-view-VC0502-003_RS0001_p01` に直近18ヶ月分の
-  YYYYMM が入っている (今回は使わず、呼び出し側が seikyuym を直接指定する)。
+  YYYYMM が入っている。fetch_statements_csv() がこの option 値から取得可能な月を
+  読む。未確定の月 (当月など) は CSV API が 200 + 空ボディを返す。
 - ログアウトは https://secure.goldpoint.co.jp/gpm/logout.html への遷移のみ。
 
 セキュリティ: password / CSV バイト列は、ここでは戻り値にも例外メッセージ
@@ -46,6 +47,8 @@ import asyncio
 import base64
 import json
 import logging
+import re
+from typing import Callable
 
 from . import cdp
 from . import human_input
@@ -62,6 +65,9 @@ CSV_API_URL_TMPL = (
     "web_meisai_csv_exec/v1?downloadKey=1&seikyuym={seikyuym}&sk=&downloadtype=csv&mk=1"
 )
 LOGOUT_URL = "https://secure.goldpoint.co.jp/gpm/logout.html"
+# 明細ページの請求月セレクタ (option 値が YYYYMM)。
+MONTH_SELECT_ID = "vp-view-VC0502-003_RS0001_p01"
+SEIKYUYM_VALUE_PATTERN = re.compile(r"^\d{6}$")
 
 LOGIN_FIELD_POLL_TIMEOUT_SECONDS = 15
 LOGIN_NAV_TIMEOUT_SECONDS = 20
@@ -102,14 +108,86 @@ async def _fetch_statement_csv_async(
 
         await session.goto(MEISAI_PAGE_URL_TMPL.format(seikyuym=seikyuym))
         csv_bytes = await _fetch_csv_via_page(session, seikyuym=seikyuym)
+        await _logout_best_effort(session)
 
-        # ログアウトはベストエフォート。失敗しても取得済み CSV は返す。
-        try:
-            await session.goto(LOGOUT_URL)
-        except cdp.CdpError:
-            logger.warning("goldpoint: logout navigation failed (non-fatal)")
-
+    if csv_bytes is None:
+        raise GoldpointError("CSV API returned no data")
     return csv_bytes
+
+
+def fetch_statements_csv(
+    *,
+    auth_key: str,
+    password: str,
+    current_seikyuym: str,
+    wanted: Callable[[list[str]], list[str]],
+) -> dict[str, bytes | None]:
+    """1 セッションで、取得可能な月のうち wanted() が選んだ月の CSV をまとめて取得する。
+
+    戻り値は seikyuym -> CSV バイト列。API が 200 + 空ボディ (未確定) の月は None。
+    """
+    return asyncio.run(
+        _fetch_statements_csv_async(
+            auth_key=auth_key,
+            password=password,
+            current_seikyuym=current_seikyuym,
+            wanted=wanted,
+        )
+    )
+
+
+async def _fetch_statements_csv_async(
+    *,
+    auth_key: str,
+    password: str,
+    current_seikyuym: str,
+    wanted: Callable[[list[str]], list[str]],
+) -> dict[str, bytes | None]:
+    results: dict[str, bytes | None] = {}
+    async with cdp.CdpSession() as session:
+        await session.goto(LOGIN_URL)
+        human = human_input.HumanInput(session)
+        await _fill_login_form(session, human, auth_key=auth_key, password=password)
+        await _submit_login(human)
+        await _wait_for_login_success(session)
+
+        await session.goto(MEISAI_PAGE_URL_TMPL.format(seikyuym=current_seikyuym))
+        available = await _read_available_months(session)
+        for seikyuym in wanted(available):
+            await session.goto(MEISAI_PAGE_URL_TMPL.format(seikyuym=seikyuym))
+            results[seikyuym] = await _fetch_csv_via_page(session, seikyuym=seikyuym)
+        await _logout_best_effort(session)
+    return results
+
+
+def parse_available_months(raw_values: list[object]) -> list[str]:
+    """セレクタの option 値から YYYYMM だけを残し、重複を除いて昇順に並べる。"""
+    valid = {v for v in raw_values if isinstance(v, str) and SEIKYUYM_VALUE_PATTERN.match(v)}
+    return sorted(valid)
+
+
+async def _read_available_months(session: cdp.CdpSession) -> list[str]:
+    expr = (
+        "(() => {"
+        f"const sel = document.getElementById({json.dumps(MONTH_SELECT_ID)});"
+        "return sel ? Array.from(sel.options).map(o => o.value) : null;"
+        "})()"
+    )
+    raw = await session.eval_js(expr)
+    months = parse_available_months(raw) if isinstance(raw, list) else []
+    if not months:
+        raise GoldpointError(
+            "statement month selector not found (site markup may have changed)"
+        )
+    return months
+
+
+async def _logout_best_effort(session: cdp.CdpSession) -> None:
+    # ログアウトはベストエフォート。失敗しても取得済み CSV は返す。
+    try:
+        await session.goto(LOGOUT_URL)
+    except cdp.CdpError:
+        logger.warning("goldpoint: logout navigation failed (non-fatal)")
 
 
 async def _fill_login_form(
@@ -186,7 +264,10 @@ async def _describe_login_failure(session: cdp.CdpSession) -> str:
     return str(value) if value else "page state unavailable"
 
 
-async def _fetch_csv_via_page(session: cdp.CdpSession, *, seikyuym: str) -> bytes:
+async def _fetch_csv_via_page(
+    session: cdp.CdpSession, *, seikyuym: str
+) -> bytes | None:
+    """CSV を取得する。200 + 空ボディ (未確定月) は None、非 200 は GoldpointError。"""
     url = CSV_API_URL_TMPL.format(seikyuym=seikyuym)
     result = await session.eval_js(_csv_fetch_js(url))
     if not isinstance(result, dict) or not result.get("ok"):
@@ -194,7 +275,7 @@ async def _fetch_csv_via_page(session: cdp.CdpSession, *, seikyuym: str) -> byte
         raise GoldpointError(f"CSV API request failed (status={status})")
     b64 = result.get("data_base64")
     if not isinstance(b64, str) or not b64:
-        raise GoldpointError("CSV API returned no data")
+        return None
     return base64.b64decode(b64)
 
 

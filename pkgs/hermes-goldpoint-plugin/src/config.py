@@ -47,6 +47,11 @@ def csv_dir() -> Path:
     return state_dir() / "csv"
 
 
+def uploaded_marker_path() -> Path:
+    """Drive アップロード済みファイル名 (1 行 1 件) を記録するマーカー。"""
+    return state_dir() / "uploaded.txt"
+
+
 def gdrive_token_path() -> Path:
     return state_dir() / "gdrive_token.json"
 

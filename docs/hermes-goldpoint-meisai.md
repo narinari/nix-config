@@ -28,6 +28,17 @@ Asia/Tokyo の当月 (明細は毎月10日に確定する運用前提)。
 (毎月11日 09:00 JST) で `hosts/khali/goldpoint-fetch-statement.py` を直接呼ぶ
 (daily-podcast と同じ方針、詳細は `hosts/khali/goldpoint-timer.nix`)。
 
+runner は `goldpoint_fetch_missing_statements` 相当を呼び、サイトの請求月セレクタに
+ある月のうち `csv/` に無い月を全て取得する (取りこぼしの追いつき)。未確定の月
+(CSV API が空ボディ) は保存せずスキップして次回に回す。Drive には `uploaded.txt`
+に載っていない CSV だけをアップロードする。新規が無ければ
+`新しい明細はありません` を出力する。Drive 失敗時は ⚠️ を出して exit 1、
+次回の実行で未アップロード分を再送する。
+
+- 特定月を再取得したい: `$GOLDPOINT_STATE_DIR/csv/YYYY-MM.csv` を削除する
+  (次回実行で再取得。Drive へも再アップロードしたいなら `uploaded.txt` の該当行も削除)。
+- Drive へ再アップロードしたい: `$GOLDPOINT_STATE_DIR/uploaded.txt` から該当ファイル名の行を削除する。
+
 ## 1. Bitwarden 側の準備
 
 エージェントアカウント・collection・agenix secret の共通セットアップは
