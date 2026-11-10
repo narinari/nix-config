@@ -15,12 +15,15 @@ ENV_STATE_DIR = "GOLDPOINT_STATE_DIR"
 ENV_DRIVE_FOLDER = "GOLDPOINT_DRIVE_FOLDER"
 ENV_BW_ITEM_ID = "GOLDPOINT_BW_ITEM_ID"
 ENV_CHROMIUM = "GOLDPOINT_CHROMIUM"
+ENV_XVFB = "GOLDPOINT_XVFB"
+ENV_HEADLESS = "GOLDPOINT_HEADLESS"
 ENV_BROWSER_FALLBACK = "AGENT_BROWSER_EXECUTABLE_PATH"
 ENV_HERMES_HOME = "HERMES_HOME"
 
 DEFAULT_STATE_DIR = "/var/lib/hermes-goldpoint"
 DEFAULT_DRIVE_FOLDER = "家計/goldpoint"
 DEFAULT_CHROMIUM_BINARY = "chromium"
+DEFAULT_XVFB_BINARY = "Xvfb"
 DEFAULT_HERMES_HOME = "~/.hermes"
 
 
@@ -68,6 +71,15 @@ def chromium_binary() -> str:
         if value:
             return value
     return DEFAULT_CHROMIUM_BINARY
+
+
+def xvfb_binary() -> str:
+    return os.environ.get(ENV_XVFB, "").strip() or DEFAULT_XVFB_BINARY
+
+
+def headless() -> bool:
+    """既定は headed (Xvfb 上)。GOLDPOINT_HEADLESS=1 で headless に戻す (デバッグ用)。"""
+    return os.environ.get(ENV_HEADLESS, "").strip().lower() in ("1", "true", "yes")
 
 
 def bw_item_id() -> str | None:

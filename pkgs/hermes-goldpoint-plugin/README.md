@@ -3,7 +3,7 @@
 Hermes Agent プラグイン。GOLD POINT CARD+ (ヨドバシ) の利用明細 CSV を
 毎月自動取得し、Google Drive の `家計/goldpoint/YYYY-MM.csv` にアップロード
 する。ログインフォームは JS による bot 対策 (hidden→text 書き換え、乱数
-トークン埋め込み) があり HTTP 直叩きでは再現できないため、headless Chromium
+トークン埋め込み) があり HTTP 直叩きでは再現できないため、Xvfb 上の headed Chromium
 + CDP (`websockets`) で実ブラウザ相当のフォーム入力を行う。
 
 ## 設計方針
@@ -35,7 +35,9 @@ Hermes Agent プラグイン。GOLD POINT CARD+ (ヨドバシ) の利用明細 C
 | `GOLDPOINT_DRIVE_FOLDER` | no | `家計/goldpoint` | アップロード先の Drive フォルダパス (`/` 区切り、マイドライブ直下から) |
 | `GOLDPOINT_BW_ITEM_ID` | yes | — | ログイン ID / パスワードを保持する Bitwarden login item の UUID |
 | `HERMES_BW_PASSWORD_FILE` | yes | — | agent アカウントのマスターパスワードを書いたファイルのパス (agenix 経由で供給。`bw unlock --passwordfile` に渡す) |
-| `GOLDPOINT_CHROMIUM` | no | `AGENT_BROWSER_EXECUTABLE_PATH` → `chromium` | headless Chromium バイナリの明示指定 |
+| `GOLDPOINT_CHROMIUM` | no | `AGENT_BROWSER_EXECUTABLE_PATH` → `chromium` | Chromium バイナリの明示指定 |
+| `GOLDPOINT_XVFB` | no | `Xvfb` | 仮想ディスプレイ (Xvfb) バイナリ |
+| `GOLDPOINT_HEADLESS` | no | (未設定 = headed) | `1` で headless 起動 (デバッグ用。サイトに拒否される) |
 | `HERMES_HOME` | no | `~/.hermes` | `google_client_secret.json` の置き場所 (google-workspace skill と共用) |
 
 ## セットアップ手順
@@ -117,8 +119,9 @@ journalctl -u hermes-agent -f | grep -i goldpoint
 | 症状 | 原因の見当 |
 | --- | --- |
 | `failed to load credentials` | `GOLDPOINT_BW_ITEM_ID` / `HERMES_BW_PASSWORD_FILE` の未設定、`bw` バイナリが PATH に無い、または `bw is not logged in` (`hermes-bw-login` oneshot を実行) |
-| `login failed: did not reach membertop.html` | ログイン ID/パスワードの誤り、またはサイト側フォーム仕様の変更。パスワード自体はエラーメッセージに含まれない |
+| `login failed: did not reach membertop.html` | 末尾の `[パス title= errors=]` で切り分ける。`title=Access Denied` はボット判定 (headless 起動になっていないか確認)、エラー表示ありは ID/パスワードの誤り。パスワード自体はエラーメッセージに含まれない |
 | `failed to fill login form` | サイトの bot 対策 JS (`authenticateDO.authKey` の type 書き換え) がタイムアウト内に完了しなかった、またはページ構造が変わった |
+| `virtual display failed` | `Xvfb` が PATH に無い (`pkgs.xvfb` を extraPackages に追加)、または起動に失敗した |
 | `chromium binary not found` | `GOLDPOINT_CHROMIUM` / `AGENT_BROWSER_EXECUTABLE_PATH` が指す実行ファイルが存在しない |
 | `CSV API request failed (status=...)` | セッション切れ、または請求月 (`seikyuym`) がまだ確定していない (毎月10日頃まで前月分しか無いことがある) |
 | `gdrive token not found` / `Drive upload failed` | `gdrive_setup.py --auth-url` / `--auth-code` を実行して初回認可を完了させる |
@@ -134,7 +137,8 @@ hermes-goldpoint-plugin/
     ├── __init__.py       # register(ctx) + _safe_handler + tool schema
     ├── config.py         # env 読み (GOLDPOINT_STATE_DIR 等)
     ├── bw.py             # bw (Password Manager CLI) で login item を取得するラッパー
-    ├── cdp.py            # headless Chromium 起動 + CDP (websockets) クライアント
+    ├── cdp.py            # Chromium 起動 + CDP (websockets) クライアント
+    ├── xvfb.py           # 仮想ディスプレイ (Xvfb) の起動・停止
     ├── goldpoint.py      # ログイン → CSV fetch → ログアウト (サイト仕様の要約はここ)
     ├── gdrive.py         # Drive token 管理 + フォルダ確保 + アップロード
     ├── gdrive_setup.py   # 初回 Drive 認可 CLI (--check / --auth-url / --auth-code)

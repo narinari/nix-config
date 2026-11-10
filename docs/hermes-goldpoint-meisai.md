@@ -12,7 +12,7 @@ khali の Hermes Agent に、GOLD POINT CARD+ (ヨドバシカメラのクレジ
    アイテムの正本は narinari の vault (Families org の collection `hermes-agent`) で、
    複製はしない。基盤は `hosts/khali/hermes-bitwarden.nix` と
    [hermes-credential-vault.md](hermes-credential-vault.md) を参照。
-2. **ログイン**: headless Chromium を起動し、CDP (Chrome DevTools Protocol) 経由で
+2. **ログイン**: Xvfb (仮想ディスプレイ) 上で headed Chromium を起動し、CDP (Chrome DevTools Protocol) 経由で
    GOLD POINT CARD+ のログインフォームを自動入力・送信する
    (bot 対策の hidden→text 切り替えを poll、ページ内 JS 実行のみで完結)。
 3. **CSV取得**: ログイン後、明細ページを開いてから同一セッションの `fetch()` で
@@ -120,12 +120,13 @@ goldpoint-meisai plugin は Gmail/Calendar 用の既存 token
 
 ## 制限事項 / トラブルシュート
 
-- **headless=new でのログイン失敗**: サイトの bot 対策 (ID欄が type=hidden → text へ
-  JS で切り替わる) は headed CDP (画面ありの Chromium) では突破できているが、
-  `--headless=new` では未検証/失敗する可能性が残る。ログイン失敗
-  (`membertop.html` へ遷移しなかった) が続く場合は、`GOLDPOINT_CHROMIUM` env を
-  Xvfb 等でラップした headed 起動用スクリプトに差し替えることを検討する
-  (`AGENT_BROWSER_EXECUTABLE_PATH` と同じ仕組みで上書き可能)。
+- **headless は使えない (2026-11-10 確認)**: headless Chromium だとサイト (Akamai) が
+  ログインページの取得を保留し (UA の HeadlessChrome)、UA を変えてもログイン POST に
+  `Access Denied` を返す。そのため既定で Xvfb 上の headed 起動にしている
+  (`pkgs.xvfb` を extraPackages に追加済み)。`GOLDPOINT_HEADLESS=1` で headless に戻せるが、
+  デバッグ用。
+- **ログイン失敗の切り分け**: エラー末尾の `[<パス> title=<タイトル> errors=<エラー表示>]` を見る。
+  `title=Access Denied` ならボット判定、ログインページのままでエラー表示があれば入力値の問題。
 - **Drive token 未認可エラー**: `goldpoint_fetch_statement` が
   `{"error": "...", "hint": "gdrive_setup.py を実行してください"}` のような戻り値を
   返した場合は、本ドキュメントの「3. Google Drive 初回認可」を再実行する。

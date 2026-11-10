@@ -1,4 +1,4 @@
-"""Chromium (headless=new) を CDP 経由で操作する薄いクライアント。
+"""Chromium (既定は Xvfb 上の headed) を CDP 経由で操作する薄いクライアント。
 
 サイト仕様上の制約 (詳細は goldpoint.py の docstring を参照): GOLD POINT
 CARD+ のログインフォームは JS が動的に input の type を書き換えたり隠し
@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 import shutil
 import subprocess
@@ -28,6 +29,7 @@ from pathlib import Path
 from typing import Any
 
 from . import config as cfg
+from . import xvfb
 
 logger = logging.getLogger(__name__)
 
@@ -74,12 +76,18 @@ def _user_agent(binary: str) -> str:
 
 
 class ChromiumProcess:
-    """headless Chromium プロセスと user-data-dir のライフサイクル管理。"""
+    """Chromium プロセス・user-data-dir・(headed 時の) Xvfb のライフサイクル管理。
+
+    既定は Xvfb 上の headed 起動。サイトが headless のログイン POST を
+    "Access Denied" で拒否するため (2026-11-10 確認)。
+    """
 
     def __init__(self, binary: str | None = None) -> None:
         self._binary = binary or cfg.chromium_binary()
+        self._headless = cfg.headless()
         self._proc: subprocess.Popen | None = None
         self._user_data_dir: Path | None = None
+        self._display: xvfb.VirtualDisplay | None = None
 
     def start(self) -> str:
         """Chromium を起動し、page target の webSocketDebuggerUrl を返す。
@@ -90,19 +98,14 @@ class ChromiumProcess:
         """
         resolved = shutil.which(self._binary) or self._binary
         self._user_data_dir = Path(tempfile.mkdtemp(prefix="goldpoint-chromium-"))
-        args = [
-            resolved,
-            "--headless=new",
-            "--remote-debugging-port=0",
-            f"--user-data-dir={self._user_data_dir}",
-            "--no-first-run",
-            "--disable-gpu",
-            f"--user-agent={_user_agent(resolved)}",
-        ]
         try:
+            args, env = self._launch_spec(resolved)
             self._proc = subprocess.Popen(
-                args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                args, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
             )
+        except xvfb.XvfbError as exc:
+            self.stop()
+            raise CdpError(f"virtual display failed: {exc}") from exc
         except FileNotFoundError as exc:
             self.stop()
             raise CdpError(f"chromium binary not found: {self._binary}") from exc
@@ -113,6 +116,28 @@ class ChromiumProcess:
         except CdpError:
             self.stop()
             raise
+
+    def _launch_spec(self, resolved: str) -> tuple[list[str], dict[str, str]]:
+        """起動引数と env を返す。headed なら Xvfb を起動して DISPLAY を渡す。"""
+        args = [
+            resolved,
+            "--remote-debugging-port=0",
+            f"--user-data-dir={self._user_data_dir}",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--disable-gpu",
+            "--window-size=1366,768",
+        ]
+        env = dict(os.environ)
+        if self._headless:
+            # headless の既定 UA は HeadlessChrome を含み、ページ取得すら保留される。
+            args += ["--headless=new", f"--user-agent={_user_agent(resolved)}"]
+            return args, env
+        self._display = xvfb.VirtualDisplay(cfg.xvfb_binary())
+        env["DISPLAY"] = self._display.start()
+        env.pop("WAYLAND_DISPLAY", None)
+        args.append("--ozone-platform=x11")
+        return args, env
 
     def _wait_for_devtools_port(self) -> int:
         assert self._user_data_dir is not None
@@ -157,6 +182,9 @@ class ChromiumProcess:
         if self._user_data_dir is not None:
             shutil.rmtree(self._user_data_dir, ignore_errors=True)
             self._user_data_dir = None
+        if self._display is not None:
+            self._display.stop()
+            self._display = None
 
 
 class CdpConnection:

@@ -11,9 +11,9 @@
 - パスワード欄 `#authenticateDO\\.password` (type=password)。
 - 送信は `#loginButton` (input type=image) の click()。
 - hidden に乱数16進名トークン2つ + serializedBase64 があり、サイトの JS が
-  埋める。HTTP直叩きでの再現は不可 — 実ブラウザ (headless Chromium + CDP) で
-  フォーム入力する必要がある (headless=new で成功実績はまだ無く、headed CDP
-  では成功済み)。
+  埋める。HTTP直叩きでの再現は不可 — 実ブラウザ (Chromium + CDP) で
+  フォーム入力する必要がある。headless はログイン POST が "Access Denied" に
+  なるため (2026-11-10 確認)、Xvfb 上の headed で起動する (cdp.py / xvfb.py)。
 - 値の入力は JS で: el.value = <json文字列>; input/change イベントを
   dispatchEvent する。
 - ログイン成功時は https://secure.goldpoint.co.jp/gpm/membertop.html に遷移する。

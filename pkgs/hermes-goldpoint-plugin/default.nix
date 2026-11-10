@@ -1,7 +1,7 @@
 # Hermes Agent plugin: goldpoint-meisai
 #
 # GOLD POINT CARD+ (ヨドバシ) の利用明細CSVを毎月自動取得し、Google Drive の
-# 家計/goldpoint/YYYY-MM.csv にアップロードする。ログインは headless Chromium +
+# 家計/goldpoint/YYYY-MM.csv にアップロードする。ログインは Xvfb 上の headed Chromium +
 # CDP (websockets) で実ブラウザ相当のフォーム入力を行い、認証情報は Bitwarden
 # Password Manager (bw CLI) から実行時に取得する (モデルには渡らない)。
 #

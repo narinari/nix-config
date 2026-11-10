@@ -342,6 +342,10 @@ in
       # 起動する yt-dlp。`ytsearch{N}:{query} --dump-json --skip-download` で
       # 検索結果の metadata を抜くだけで、動画本体はダウンロードしない。
       pkgs.yt-dlp
+
+      # goldpoint-meisai plugin: サイトが headless Chromium のログインを
+      # "Access Denied" で拒否するため、Chromium を Xvfb 上で headed 起動する。
+      pkgs.xvfb
     ];
 
     extraPlugins = [
