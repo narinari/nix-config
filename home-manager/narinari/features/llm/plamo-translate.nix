@@ -4,6 +4,7 @@
 #   構成なので nvidia-offload 経由で起動し、アイドル時はモデルを解放して VRAM を空ける
 # - plamo-html: 英語混じりの HTML を日本語化する CLI (pkgs/plamo-html)
 # - plamo-translate-html: 上記を呼ぶ Claude Code Skill
+# - plamo-ja-v2: Claude Code の応答を訳して表示する Skill (gist からのコピー)
 #
 # 詳細は docs/plamo-translate.md。
 {
@@ -43,6 +44,12 @@ let
   '';
 
   skillFile = ./claude/skills/plamo-translate-html/SKILL.md;
+
+  # Claude Code の応答を PLaMo で訳して表示する MessageDisplay フック Skill。
+  # 出典: https://gist.github.com/kat0h/61951d19c606374aa1dd901b0303cc6c (kat0h)。
+  # 無改変コピーで、リビジョンなどは同ディレクトリの SOURCE.md を参照。
+  # フックが $HOME/.claude/skills/plamo-ja-v2/SKILL.md を直接読むので、このパスに置く必要がある
+  plamoJaSkillFile = ./claude/skills/plamo-ja-v2/SKILL.md;
 in
 {
   home.packages = [ plamoHtml ];
@@ -81,5 +88,10 @@ in
     run mkdir -p "$skill_dir"
     run cp -f "${skillFile}" "$skill_dir/SKILL.md"
     run chmod 644 "$skill_dir/SKILL.md"
+
+    plamo_ja_dir="$HOME/.claude/skills/plamo-ja-v2"
+    run mkdir -p "$plamo_ja_dir"
+    run cp -f "${plamoJaSkillFile}" "$plamo_ja_dir/SKILL.md"
+    run chmod 644 "$plamo_ja_dir/SKILL.md"
   '';
 }

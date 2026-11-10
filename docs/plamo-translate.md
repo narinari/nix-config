@@ -7,6 +7,9 @@ khali の RTX 2080 で [PLaMo 3 Translate 8B](https://huggingface.co/pfnet/plamo
 | サーバー `plamo-llama-server` (user service) | `home-manager/narinari/features/llm/plamo-translate.nix` |
 | CLI `plamo-html` | `pkgs/plamo-html/` (オプションは同ディレクトリの README) |
 | Skill `plamo-translate-html` | `home-manager/narinari/features/llm/claude/skills/plamo-translate-html/` |
+| Skill `plamo-ja-v2` (Claude Code の応答を訳して表示) | `home-manager/narinari/features/llm/claude/skills/plamo-ja-v2/` (gist からのコピー、出典は `SOURCE.md`) |
+
+`plamo-ja-v2` は `/plamo-ja-v2 [on|off|reset]` で使う。Claude に英語で書かせ、`MessageDisplay` フックが表示だけを日本語にする。settings.json の `language = "japanese"` と指示が衝突するので、効き方は実際に試して確認する。
 
 ## サーバー設定
 
