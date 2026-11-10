@@ -21,7 +21,6 @@ import os
 import re
 import shutil
 import subprocess
-import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -81,10 +80,8 @@ def _user_agent(binary: str) -> str:
     return USER_AGENT_TEMPLATE.format(major=match.group(1))
 
 
-def _prepare_profile_dir(persistent: Path | None) -> Path:
-    """永続プロファイルなら 0700 で用意、なければ一時ディレクトリを作る。"""
-    if persistent is None:
-        return Path(tempfile.mkdtemp(prefix="goldpoint-chromium-"))
+def _prepare_profile_dir(persistent: Path) -> Path:
+    """永続プロファイルを 0700 で用意し、前回の残りファイルを消す。"""
     persistent.mkdir(mode=0o700, parents=True, exist_ok=True)
     persistent.chmod(0o700)
     # 前回の実行が残したポート番号やロックを読むと古いポートに繋いでしまうため消す。
@@ -96,8 +93,8 @@ def _prepare_profile_dir(persistent: Path | None) -> Path:
 class ChromiumProcess:
     """Chromium プロセス・user-data-dir・(headed 時の) Xvfb のライフサイクル管理。
 
-    既定は Xvfb 上の headed 起動。サイトが headless のログイン POST を
-    "Access Denied" で拒否するため (2026-11-10 確認)。
+    既定は headless (通常 Chrome 相当の UA)。GOLDPOINT_HEADED=1 で Xvfb 上の headed。
+    ログインの検出対策は human_input.py / 起動フラグ / 永続プロファイルで行う。
     """
 
     def __init__(self, binary: str | None = None) -> None:
@@ -106,9 +103,8 @@ class ChromiumProcess:
         self._proc: subprocess.Popen | None = None
         self._user_data_dir: Path | None = None
         self._display: xvfb.VirtualDisplay | None = None
-        # サイト (Akamai) の信頼 cookie (_abck 等) を引き継ぐため headed では
-        # プロファイルを使い回す。headless (デバッグ用) は従来どおり使い捨て。
-        self._persistent_profile = None if self._headless else cfg.chromium_profile_dir()
+        # サイト (Akamai) の信頼 cookie (_abck 等) を引き継ぐためプロファイルを使い回す。
+        self._profile_dir = cfg.chromium_profile_dir()
 
     def start(self) -> str:
         """Chromium を起動し、page target の webSocketDebuggerUrl を返す。
@@ -118,7 +114,7 @@ class ChromiumProcess:
         後始末する。
         """
         resolved = shutil.which(self._binary) or self._binary
-        self._user_data_dir = _prepare_profile_dir(self._persistent_profile)
+        self._user_data_dir = _prepare_profile_dir(self._profile_dir)
         try:
             args, env = self._launch_spec(resolved)
             self._proc = subprocess.Popen(
@@ -202,10 +198,7 @@ class ChromiumProcess:
             except subprocess.TimeoutExpired:
                 self._proc.kill()
         self._proc = None
-        # 使い捨てプロファイルはログイン cookie を残さないよう必ず削除する。
-        # 永続プロファイル (0700, hermes 専用) は残す (ログアウトは呼び出し側)。
-        if self._user_data_dir is not None and self._persistent_profile is None:
-            shutil.rmtree(self._user_data_dir, ignore_errors=True)
+        # 永続プロファイル (0700, hermes 専用) は残す。ログアウトは呼び出し側。
         self._user_data_dir = None
         if self._display is not None:
             self._display.stop()

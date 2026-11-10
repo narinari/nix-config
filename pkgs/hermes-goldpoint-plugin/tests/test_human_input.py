@@ -100,23 +100,11 @@ def test_persistent_profile_clears_stale_port_and_locks(tmp_path):
     assert (target / "Cookies").read_text() == "keep"
 
 
-def test_persistent_profile_survives_stop(monkeypatch, tmp_path):
-    monkeypatch.delenv("GOLDPOINT_HEADLESS", raising=False)
+def test_profile_survives_stop(monkeypatch, tmp_path):
     monkeypatch.setenv("GOLDPOINT_CHROMIUM_PROFILE", str(tmp_path / "profile"))
     proc = cdp.ChromiumProcess("chromium")
-    proc._user_data_dir = cdp._prepare_profile_dir(proc._persistent_profile)
+    proc._user_data_dir = cdp._prepare_profile_dir(proc._profile_dir)
 
     proc.stop()
 
     assert (tmp_path / "profile").is_dir()
-
-
-def test_ephemeral_profile_removed_on_stop(monkeypatch):
-    monkeypatch.setenv("GOLDPOINT_HEADLESS", "1")
-    proc = cdp.ChromiumProcess("chromium")
-    proc._user_data_dir = cdp._prepare_profile_dir(proc._persistent_profile)
-    created = proc._user_data_dir
-
-    proc.stop()
-
-    assert not created.exists()

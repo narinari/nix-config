@@ -12,8 +12,9 @@
 - 送信は `#loginButton` (input type=image) の click()。
 - hidden に乱数16進名トークン2つ + serializedBase64 があり、サイトの JS が
   埋める。HTTP直叩きでの再現は不可 — 実ブラウザ (Chromium + CDP) で
-  フォーム入力する必要がある。headless はログイン POST が "Access Denied" に
-  なるため (2026-11-10 確認)、Xvfb 上の headed で起動する (cdp.py / xvfb.py)。
+  フォーム入力する必要がある。JS での値代入による送信は headless / headed とも
+  "Access Denied" になる (2026-11-10 確認)。既定は headless で、検出対策は下記と
+  cdp.py (起動フラグ・永続プロファイル) を参照。GOLDPOINT_HEADED=1 で Xvfb 上の headed。
 - 値の入力は CDP Input ドメインの実イベントで行う (human_input.py)。JS での value 代入は
   Akamai に Access Denied にされる (2026-11-10 確認)。旧方式: el.value 代入 + input/change を
   dispatchEvent する。

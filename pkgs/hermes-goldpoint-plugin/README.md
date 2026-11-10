@@ -3,7 +3,7 @@
 Hermes Agent プラグイン。GOLD POINT CARD+ (ヨドバシ) の利用明細 CSV を
 毎月自動取得し、Google Drive の `家計/goldpoint/YYYY-MM.csv` にアップロード
 する。ログインフォームは JS による bot 対策 (hidden→text 書き換え、乱数
-トークン埋め込み) があり HTTP 直叩きでは再現できないため、Xvfb 上の headed Chromium
+トークン埋め込み) があり HTTP 直叩きでは再現できないため、headless Chromium
 + CDP (`websockets`) で実ブラウザ相当のフォーム入力を行う。
 
 ## 設計方針
@@ -36,9 +36,9 @@ Hermes Agent プラグイン。GOLD POINT CARD+ (ヨドバシ) の利用明細 C
 | `GOLDPOINT_BW_ITEM_ID` | yes | — | ログイン ID / パスワードを保持する Bitwarden login item の UUID |
 | `HERMES_BW_PASSWORD_FILE` | yes | — | agent アカウントのマスターパスワードを書いたファイルのパス (agenix 経由で供給。`bw unlock --passwordfile` に渡す) |
 | `GOLDPOINT_CHROMIUM` | no | `AGENT_BROWSER_EXECUTABLE_PATH` → `chromium` | Chromium バイナリの明示指定 |
-| `GOLDPOINT_XVFB` | no | `Xvfb` | 仮想ディスプレイ (Xvfb) バイナリ |
-| `GOLDPOINT_CHROMIUM_PROFILE` | no | `$GOLDPOINT_STATE_DIR/chromium-profile` | headed 起動で使い回す Chromium プロファイル (0700)。サイトの信頼 cookie を引き継ぐ。ログイン cookie も残るので hermes 専用に保つ |
-| `GOLDPOINT_HEADLESS` | no | (未設定 = headed) | `1` で headless 起動 (デバッグ用。サイトに拒否される) |
+| `GOLDPOINT_XVFB` | no | `Xvfb` | 仮想ディスプレイ (Xvfb) バイナリ (headed 時のみ使用) |
+| `GOLDPOINT_CHROMIUM_PROFILE` | no | `$GOLDPOINT_STATE_DIR/chromium-profile` | 使い回す Chromium プロファイル (0700)。サイトの信頼 cookie を引き継ぐ。ログイン cookie も残るので hermes 専用に保つ |
+| `GOLDPOINT_HEADED` | no | (未設定 = headless) | `1` で Xvfb 上の headed 起動 (headless が拒否されたときの退避用) |
 | `HERMES_HOME` | no | `~/.hermes` | `google_client_secret.json` の置き場所 (google-workspace skill と共用) |
 
 ## セットアップ手順

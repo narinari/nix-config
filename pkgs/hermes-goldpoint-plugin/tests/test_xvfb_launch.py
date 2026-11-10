@@ -35,7 +35,7 @@ def test_missing_xvfb_binary_raises():
 
 
 def test_headed_launch_uses_virtual_display(monkeypatch, tmp_path):
-    monkeypatch.delenv("GOLDPOINT_HEADLESS", raising=False)
+    monkeypatch.setenv("GOLDPOINT_HEADED", "1")
     monkeypatch.setenv("WAYLAND_DISPLAY", "wayland-1")
     monkeypatch.setattr(xvfb.VirtualDisplay, "start", lambda self: ":42")
     proc = cdp.ChromiumProcess("chromium")
@@ -49,8 +49,8 @@ def test_headed_launch_uses_virtual_display(monkeypatch, tmp_path):
     assert "--ozone-platform=x11" in args
 
 
-def test_headless_launch_skips_xvfb(monkeypatch, tmp_path):
-    monkeypatch.setenv("GOLDPOINT_HEADLESS", "1")
+def test_headless_is_default_and_skips_xvfb(monkeypatch, tmp_path):
+    monkeypatch.delenv("GOLDPOINT_HEADED", raising=False)
     monkeypatch.setattr(cdp, "_user_agent", lambda binary: "UA")
 
     def fail_start(self):

@@ -12,7 +12,7 @@ khali の Hermes Agent に、GOLD POINT CARD+ (ヨドバシカメラのクレジ
    アイテムの正本は narinari の vault (Families org の collection `hermes-agent`) で、
    複製はしない。基盤は `hosts/khali/hermes-bitwarden.nix` と
    [hermes-credential-vault.md](hermes-credential-vault.md) を参照。
-2. **ログイン**: Xvfb (仮想ディスプレイ) 上で headed Chromium を起動し、CDP (Chrome DevTools Protocol) 経由で
+2. **ログイン**: headless Chromium (退避用に Xvfb 上の headed も可) を起動し、CDP (Chrome DevTools Protocol) 経由で
    GOLD POINT CARD+ のログインフォームを自動入力・送信する
    (bot 対策の hidden→text 切り替えを poll、ページ内 JS 実行のみで完結)。
 3. **CSV取得**: ログイン後、明細ページを開いてから同一セッションの `fetch()` で
@@ -120,12 +120,12 @@ goldpoint-meisai plugin は Gmail/Calendar 用の既存 token
 
 ## 制限事項 / トラブルシュート
 
-- **headless は使えない (2026-11-10 確認)**: headless Chromium だとサイト (Akamai) が
-  ログインページの取得を保留し (UA の HeadlessChrome)、UA を変えてもログイン POST に
-  `Access Denied` を返す。そのため既定で Xvfb 上の headed 起動にしている
-  (`pkgs.xvfb` を extraPackages に追加済み)。`GOLDPOINT_HEADLESS=1` で headless に戻せるが、
-  デバッグ用。
-- **自動操作の痕跡対策 (2026-11-10)**: 画面ありでも JS で値を代入する送信は `Access Denied` になった。
+- **headless と headed**: 既定は headless で、UA は通常 Chrome 相当に差し替える
+  (既定の HeadlessChrome UA だとページ取得自体が保留される)。下記の痕跡対策なしでは
+  headless も headed もログイン POST が `Access Denied` だった (2026-11-10)。
+  headless で弾かれる場合は `GOLDPOINT_HEADED=1` で Xvfb 上の headed に切り替えられる
+  (`pkgs.xvfb` は extraPackages に入っている)。
+- **自動操作の痕跡対策 (2026-11-10)**: JS で値を代入する送信は `Access Denied` になる。
   そのため次の対策を入れている。いずれもサイト側の検出更新で再び壊れうる。
   - CDP Input ドメインの実イベントによるクリック・タイプ (`human_input.py`、ランダム間隔)
   - `--disable-blink-features=AutomationControlled`
