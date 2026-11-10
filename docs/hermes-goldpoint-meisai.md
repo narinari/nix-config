@@ -125,6 +125,12 @@ goldpoint-meisai plugin は Gmail/Calendar 用の既存 token
   `Access Denied` を返す。そのため既定で Xvfb 上の headed 起動にしている
   (`pkgs.xvfb` を extraPackages に追加済み)。`GOLDPOINT_HEADLESS=1` で headless に戻せるが、
   デバッグ用。
+- **自動操作の痕跡対策 (2026-11-10)**: 画面ありでも JS で値を代入する送信は `Access Denied` になった。
+  そのため次の対策を入れている。いずれもサイト側の検出更新で再び壊れうる。
+  - CDP Input ドメインの実イベントによるクリック・タイプ (`human_input.py`、ランダム間隔)
+  - `--disable-blink-features=AutomationControlled`
+  - 入力前に 4〜7 秒滞在する
+  - プロファイル `$GOLDPOINT_STATE_DIR/chromium-profile` (0700) を使い回し、Akamai cookie を引き継ぐ
 - **ログイン失敗の切り分け**: エラー末尾の `[<パス> title=<タイトル> errors=<エラー表示>]` を見る。
   `title=Access Denied` ならボット判定、ログインページのままでエラー表示があれば入力値の問題。
 - **Drive token 未認可エラー**: `goldpoint_fetch_statement` が

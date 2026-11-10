@@ -14,7 +14,8 @@
   埋める。HTTP直叩きでの再現は不可 — 実ブラウザ (Chromium + CDP) で
   フォーム入力する必要がある。headless はログイン POST が "Access Denied" に
   なるため (2026-11-10 確認)、Xvfb 上の headed で起動する (cdp.py / xvfb.py)。
-- 値の入力は JS で: el.value = <json文字列>; input/change イベントを
+- 値の入力は CDP Input ドメインの実イベントで行う (human_input.py)。JS での value 代入は
+  Akamai に Access Denied にされる (2026-11-10 確認)。旧方式: el.value 代入 + input/change を
   dispatchEvent する。
 - ログイン成功時は https://secure.goldpoint.co.jp/gpm/membertop.html に遷移する。
 - 明細ページ: https://secure.goldpoint.co.jp/memx/web_meisai/top/index.html?p01=YYYYMM
@@ -46,6 +47,7 @@ import json
 import logging
 
 from . import cdp
+from . import human_input
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +65,10 @@ LOGOUT_URL = "https://secure.goldpoint.co.jp/gpm/logout.html"
 LOGIN_FIELD_POLL_TIMEOUT_SECONDS = 15
 LOGIN_NAV_TIMEOUT_SECONDS = 20
 LOGIN_FAILURE_TEXT_LIMIT = 300  # 診断用エラー文言の最大長
+# ボット対策 JS がページ上の計測を送り終えるまで、入力前に滞在する時間。
+LOGIN_DWELL_RANGE_SECONDS = (4.0, 7.0)
+# 欄の移動やボタンを押す前の「考える」間。
+FIELD_GAP_RANGE_SECONDS = (0.6, 1.4)
 # 大きい CSV でも `String.fromCharCode.apply` が引数過多で落ちないための chunk 単位。
 CSV_FETCH_CHUNK_SIZE = 0x8000
 
@@ -88,8 +94,9 @@ async def _fetch_statement_csv_async(
 ) -> bytes:
     async with cdp.CdpSession() as session:
         await session.goto(LOGIN_URL)
-        await _fill_login_form(session, auth_key=auth_key, password=password)
-        await _submit_login(session)
+        human = human_input.HumanInput(session)
+        await _fill_login_form(session, human, auth_key=auth_key, password=password)
+        await _submit_login(human)
         await _wait_for_login_success(session)
 
         await session.goto(MEISAI_PAGE_URL_TMPL.format(seikyuym=seikyuym))
@@ -105,7 +112,11 @@ async def _fetch_statement_csv_async(
 
 
 async def _fill_login_form(
-    session: cdp.CdpSession, *, auth_key: str, password: str
+    session: cdp.CdpSession,
+    human: human_input.HumanInput,
+    *,
+    auth_key: str,
+    password: str,
 ) -> None:
     # bot 対策: authKey 欄は type=hidden で始まり、サイト JS が type=text に
     # 書き換えるまで待つ必要がある (offsetWidth>0 で「表示された」を判定)。
@@ -117,9 +128,14 @@ async def _fill_login_form(
     )
     try:
         await session.poll_js(ready_expr, timeout=LOGIN_FIELD_POLL_TIMEOUT_SECONDS)
-        await session.eval_js(_set_value_js("authenticateDO.authKey", auth_key))
-        await session.eval_js(_set_value_js("authenticateDO.password", password))
-    except cdp.CdpError:
+        await human.pause(*LOGIN_DWELL_RANGE_SECONDS)
+        await human.click_element("authenticateDO.authKey")
+        await human.type_text(auth_key)
+        await human.pause(*FIELD_GAP_RANGE_SECONDS)
+        await human.click_element("authenticateDO.password")
+        await human.type_text(password)
+        await human.pause(*FIELD_GAP_RANGE_SECONDS)
+    except (cdp.CdpError, human_input.InputError):
         # exceptionDetails.text に入力値の一部が混入するリスクがあるため、
         # 元例外の文字列は伝播させず汎用メッセージに変換する。
         raise GoldpointError(
@@ -127,8 +143,11 @@ async def _fill_login_form(
         ) from None
 
 
-async def _submit_login(session: cdp.CdpSession) -> None:
-    await session.eval_js("document.getElementById('loginButton').click(); true")
+async def _submit_login(human: human_input.HumanInput) -> None:
+    try:
+        await human.click_element("loginButton")
+    except (cdp.CdpError, human_input.InputError):
+        raise GoldpointError("failed to click login button") from None
 
 
 async def _wait_for_login_success(session: cdp.CdpSession) -> None:
@@ -176,19 +195,6 @@ async def _fetch_csv_via_page(session: cdp.CdpSession, *, seikyuym: str) -> byte
     if not isinstance(b64, str) or not b64:
         raise GoldpointError("CSV API returned no data")
     return base64.b64decode(b64)
-
-
-def _set_value_js(element_id: str, value: str) -> str:
-    """value 代入 + input/change イベント発火 (サイト JS のバリデーションが拾えるように)。"""
-    return (
-        "(() => {"
-        f"const el = document.getElementById({json.dumps(element_id)});"
-        f"el.value = {json.dumps(value)};"
-        "el.dispatchEvent(new Event('input', {bubbles: true}));"
-        "el.dispatchEvent(new Event('change', {bubbles: true}));"
-        "return true;"
-        "})()"
-    )
 
 
 def _csv_fetch_js(url: str) -> str:

@@ -17,6 +17,7 @@ ENV_BW_ITEM_ID = "GOLDPOINT_BW_ITEM_ID"
 ENV_CHROMIUM = "GOLDPOINT_CHROMIUM"
 ENV_XVFB = "GOLDPOINT_XVFB"
 ENV_HEADLESS = "GOLDPOINT_HEADLESS"
+ENV_CHROMIUM_PROFILE = "GOLDPOINT_CHROMIUM_PROFILE"
 ENV_BROWSER_FALLBACK = "AGENT_BROWSER_EXECUTABLE_PATH"
 ENV_HERMES_HOME = "HERMES_HOME"
 
@@ -80,6 +81,12 @@ def xvfb_binary() -> str:
 def headless() -> bool:
     """既定は headed (Xvfb 上)。GOLDPOINT_HEADLESS=1 で headless に戻す (デバッグ用)。"""
     return os.environ.get(ENV_HEADLESS, "").strip().lower() in ("1", "true", "yes")
+
+
+def chromium_profile_dir() -> Path:
+    """headed 起動で使い回す Chromium プロファイル (既定: <state_dir>/chromium-profile)。"""
+    raw = os.environ.get(ENV_CHROMIUM_PROFILE, "").strip()
+    return Path(raw) if raw else state_dir() / "chromium-profile"
 
 
 def bw_item_id() -> str | None:

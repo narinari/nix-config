@@ -75,6 +75,15 @@ def _user_agent(binary: str) -> str:
     return USER_AGENT_TEMPLATE.format(major=match.group(1))
 
 
+def _prepare_profile_dir(persistent: Path | None) -> Path:
+    """永続プロファイルなら 0700 で用意、なければ一時ディレクトリを作る。"""
+    if persistent is None:
+        return Path(tempfile.mkdtemp(prefix="goldpoint-chromium-"))
+    persistent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    persistent.chmod(0o700)
+    return persistent
+
+
 class ChromiumProcess:
     """Chromium プロセス・user-data-dir・(headed 時の) Xvfb のライフサイクル管理。
 
@@ -88,6 +97,9 @@ class ChromiumProcess:
         self._proc: subprocess.Popen | None = None
         self._user_data_dir: Path | None = None
         self._display: xvfb.VirtualDisplay | None = None
+        # サイト (Akamai) の信頼 cookie (_abck 等) を引き継ぐため headed では
+        # プロファイルを使い回す。headless (デバッグ用) は従来どおり使い捨て。
+        self._persistent_profile = None if self._headless else cfg.chromium_profile_dir()
 
     def start(self) -> str:
         """Chromium を起動し、page target の webSocketDebuggerUrl を返す。
@@ -97,7 +109,7 @@ class ChromiumProcess:
         後始末する。
         """
         resolved = shutil.which(self._binary) or self._binary
-        self._user_data_dir = Path(tempfile.mkdtemp(prefix="goldpoint-chromium-"))
+        self._user_data_dir = _prepare_profile_dir(self._persistent_profile)
         try:
             args, env = self._launch_spec(resolved)
             self._proc = subprocess.Popen(
@@ -127,6 +139,10 @@ class ChromiumProcess:
             "--no-default-browser-check",
             "--disable-gpu",
             "--window-size=1366,768",
+            # navigator.webdriver を立てない (自動操作フラグ)。
+            "--disable-blink-features=AutomationControlled",
+            "--lang=ja-JP",
+            "--password-store=basic",
         ]
         env = dict(os.environ)
         if self._headless:
@@ -177,18 +193,18 @@ class ChromiumProcess:
             except subprocess.TimeoutExpired:
                 self._proc.kill()
         self._proc = None
-        # user-data-dir にはログインセッションの cookie が残るため、
-        # プロセス終了後は必ず削除する (成功・失敗パスの両方から呼ばれる)。
-        if self._user_data_dir is not None:
+        # 使い捨てプロファイルはログイン cookie を残さないよう必ず削除する。
+        # 永続プロファイル (0700, hermes 専用) は残す (ログアウトは呼び出し側)。
+        if self._user_data_dir is not None and self._persistent_profile is None:
             shutil.rmtree(self._user_data_dir, ignore_errors=True)
-            self._user_data_dir = None
+        self._user_data_dir = None
         if self._display is not None:
             self._display.stop()
             self._display = None
 
 
 class CdpConnection:
-    """1 tab に対する CDP JSON-RPC 接続 (Runtime.evaluate 専用)。"""
+    """1 tab に対する CDP JSON-RPC 接続。"""
 
     def __init__(self, ws_url: str) -> None:
         self._ws_url = ws_url
@@ -213,26 +229,25 @@ class CdpConnection:
 
     async def evaluate(self, expression: str) -> Any:
         """Runtime.evaluate を returnByValue+awaitPromise で実行し value を返す。"""
-        if self._ws is None:
-            raise CdpError("not connected")
-        request_id = self._next_id
-        self._next_id += 1
-        payload = {
-            "id": request_id,
-            "method": "Runtime.evaluate",
-            "params": {
-                "expression": expression,
-                "returnByValue": True,
-                "awaitPromise": True,
-            },
-        }
-        await self._ws.send(json.dumps(payload))
-        result = await self._recv_matching(request_id)
+        result = await self.send(
+            "Runtime.evaluate",
+            {"expression": expression, "returnByValue": True, "awaitPromise": True},
+        )
         exception_details = result.get("exceptionDetails")
         if exception_details:
             text = exception_details.get("text", "evaluation error")
             raise CdpError(f"Runtime.evaluate failed: {text}")
         return result.get("result", {}).get("value")
+
+    async def send(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+        """任意の CDP メソッドを呼び result を返す (Input.* 等)。"""
+        if self._ws is None:
+            raise CdpError("not connected")
+        request_id = self._next_id
+        self._next_id += 1
+        payload = {"id": request_id, "method": method, "params": params}
+        await self._ws.send(json.dumps(payload))
+        return await self._recv_matching(request_id)
 
     async def _recv_matching(self, request_id: int) -> dict[str, Any]:
         deadline = time.monotonic() + CDP_WS_RESPONSE_TIMEOUT_SECONDS
@@ -280,6 +295,10 @@ class CdpSession:
     async def eval_js(self, expression: str) -> Any:
         assert self._conn is not None
         return await self._conn.evaluate(expression)
+
+    async def send(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+        assert self._conn is not None
+        return await self._conn.send(method, params)
 
     async def goto(
         self, url: str, *, timeout: float = NAVIGATION_POLL_TIMEOUT_SECONDS

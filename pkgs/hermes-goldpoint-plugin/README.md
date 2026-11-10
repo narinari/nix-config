@@ -37,6 +37,7 @@ Hermes Agent プラグイン。GOLD POINT CARD+ (ヨドバシ) の利用明細 C
 | `HERMES_BW_PASSWORD_FILE` | yes | — | agent アカウントのマスターパスワードを書いたファイルのパス (agenix 経由で供給。`bw unlock --passwordfile` に渡す) |
 | `GOLDPOINT_CHROMIUM` | no | `AGENT_BROWSER_EXECUTABLE_PATH` → `chromium` | Chromium バイナリの明示指定 |
 | `GOLDPOINT_XVFB` | no | `Xvfb` | 仮想ディスプレイ (Xvfb) バイナリ |
+| `GOLDPOINT_CHROMIUM_PROFILE` | no | `$GOLDPOINT_STATE_DIR/chromium-profile` | headed 起動で使い回す Chromium プロファイル (0700)。サイトの信頼 cookie を引き継ぐ。ログイン cookie も残るので hermes 専用に保つ |
 | `GOLDPOINT_HEADLESS` | no | (未設定 = headed) | `1` で headless 起動 (デバッグ用。サイトに拒否される) |
 | `HERMES_HOME` | no | `~/.hermes` | `google_client_secret.json` の置き場所 (google-workspace skill と共用) |
 
@@ -139,6 +140,7 @@ hermes-goldpoint-plugin/
     ├── bw.py             # bw (Password Manager CLI) で login item を取得するラッパー
     ├── cdp.py            # Chromium 起動 + CDP (websockets) クライアント
     ├── xvfb.py           # 仮想ディスプレイ (Xvfb) の起動・停止
+    ├── human_input.py    # CDP Input による人間らしいクリック・キー入力
     ├── goldpoint.py      # ログイン → CSV fetch → ログアウト (サイト仕様の要約はここ)
     ├── gdrive.py         # Drive token 管理 + フォルダ確保 + アップロード
     ├── gdrive_setup.py   # 初回 Drive 認可 CLI (--check / --auth-url / --auth-code)
