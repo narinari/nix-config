@@ -43,6 +43,12 @@ CDP_WS_RESPONSE_TIMEOUT_SECONDS = 30
 NAVIGATION_POLL_TIMEOUT_SECONDS = 20
 NAVIGATION_POLL_INTERVAL_SECONDS = 0.2
 CHROMIUM_VERSION_TIMEOUT_SECONDS = 10
+STALE_PROFILE_FILES = (
+    "DevToolsActivePort",
+    "SingletonLock",
+    "SingletonSocket",
+    "SingletonCookie",
+)
 # headless Chromium の既定 UA は "HeadlessChrome/<ver>" を含み、GOLD POINT CARD+
 # (Akamai) はこれを検出すると応答を返さず接続を保留し続ける。ユーザー本人の委任操作
 # なので、通常の Chrome と同じ UA を名乗る。
@@ -81,6 +87,9 @@ def _prepare_profile_dir(persistent: Path | None) -> Path:
         return Path(tempfile.mkdtemp(prefix="goldpoint-chromium-"))
     persistent.mkdir(mode=0o700, parents=True, exist_ok=True)
     persistent.chmod(0o700)
+    # 前回の実行が残したポート番号やロックを読むと古いポートに繋いでしまうため消す。
+    for name in STALE_PROFILE_FILES:
+        (persistent / name).unlink(missing_ok=True)
     return persistent
 
 

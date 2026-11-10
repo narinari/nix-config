@@ -87,6 +87,19 @@ def test_persistent_profile_dir_is_private(tmp_path):
     assert stat.S_IMODE(target.stat().st_mode) == 0o700
 
 
+def test_persistent_profile_clears_stale_port_and_locks(tmp_path):
+    target = tmp_path / "profile"
+    target.mkdir()
+    for name in cdp.STALE_PROFILE_FILES:
+        (target / name).write_text("stale")
+    (target / "Cookies").write_text("keep")
+
+    cdp._prepare_profile_dir(target)
+
+    assert not any((target / n).exists() for n in cdp.STALE_PROFILE_FILES)
+    assert (target / "Cookies").read_text() == "keep"
+
+
 def test_persistent_profile_survives_stop(monkeypatch, tmp_path):
     monkeypatch.delenv("GOLDPOINT_HEADLESS", raising=False)
     monkeypatch.setenv("GOLDPOINT_CHROMIUM_PROFILE", str(tmp_path / "profile"))
