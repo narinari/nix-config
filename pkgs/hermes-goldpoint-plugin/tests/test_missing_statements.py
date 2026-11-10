@@ -105,3 +105,8 @@ def test_nothing_new(env):
 def test_parse_available_months_filters_dedupes_sorts():
     raw = ["202610", "", "abc", "202608", "202610", None, "20260", 202609]
     assert goldpoint.parse_available_months(raw) == ["202608", "202610"]
+
+
+def test_gdrive_hint_distinguishes_forbidden():
+    assert "Drive API" in handlers._gdrive_hint("Drive API error (HttpError, status=403)")
+    assert "gdrive_setup.py" in handlers._gdrive_hint("gdrive token not found")

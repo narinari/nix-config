@@ -108,6 +108,14 @@ _CREDENTIALS_HINT = (
     "hermes-bw-login (bw login 済み) の状態を確認してください"
 )
 _GDRIVE_HINT = "gdrive_setup.py --check / --auth-url を実行して認可してください"
+_GDRIVE_FORBIDDEN_HINT = (
+    "GCP プロジェクトで Google Drive API が有効か、OAuth クライアントの権限を確認してください"
+)
+
+
+def _gdrive_hint(message: str) -> str:
+    """403 (API 無効・権限不足) と認可不足でヒントを分ける。"""
+    return _GDRIVE_FORBIDDEN_HINT if "status=403" in message else _GDRIVE_HINT
 _CSV_FILENAME_PATTERN = re.compile(r"^(\d{4})-(\d{2})\.csv$")
 
 
@@ -216,7 +224,7 @@ def _upload_pending() -> dict[str, Any]:
             pending.remove(filename)
     except gdrive.GDriveError as exc:
         result["upload_error"] = f"Drive upload failed: {exc}"
-        result["hint"] = _GDRIVE_HINT
+        result["hint"] = _gdrive_hint(str(exc))
     return result
 
 
