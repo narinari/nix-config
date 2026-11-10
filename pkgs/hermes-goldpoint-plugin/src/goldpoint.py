@@ -251,8 +251,10 @@ async def _fill_login_form(
     except (cdp.CdpError, human_input.InputError):
         # exceptionDetails.text に入力値の一部が混入するリスクがあるため、
         # 元例外の文字列は伝播させず汎用メッセージに変換する。
+        # 代わりに、入力値を読まない診断 (パス・タイトル・エラー表示) を付ける。
+        where = await _describe_login_failure(session)
         raise GoldpointError(
-            "failed to fill login form (site markup may have changed)"
+            f"failed to fill login form (site markup may have changed) [{where}]"
         ) from None
 
 
