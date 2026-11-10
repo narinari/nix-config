@@ -69,7 +69,11 @@ in
         echo "[hermes-bw-login] already logged in; skipping"
         exit 0
       fi
-      ${bw} login --apikey --nointeraction
+      # 環境によっては login が解錠まで行い、BW_SESSION を stdout に出す。
+      # journal に残さないよう出力は捨て、念のため直後に lock して鍵を無効化する。
+      ${bw} login --apikey --nointeraction >/dev/null
+      ${bw} lock --nointeraction >/dev/null
+      echo "[hermes-bw-login] logged in"
     '';
   };
 }

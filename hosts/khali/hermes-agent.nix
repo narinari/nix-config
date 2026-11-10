@@ -432,7 +432,7 @@ in
       # Bitwarden の collection `hermes-agent` にあるアイテムから bw.py が実行時に取得する
       # (bw CLI とマスターパスワードファイルは hermes-bitwarden.nix が供給)。
       # アイテム ID は `bw list items --search goldpoint | jq -r '.[].id'` で確認。
-      GOLDPOINT_BW_ITEM_ID = "TODO-set-after-bitwarden-setup";
+      GOLDPOINT_BW_ITEM_ID = "190e484d-415b-4f47-8a7b-aa890067493d"; # Bitwarden アイテム "yodobashi.com"
       GOLDPOINT_STATE_DIR = "/var/lib/hermes-goldpoint"; # CSV 保存先 + gdrive_token.json
       GOLDPOINT_DRIVE_FOLDER = "家計/goldpoint"; # アップロード先 Google Drive フォルダ (マイドライブ直下から相対)
     };
