@@ -280,16 +280,19 @@ async def _wait_for_login_success(session: cdp.CdpSession) -> None:
 
 
 async def _describe_login_failure(session: cdp.CdpSession) -> str:
-    """失敗時の診断: 現在のパスとエラー表示らしき要素の文言だけを返す。
+    """失敗時の診断: パス・タイトル・ID 欄の状態 (type/表示幅)・エラー表示の文言。
 
-    入力欄の値は読まない (エラー表示要素の innerText のみ、長さも制限する)。
+    入力欄の値は読まない (ID 欄は type と offsetWidth のみ、エラー表示は innerText を長さ制限)。
     """
     expr = (
         "(() => {"
         "const errs = Array.from(document.querySelectorAll("
         "'[class*=error], [class*=Error], [id*=error], [id*=Error], .alert'))"
         ".map(e => (e.innerText || '').trim()).filter(t => t).join(' / ');"
+        "const k = document.getElementById('authenticateDO.authKey');"
+        "const field = k ? (k.type + '/' + k.offsetWidth) : 'none';"
         "return location.pathname + ' title=' + document.title"
+        " + ' authKey=' + field"
         f" + ' errors=' + errs.slice(0, {LOGIN_FAILURE_TEXT_LIMIT});"
         "})()"
     )
